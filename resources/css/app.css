@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Native controls + UA follow class-based theme */
+html.dark {
+    color-scheme: dark;
+}
+html:not(.dark) {
+    color-scheme: light;
+}
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ * AL-DAWY — "Fresh & Crisp" + comfortable light + class-based dark mode.
+ */
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-brand: #16a34a;
+    --color-brand-dark: #14532d;
+    --color-brand-light: #4ade80;
+
+    --color-accent: #f97316;
+    --color-accent-light: #fdba74;
+
+    /* Softer than pure white — easier on eyes */
+    --color-surface: #f1f5f9;
+    --color-canvas: #f8fafc;
+
+    --color-harvest: #fef08a;
+
+    --color-success: #10b981;
+    --color-danger: #ef4444;
+
+    --color-aldawy-border: #e2e8f0;
+}
+
+/* Light hero wash */
+.aldawy-hero-bg {
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-canvas) 50%, rgb(220 252 231 / 0.45) 100%);
+}
+
+.dark .aldawy-hero-bg {
+    background: linear-gradient(180deg, rgb(15 23 42) 0%, rgb(2 6 23) 55%, rgb(6 78 59 / 0.25) 100%);
+}
+
+/* Site-wide subtle produce photo (storefront + auth pages) */
+.aldawy-site-bg {
+    background-color: var(--color-canvas);
+    background-image: linear-gradient(
+            180deg,
+            rgb(248 250 252 / 0.94) 0%,
+            rgb(241 245 249 / 0.9) 45%,
+            rgb(220 252 231 / 0.35) 100%
+        ),
+        url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=2000&q=75');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.dark .aldawy-site-bg {
+    background-image: linear-gradient(180deg, rgb(2 6 23 / 0.94) 0%, rgb(15 23 42 / 0.9) 50%, rgb(6 78 59 / 0.2) 100%),
+        url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=2000&q=75');
+}
+
+/* Category catalog heroes — photo + readable overlay (Fruits / Vegetables) */
+.aldawy-category-hero {
+    position: relative;
+    isolation: isolate;
+    background-color: rgb(15 23 42);
+    background-size: cover;
+    background-position: center;
+    border-bottom-width: 1px;
+    border-color: rgb(226 232 240);
+}
+
+.dark .aldawy-category-hero {
+    border-color: rgb(30 41 59);
+}
+
+.aldawy-category-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+        180deg,
+        rgb(15 23 42 / 0.55) 0%,
+        rgb(15 23 42 / 0.72) 45%,
+        rgb(2 6 23 / 0.88) 100%
+    );
+}
+
+.aldawy-category-hero--fruits {
+    background-image: url('https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?auto=format&fit=crop&w=2000&q=80');
+}
+
+.aldawy-category-hero--vegetables {
+    background-image: url('https://images.unsplash.com/photo-1540420773420-ce336c2c339b?auto=format&fit=crop&w=2000&q=80');
+}
+
+.aldawy-category-hero > .aldawy-category-hero-inner {
+    position: relative;
+    z-index: 1;
+}
+
+/* Mobile nav drawer: chevron on open <details> */
+details.group[open] summary svg {
+    transform: rotate(180deg);
+}
+
