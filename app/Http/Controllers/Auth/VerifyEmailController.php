@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+final class VerifyEmailController extends Controller
+{
+    public function notice(Request $request): View|RedirectResponse
+    {
+        if ($request->user()?->hasVerifiedEmail()) {
+            return redirect()->intended(url('/my'));
+        }
+
+        return view('auth.verify-email');
+    }
+
+    public function send(Request $request): RedirectResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(url('/my'));
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', __('aldawy.verification_link_sent'));
+    }
+
+    public function verify(EmailVerificationRequest $request): RedirectResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(url('/my').'?verified=1');
+        }
+
+        if ($request->user()->markEmailAsVerified()) {
+            event(new Verified($request->user()));
+        }
+
+        return redirect()->intended(url('/my').'?verified=1');
+    }
+}
