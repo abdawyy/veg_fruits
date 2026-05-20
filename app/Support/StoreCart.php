@@ -37,6 +37,11 @@ final class StoreCart
         return count(self::lines());
     }
 
+    public static function hasDroppedLines(): bool
+    {
+        return self::lineCount() > self::resolved()->count();
+    }
+
     /**
      * @param  list<int>  $preparationServiceIds
      */

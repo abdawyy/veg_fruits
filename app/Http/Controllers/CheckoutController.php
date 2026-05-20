@@ -16,7 +16,14 @@ final class CheckoutController extends Controller
 {
     public function store(Request $request, CreateOrderAction $createOrder): RedirectResponse
     {
+        if ($request->session()->get('checkout_in_flight')) {
+            return redirect()
+                ->route('store.cart')
+                ->withErrors(['cart' => __('aldawy.checkout_duplicate_or_expired')]);
+        }
+
         $data = $request->validate([
+            'checkout_nonce' => ['required', 'string', 'size:40'],
             'city_id' => ['required', 'integer', 'exists:cities,id'],
             'shipping_address_line1' => ['required', 'string', 'max:255'],
             'shipping_address_line2' => ['nullable', 'string', 'max:255'],
@@ -25,6 +32,17 @@ final class CheckoutController extends Controller
             'customer_email' => ['nullable', 'string', 'lowercase', 'email', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $sessionNonce = $request->session()->pull('checkout_nonce');
+        if (
+            ! is_string($sessionNonce)
+            || ! hash_equals($sessionNonce, $data['checkout_nonce'])
+        ) {
+            return redirect()
+                ->route('store.cart')
+                ->withErrors(['cart' => __('aldawy.checkout_duplicate_or_expired')])
+                ->withInput();
+        }
 
         $city = City::query()->whereKey((int) $data['city_id'])->where('is_active', true)->first();
         if ($city === null) {
@@ -40,6 +58,14 @@ final class CheckoutController extends Controller
                 ->route('store.cart')
                 ->withErrors(['cart' => __('aldawy.checkout_cart_empty')]);
         }
+
+        if (StoreCart::hasDroppedLines()) {
+            return redirect()
+                ->route('store.cart')
+                ->withErrors(['cart' => __('aldawy.checkout_cart_changed')]);
+        }
+
+        $request->session()->put('checkout_in_flight', true);
 
         $draftLines = [];
         foreach ($rows as $row) {
@@ -86,7 +112,12 @@ final class CheckoutController extends Controller
             notes: $data['notes'] ?? null,
         );
 
-        $order = $createOrder->execute($payload);
+        try {
+            $order = $createOrder->execute($payload);
+        } finally {
+            $request->session()->forget('checkout_in_flight');
+        }
+
         StoreCart::clear();
 
         $request->session()->put('checkout_order_id', $order->id);

@@ -8,10 +8,11 @@ use App\Events\OrderCreated;
 use App\Models\User;
 use App\Notifications\AdminNewOrderNotification;
 use App\Notifications\OrderConfirmationNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
-final class OnOrderCreatedGenerateInvoiceAndNotify
+final class OnOrderCreatedGenerateInvoiceAndNotify implements ShouldQueue
 {
     public function __construct(
         private readonly GenerateInvoicePdfAction $invoicePdf,

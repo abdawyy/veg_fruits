@@ -11,14 +11,6 @@ final class CartAjaxAddTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver not available in this PHP build.');
-        }
-        parent::setUp();
-    }
-
     public function test_add_to_cart_json_returns_line_count(): void
     {
         $category = Category::query()->create([

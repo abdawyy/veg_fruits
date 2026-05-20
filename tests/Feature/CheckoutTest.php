@@ -6,8 +6,10 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\Product;
 use App\Models\User;
+use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Notifications\AdminNewOrderNotification;
 use App\Notifications\OrderConfirmationNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -15,14 +17,6 @@ use Tests\TestCase;
 final class CheckoutTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver not available in this PHP build.');
-        }
-        parent::setUp();
-    }
 
     public function test_guest_can_checkout_and_notifications_fire(): void
     {
@@ -62,7 +56,13 @@ final class CheckoutTest extends TestCase
             'kg' => 1,
         ])->assertRedirect();
 
+        $this->get(route('store.cart'))->assertOk();
+        $nonce = session('checkout_nonce');
+        $this->assertIsString($nonce);
+        $this->assertSame(40, strlen($nonce));
+
         $this->post(route('store.checkout.store'), [
+            'checkout_nonce' => $nonce,
             'city_id' => $city->id,
             'shipping_address_line1' => '12 Nile Street',
             'shipping_address_line2' => 'Floor 3',
@@ -84,5 +84,10 @@ final class CheckoutTest extends TestCase
 
         Notification::assertSentOnDemand(OrderConfirmationNotification::class);
         Notification::assertSentTo($admin, AdminNewOrderNotification::class);
+
+        $this->assertContains(
+            ShouldQueue::class,
+            class_implements(OnOrderCreatedGenerateInvoiceAndNotify::class),
+        );
     }
 }

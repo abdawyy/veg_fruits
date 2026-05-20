@@ -8,14 +8,20 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 final class CartController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $rows = StoreCart::resolved();
         $subtotal = StoreCart::subtotal();
         $cities = City::query()->forStorefront()->get();
+
+        if ($rows->isNotEmpty()) {
+            $request->session()->put('checkout_nonce', Str::random(40));
+        }
 
         return view('store.cart', compact('rows', 'subtotal', 'cities'));
     }
@@ -23,7 +29,11 @@ final class CartController extends Controller
     public function add(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
-            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'product_id' => [
+                'required',
+                'integer',
+                Rule::exists('products', 'id')->where(fn ($q) => $q->where('is_active', true)),
+            ],
             'kg' => ['required', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],

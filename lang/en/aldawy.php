@@ -2,7 +2,6 @@
 
 return [
     'tagline' => 'Fresh fruits & vegetables, delivered.',
-    'storefront_coming' => 'Cart & checkout arrive in the next iteration — catalog is live below.',
     'admin_portal' => 'Admin',
     'price_notice' => 'Please note: Produce prices are subject to change and are updated on a monthly basis.',
     'badge_fresh' => 'Farm-fresh daily',
@@ -51,7 +50,7 @@ return [
     'login_title' => 'Welcome back',
     'login_sub' => 'Sign in with your email to continue shopping.',
     'register_title' => 'Create an account',
-    'register_sub' => 'Save your details for faster checkout (coming soon).',
+    'register_sub' => 'Save your details for faster checkout and order history in My account.',
     'register_submit' => 'Create account',
     'registered' => 'Account created. You are now signed in.',
     'email' => 'Email',
@@ -116,6 +115,9 @@ return [
     'checkout_summary' => 'Order total',
     'checkout_cod' => 'Payment: cash on delivery when your order arrives.',
     'checkout_cart_empty' => 'Your cart is empty. Add products before checkout.',
+    'checkout_cart_changed' => 'Some items in your cart are no longer available. Review your cart and try again.',
+    'checkout_duplicate_or_expired' => 'This checkout session has already been submitted or expired. Refresh the cart page to place a new order.',
+    'cart_product_unavailable' => 'That product is not available right now.',
     'checkout_thanks_title' => 'Thank you — order received',
     'checkout_thanks_sub' => 'Your reference is :ref. We emailed you a confirmation with an invoice link when possible.',
     'checkout_thanks_email' => 'Check your inbox (and spam) for the confirmation email.',

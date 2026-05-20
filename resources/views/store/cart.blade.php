@@ -128,8 +128,9 @@
                     <div class="rounded-2xl border border-slate-200 bg-white/90 p-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
                         <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ __('aldawy.checkout_title') }}</h2>
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.checkout_sub') }}</p>
-                        <form method="post" action="{{ route('store.checkout.store') }}" class="mt-6 space-y-4">
+                        <form id="aldawy-checkout-form" method="post" action="{{ route('store.checkout.store') }}" class="mt-6 space-y-4">
                             @csrf
+                            <input type="hidden" name="checkout_nonce" value="{{ session('checkout_nonce') }}">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="city_id">{{ __('aldawy.checkout_city') }}</label>
                                 <select
@@ -180,10 +181,21 @@
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="notes">{{ __('aldawy.checkout_notes') }}</label>
                                 <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">{{ old('notes') }}</textarea>
                             </div>
-                            <button type="submit" class="w-full rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark">
+                            <button id="aldawy-checkout-submit" type="submit" class="w-full rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60">
                                 {{ __('aldawy.checkout_submit') }}
                             </button>
                         </form>
+                        <script>
+                            (function () {
+                                var form = document.getElementById('aldawy-checkout-form');
+                                var btn = document.getElementById('aldawy-checkout-submit');
+                                if (!form || !btn) return;
+                                form.addEventListener('submit', function () {
+                                    btn.disabled = true;
+                                    btn.setAttribute('aria-disabled', 'true');
+                                });
+                            })();
+                        </script>
                     </div>
                     <div class="rounded-2xl border border-slate-200 bg-white/85 p-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/85">
                         <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ __('aldawy.checkout_summary') }}</h2>
