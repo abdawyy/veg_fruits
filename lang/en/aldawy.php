@@ -28,6 +28,8 @@ return [
     'shop_subtitle' => 'Fruits and vegetables in English & Arabic — update prices anytime from Filament.',
     'items' => 'items',
     'per_kg' => 'kg',
+    'per_piece' => 'piece',
+    'cart_unit' => 'Unit',
     'or_piece' => 'or :p per piece',
     'piece_price' => 'Piece: :price',
 
@@ -215,4 +217,36 @@ return [
     'checkout_guest_login' => 'Sign in',
 
     'product_estimate_label' => 'Estimated line total',
+
+    'payment_cod' => 'Cash on delivery',
+    'payment_online' => 'Pay online (confirmation pending)',
+    'payment_online_pending_note' => 'Online payment selected — awaiting payment confirmation.',
+    'payment_online_pending_admin' => 'Online payment pending staff confirmation',
+    'checkout_payment' => 'Payment method',
+
+    'forgot_password_link' => 'Forgot password?',
+    'forgot_password_title' => 'Reset your password',
+    'forgot_password_sub' => 'Enter your email and we will send you a reset link.',
+    'forgot_password_submit' => 'Send reset link',
+    'reset_password_title' => 'Choose a new password',
+    'reset_password_sub' => 'Enter your new password below.',
+    'reset_password_submit' => 'Update password',
+    'back_to_login' => 'Back to sign in',
+
+    'verify_email_title' => 'Verify your email',
+    'verify_email_sub' => 'Check your inbox for a verification link before using My account.',
+    'verify_email_resend' => 'Resend verification email',
+    'verification_link_sent' => 'A new verification link has been sent to your email.',
+
+    'cart_unit_unavailable' => 'That unit is not available for this product.',
+    'cart_price_changed_line' => ':old → :new :currency / :unit',
+
+    'order_cancel_action' => 'Cancel order',
+    'order_cancelled' => 'Order cancelled.',
+    'order_cancel_forbidden' => 'You cannot cancel this order.',
+    'order_cancel_not_allowed' => 'This order can no longer be cancelled.',
+
+    'mail_status_subject' => 'Order :ref — status update',
+    'mail_status_intro' => 'Your order :ref is now: :status.',
+    'mail_status_footer' => 'Thank you for shopping with AL-DAWY.',
 ];

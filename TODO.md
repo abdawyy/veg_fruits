@@ -64,14 +64,14 @@ Do these first for the best ROI:
 
 | Done | # | Task | Ease | Primary files |
 |------|---|------|------|-----------------|
-| [ ] | 1 | Real SMS provider (`SmsSenderInterface`) | Easy→Med | `app/Sms/*`, `AppServiceProvider.php` |
-| [ ] | 2 | Additional payment gateway (non-COD) | Med→Hard | `app/Payments/*`, `AppServiceProvider.php`, checkout |
-| [ ] | 3 | Sell by piece in cart + checkout | Medium | `StoreCart.php`, `CheckoutController.php`, cart views |
-| [ ] | 4 | Password reset flow | **Easy** | auth routes, controllers, views |
-| [ ] | 5 | Email verification (optional enforcement) | Easy→Med | `User` model, middleware, notifications |
-| [ ] | 6 | Customer order cancellation | Easy→Med | `/my` orders, `OrderStatus` rules |
-| [ ] | 7 | Status-change notifications (shipped, delivered, etc.) | Medium | order observer/listener, notifications |
-| [ ] | 8 | Rate limiting on cart add + checkout | Easy→Med | `routes/web.php`, `bootstrap/app.php` |
+| [x] | 1 | Real SMS provider (`SmsSenderInterface`) | Easy→Med | `app/Sms/*`, `AppServiceProvider.php` |
+| [x] | 2 | Additional payment gateway (non-COD) | Med→Hard | `app/Payments/*`, `AppServiceProvider.php`, checkout |
+| [x] | 3 | Sell by piece in cart + checkout | Medium | `StoreCart.php`, `CheckoutController.php`, cart views |
+| [x] | 4 | Password reset flow | **Easy** | auth routes, controllers, views |
+| [x] | 5 | Email verification (optional enforcement) | Easy→Med | `User` model, middleware, notifications |
+| [x] | 6 | Customer order cancellation | Easy→Med | `/my` orders, `OrderStatus` rules |
+| [x] | 7 | Status-change notifications (shipped, delivered, etc.) | Medium | order observer/listener, notifications |
+| [x] | 8 | Rate limiting on cart add + checkout | Easy→Med | `routes/web.php`, `bootstrap/app.php` |
 
 ---
 

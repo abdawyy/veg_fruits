@@ -53,7 +53,8 @@ final class CheckoutTest extends TestCase
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
-            'kg' => 1,
+            'unit' => 'kg',
+            'quantity' => 1,
         ])->assertRedirect();
 
         $this->get(route('store.cart'))->assertOk();
@@ -63,6 +64,7 @@ final class CheckoutTest extends TestCase
 
         $this->post(route('store.checkout.store'), [
             'checkout_nonce' => $nonce,
+            'payment_method' => 'cod',
             'city_id' => $city->id,
             'shipping_address_line1' => '12 Nile Street',
             'shipping_address_line2' => 'Floor 3',

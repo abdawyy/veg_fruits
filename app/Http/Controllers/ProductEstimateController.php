@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\PackagingType;
-use App\Models\PreparationService;
 use App\Models\Product;
 use App\Services\Money\DecimalMath;
 use App\Services\Pricing\SurchargeOnBase;
+use App\Support\StoreCart;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class ProductEstimateController extends Controller
 {
@@ -17,31 +19,56 @@ final class ProductEstimateController extends Controller
         abort_unless($product->is_active, 404);
 
         $data = $request->validate([
-            'kg' => ['required', 'numeric', 'min:0.25', 'max:500'],
+            'unit' => ['sometimes', Rule::in([StoreCart::UNIT_KG, StoreCart::UNIT_PIECE])],
+            'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500'],
+            'kg' => ['sometimes', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
+
+        $unit = $data['unit'] ?? StoreCart::UNIT_KG;
+        if (isset($data['quantity'])) {
+            $quantity = (string) $data['quantity'];
+        } elseif (isset($data['kg'])) {
+            $unit = StoreCart::UNIT_KG;
+            $quantity = (string) $data['kg'];
+        } else {
+            $quantity = '1';
+        }
+
+        if ($unit === StoreCart::UNIT_PIECE && (! $product->sell_by_piece || $product->price_per_piece === null)) {
+            throw ValidationException::withMessages([
+                'unit' => [__('aldawy.cart_unit_unavailable')],
+            ]);
+        }
 
         $product->load([
             'preparationServices' => fn ($q) => $q->where('preparation_services.is_active', true),
             'packagingTypes' => fn ($q) => $q->where('packaging_types.is_active', true),
         ]);
 
-        $kg = bcadd((string) $data['kg'], '0', 4);
-        $prepIds = array_values(array_unique(array_map('intval', $data['preparation_service_ids'] ?? [])));
+        $quantity = $unit === StoreCart::UNIT_PIECE
+            ? (string) max(1, (int) round((float) $quantity))
+            : bcadd($quantity, '0', 4);
 
+        $prepIds = array_values(array_unique(array_map('intval', $data['preparation_service_ids'] ?? [])));
         $enabledPrep = $product->preparationServices->filter(fn ($p) => (bool) $p->pivot->is_enabled);
         $enabledPack = $product->packagingTypes->filter(fn ($p) => (bool) $p->pivot->is_enabled);
-
         $selectedPrep = $enabledPrep->whereIn('id', $prepIds)->values();
         $packagingTypeId = isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null;
         $packagingType = $packagingTypeId
             ? $enabledPack->firstWhere('id', $packagingTypeId)
             : null;
 
-        $unitPrice = DecimalMath::normalizeNumericString((string) $product->price_per_kg);
-        $lineBase = DecimalMath::mul($unitPrice, $kg);
+        $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+        if ($unitPrice === null) {
+            throw ValidationException::withMessages([
+                'unit' => [__('aldawy.cart_unit_unavailable')],
+            ]);
+        }
+
+        $lineBase = DecimalMath::mul($unitPrice, $quantity);
         $servicesSurcharge = SurchargeOnBase::sumForRules($lineBase, $selectedPrep);
         $amountAfterServices = DecimalMath::add($lineBase, $servicesSurcharge);
         $packagingSurcharge = $packagingType instanceof PackagingType

@@ -19,5 +19,6 @@ final readonly class CreateOrderPayload
         public string $packagingFee,
         public array $lines,
         public ?string $notes = null,
+        public string $paymentGatewayId = 'cod',
     ) {}
 }

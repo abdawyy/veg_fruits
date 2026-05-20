@@ -54,4 +54,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    public function canCustomerCancel(): bool
+    {
+        return in_array($this->status, [OrderStatus::Pending, OrderStatus::Confirmed], true);
+    }
 }

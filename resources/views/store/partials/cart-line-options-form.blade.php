@@ -7,7 +7,8 @@
 <form method="post" action="{{ route('store.cart.options') }}" class="space-y-2 text-xs">
     @csrf
     <input type="hidden" name="line" value="{{ $line }}">
-    <input type="hidden" name="kg" value="{{ $row['kg'] }}">
+    <input type="hidden" name="unit" value="{{ $row['unit'] }}">
+    <input type="hidden" name="quantity" value="{{ $row['quantity'] }}">
     @foreach ($prepEnabled as $svc)
         <label class="flex cursor-pointer items-center gap-2 text-slate-600 dark:text-slate-300">
             <input

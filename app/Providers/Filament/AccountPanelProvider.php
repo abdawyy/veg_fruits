@@ -47,8 +47,11 @@ class AccountPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->authMiddleware([
+            ->authMiddleware(array_values(array_filter([
                 FilamentAuthenticate::class,
-            ]);
+                config('aldawy.require_email_verification')
+                    ? \App\Http\Middleware\EnsureEmailIsVerified::class
+                    : null,
+            ])));
     }
 }

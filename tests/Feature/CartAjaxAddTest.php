@@ -31,7 +31,8 @@ final class CartAjaxAddTest extends TestCase
 
         $response = $this->postJson(route('store.cart.add'), [
             'product_id' => $product->id,
-            'kg' => 2.5,
+            'unit' => 'kg',
+            'quantity' => 2.5,
         ]);
 
         $response->assertOk()

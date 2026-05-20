@@ -2,16 +2,20 @@
 
 namespace App\Providers;
 
-use App\Contracts\Payments\PaymentGatewayInterface;
 use App\Contracts\Sms\SmsSenderInterface;
 use App\Events\OrderCreated;
 use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
-use App\Payments\CashOnDeliveryGateway;
+use App\Models\Order;
+use App\Observers\OrderObserver;
+use App\Sms\HttpSmsSender;
 use App\Sms\LogSmsSender;
 use App\Support\Cms;
 use App\Support\StoreCart;
 use App\Support\StoreSeo;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,13 +23,24 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(PaymentGatewayInterface::class, CashOnDeliveryGateway::class);
-        $this->app->bind(SmsSenderInterface::class, LogSmsSender::class);
+        $this->app->bind(SmsSenderInterface::class, function (): SmsSenderInterface {
+            return match (config('aldawy.sms.driver')) {
+                'http' => $this->app->make(HttpSmsSender::class),
+                default => $this->app->make(LogSmsSender::class),
+            };
+        });
     }
 
     public function boot(): void
     {
+        Order::observe(OrderObserver::class);
+
         Event::listen(OrderCreated::class, OnOrderCreatedGenerateInvoiceAndNotify::class);
+
+        RateLimiter::for('cart', fn (Request $request) => Limit::perMinute(40)->by($request->ip()));
+        RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(8)->by(
+            $request->ip().'|'.($request->session()->getId() ?: 'guest')
+        ));
 
         $storefrontComposer = function (\Illuminate\View\View $view): void {
             $view->with('cartLineCount', StoreCart::lineCount());

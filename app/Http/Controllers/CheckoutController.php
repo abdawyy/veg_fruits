@@ -8,6 +8,7 @@ use App\DTO\OrderLineDraftDto;
 use App\Models\City;
 use App\Models\Order;
 use App\Models\User;
+use App\Payments\PaymentGatewayResolver;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 
 final class CheckoutController extends Controller
 {
-    public function store(Request $request, CreateOrderAction $createOrder): RedirectResponse
+    public function store(Request $request, CreateOrderAction $createOrder, PaymentGatewayResolver $paymentGateways): RedirectResponse
     {
         if ($request->session()->get('checkout_in_flight')) {
             return redirect()
@@ -32,6 +33,7 @@ final class CheckoutController extends Controller
             'customer_name' => ['nullable', 'string', 'max:255'],
             'customer_email' => ['nullable', 'string', 'lowercase', 'email', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'payment_method' => ['required', 'string', 'in:'.implode(',', array_keys($paymentGateways->optionsForCheckout()))],
         ]);
 
         $sessionNonce = $request->session()->pull('checkout_nonce');
@@ -88,15 +90,23 @@ final class CheckoutController extends Controller
 
             $extras = bcadd($row['services_surcharge'], $row['packaging_surcharge'], 4);
 
+            $unit = $row['unit'];
+            $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+            if ($unitPrice === null) {
+                return redirect()
+                    ->route('store.cart')
+                    ->withErrors(['cart' => __('aldawy.checkout_cart_changed')]);
+            }
+
             $draftLines[] = new OrderLineDraftDto(
                 productId: $product->id,
                 produceBoxId: null,
                 productNameSnapshot: $product->getTranslations('name'),
-                unit: 'kg',
-                quantity: $row['kg'],
+                unit: $unit,
+                quantity: $row['quantity'],
                 services: $servicesMap,
                 packaging: $packagingCode,
-                unitPrice: (string) $product->price_per_kg,
+                unitPrice: $unitPrice,
                 servicesSurchargeTotal: $extras,
             );
         }
@@ -118,6 +128,7 @@ final class CheckoutController extends Controller
             packagingFee: '0',
             lines: $draftLines,
             notes: $data['notes'] ?? null,
+            paymentGatewayId: $data['payment_method'],
         );
 
         try {

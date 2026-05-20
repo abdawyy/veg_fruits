@@ -4,15 +4,28 @@ namespace App\Support;
 
 use App\Models\PackagingType;
 use App\Models\Product;
-use App\Services\Pricing\SurchargeOnBase;
 use App\Services\Money\DecimalMath;
+use App\Services\Pricing\SurchargeOnBase;
 use Illuminate\Support\Collection;
 
 final class StoreCart
 {
     public const SESSION_KEY = 'aldawy_cart';
 
-    /** @return list<array{product_id: int, kg: string, preparation_service_ids: list<int>, packaging_type_id: int|null, unit_price_snapshot: string|null}> */
+    public const UNIT_KG = 'kg';
+
+    public const UNIT_PIECE = 'piece';
+
+    /**
+     * @return list<array{
+     *     product_id: int,
+     *     unit: string,
+     *     quantity: string,
+     *     preparation_service_ids: list<int>,
+     *     packaging_type_id: int|null,
+     *     unit_price_snapshot: string|null
+     * }>
+     */
     public static function lines(): array
     {
         $raw = session(self::SESSION_KEY, []);
@@ -47,7 +60,7 @@ final class StoreCart
         return self::priceChangedLines()->isNotEmpty();
     }
 
-    /** @return Collection<int, array{product: Product, snapshot: string, current: string}> */
+    /** @return Collection<int, array{product: Product, snapshot: string, current: string, unit: string}> */
     public static function priceChangedLines(): Collection
     {
         $lines = self::lines();
@@ -71,7 +84,12 @@ final class StoreCart
                 return null;
             }
 
-            $current = DecimalMath::normalizeNumericString((string) $product->price_per_kg);
+            $unit = $row['unit'];
+            $current = self::unitPriceForProduct($product, $unit);
+            if ($current === null) {
+                return null;
+            }
+
             $snapshot = DecimalMath::normalizeNumericString($snapshot);
             if (bccomp($snapshot, $current, 4) === 0) {
                 return null;
@@ -81,6 +99,7 @@ final class StoreCart
                 'product' => $product,
                 'snapshot' => $snapshot,
                 'current' => $current,
+                'unit' => $unit,
             ];
         })->filter()->values();
     }
@@ -90,14 +109,15 @@ final class StoreCart
      */
     public static function add(
         int $productId,
-        string $kg,
+        string $unit,
+        string $quantity,
         array $preparationServiceIds = [],
         ?int $packagingTypeId = null,
         ?string $unitPriceSnapshot = null,
     ): void {
-    {
-        $kg = self::normalizeKg($kg);
-        if (bccomp($kg, '0', 4) <= 0) {
+        $unit = self::normalizeUnit($unit);
+        $quantity = self::normalizeQuantity($quantity, $unit);
+        if (bccomp($quantity, '0', 4) <= 0) {
             return;
         }
 
@@ -106,7 +126,8 @@ final class StoreCart
 
         $newLine = [
             'product_id' => $productId,
-            'kg' => $kg,
+            'unit' => $unit,
+            'quantity' => $quantity,
             'preparation_service_ids' => $prepIds,
             'packaging_type_id' => $packId,
             'unit_price_snapshot' => $unitPriceSnapshot !== null
@@ -118,7 +139,10 @@ final class StoreCart
         $key = self::lineKey($newLine);
         foreach ($lines as $i => $line) {
             if (self::lineKey($line) === $key) {
-                $lines[$i]['kg'] = self::normalizeKg(bcadd($lines[$i]['kg'], $kg, 4));
+                $lines[$i]['quantity'] = self::normalizeQuantity(
+                    bcadd($lines[$i]['quantity'], $quantity, 4),
+                    $unit,
+                );
                 if (($lines[$i]['unit_price_snapshot'] ?? null) === null && $newLine['unit_price_snapshot'] !== null) {
                     $lines[$i]['unit_price_snapshot'] = $newLine['unit_price_snapshot'];
                 }
@@ -132,15 +156,16 @@ final class StoreCart
         session([self::SESSION_KEY => $lines]);
     }
 
-    public static function update(int $index, string $kg): void
+    public static function update(int $index, string $unit, string $quantity): void
     {
         $lines = self::lines();
         if (! isset($lines[$index])) {
             return;
         }
 
-        $kg = self::normalizeKg($kg);
-        if (bccomp($kg, '0', 4) <= 0) {
+        $unit = self::normalizeUnit($unit);
+        $quantity = self::normalizeQuantity($quantity, $unit);
+        if (bccomp($quantity, '0', 4) <= 0) {
             self::remove($index);
 
             return;
@@ -148,7 +173,8 @@ final class StoreCart
 
         self::updateLine(
             $index,
-            $kg,
+            $unit,
+            $quantity,
             $lines[$index]['preparation_service_ids'],
             $lines[$index]['packaging_type_id'] ?? null,
         );
@@ -159,7 +185,8 @@ final class StoreCart
      */
     public static function updateLine(
         int $index,
-        string $kg,
+        string $unit,
+        string $quantity,
         array $preparationServiceIds,
         ?int $packagingTypeId,
     ): void {
@@ -168,8 +195,9 @@ final class StoreCart
             return;
         }
 
-        $kg = self::normalizeKg($kg);
-        if (bccomp($kg, '0', 4) <= 0) {
+        $unit = self::normalizeUnit($unit);
+        $quantity = self::normalizeQuantity($quantity, $unit);
+        if (bccomp($quantity, '0', 4) <= 0) {
             self::remove($index);
 
             return;
@@ -177,7 +205,8 @@ final class StoreCart
 
         $lines[$index] = [
             'product_id' => (int) $lines[$index]['product_id'],
-            'kg' => $kg,
+            'unit' => $unit,
+            'quantity' => $quantity,
             'preparation_service_ids' => self::normalizePrepIds($preparationServiceIds),
             'packaging_type_id' => self::normalizePackagingId($packagingTypeId),
             'unit_price_snapshot' => $lines[$index]['unit_price_snapshot'] ?? null,
@@ -198,21 +227,6 @@ final class StoreCart
         session()->forget(self::SESSION_KEY);
     }
 
-    /**
-     * @return Collection<int, array{
-     *     line: int,
-     *     product: Product,
-     *     kg: string,
-     *     preparation_service_ids: list<int>,
-     *     packaging_type_id: int|null,
-     *     preparation_services: Collection<int, \App\Models\PreparationService>,
-     *     packaging_type: PackagingType|null,
-     *     line_base: string,
-     *     services_surcharge: string,
-     *     packaging_surcharge: string,
-     *     line_subtotal: string
-     * }>
-     */
     public static function resolved(): Collection
     {
         $lines = self::lines();
@@ -237,7 +251,13 @@ final class StoreCart
                 return null;
             }
 
-            $kg = $row['kg'];
+            $unit = $row['unit'];
+            $quantity = $row['quantity'];
+            $unitPrice = self::unitPriceForProduct($product, $unit);
+            if ($unitPrice === null) {
+                return null;
+            }
+
             $prepIds = self::normalizePrepIds($row['preparation_service_ids'] ?? []);
             $packagingTypeId = self::normalizePackagingId($row['packaging_type_id'] ?? null);
 
@@ -249,16 +269,12 @@ final class StoreCart
                 ? $enabledPack->firstWhere('id', $packagingTypeId)
                 : null;
 
-            $unitPrice = DecimalMath::normalizeNumericString((string) $product->price_per_kg);
-            $lineBase = DecimalMath::mul($unitPrice, $kg);
-
+            $lineBase = DecimalMath::mul($unitPrice, $quantity);
             $servicesSurcharge = SurchargeOnBase::sumForRules($lineBase, $selectedPrep);
-
             $amountAfterServices = DecimalMath::add($lineBase, $servicesSurcharge);
             $packagingSurcharge = $packagingType
                 ? SurchargeOnBase::amount($amountAfterServices, $packagingType)
                 : DecimalMath::normalizeNumericString('0');
-
             $lineSubtotal = DecimalMath::add($amountAfterServices, $packagingSurcharge);
 
             $snapshot = isset($row['unit_price_snapshot']) && $row['unit_price_snapshot'] !== ''
@@ -269,7 +285,8 @@ final class StoreCart
             return [
                 'line' => $lineIndex,
                 'product' => $product,
-                'kg' => $kg,
+                'unit' => $unit,
+                'quantity' => $quantity,
                 'preparation_service_ids' => $prepIds,
                 'packaging_type_id' => $packagingType?->id,
                 'preparation_services' => $selectedPrep,
@@ -294,9 +311,22 @@ final class StoreCart
         return $sum;
     }
 
+    public static function unitPriceForProduct(Product $product, string $unit): ?string
+    {
+        if ($unit === self::UNIT_PIECE) {
+            if (! $product->sell_by_piece || $product->price_per_piece === null) {
+                return null;
+            }
+
+            return DecimalMath::normalizeNumericString((string) $product->price_per_piece);
+        }
+
+        return DecimalMath::normalizeNumericString((string) $product->price_per_kg);
+    }
+
     /**
      * @param  array<string, mixed>  $row
-     * @return array{product_id: int, kg: string, preparation_service_ids: list<int>, packaging_type_id: int|null, unit_price_snapshot: string|null}|null
+     * @return array{product_id: int, unit: string, quantity: string, preparation_service_ids: list<int>, packaging_type_id: int|null, unit_price_snapshot: string|null}|null
      */
     private static function normalizeLine(mixed $row): ?array
     {
@@ -304,8 +334,14 @@ final class StoreCart
             return null;
         }
 
-        $kg = self::normalizeKg((string) ($row['kg'] ?? '0'));
-        if (bccomp($kg, '0', 4) <= 0) {
+        $unit = self::normalizeUnit($row['unit'] ?? self::UNIT_KG);
+        if (isset($row['quantity'])) {
+            $quantity = self::normalizeQuantity((string) $row['quantity'], $unit);
+        } else {
+            $quantity = self::normalizeQuantity((string) ($row['kg'] ?? '0'), $unit);
+        }
+
+        if (bccomp($quantity, '0', 4) <= 0) {
             return null;
         }
 
@@ -318,20 +354,21 @@ final class StoreCart
 
         return [
             'product_id' => (int) $row['product_id'],
-            'kg' => $kg,
+            'unit' => $unit,
+            'quantity' => $quantity,
             'preparation_service_ids' => self::normalizePrepIds($row['preparation_service_ids'] ?? []),
             'packaging_type_id' => self::normalizePackagingId($row['packaging_type_id'] ?? null),
             'unit_price_snapshot' => $snapshot,
         ];
     }
 
-    /** @param  array{product_id: int, kg: string, preparation_service_ids: list<int>, packaging_type_id: int|null, unit_price_snapshot?: string|null}  $line */
+    /** @param  array{product_id: int, unit: string, quantity: string, preparation_service_ids: list<int>, packaging_type_id: int|null}  $line */
     private static function lineKey(array $line): string
     {
         $prep = $line['preparation_service_ids'];
         sort($prep);
 
-        return $line['product_id'].'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
+        return $line['product_id'].'|'.$line['unit'].'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
     }
 
     /** @return list<int> */
@@ -356,13 +393,22 @@ final class StoreCart
         return $n > 0 ? $n : null;
     }
 
-    private static function normalizeKg(string $kg): string
+    private static function normalizeUnit(mixed $unit): string
     {
-        $kg = trim($kg);
-        if ($kg === '' || ! is_numeric($kg)) {
+        return $unit === self::UNIT_PIECE ? self::UNIT_PIECE : self::UNIT_KG;
+    }
+
+    private static function normalizeQuantity(string $qty, string $unit): string
+    {
+        $qty = trim($qty);
+        if ($qty === '' || ! is_numeric($qty)) {
             return '0';
         }
 
-        return bcadd($kg, '0', 4);
+        if ($unit === self::UNIT_PIECE) {
+            return (string) max(1, (int) round((float) $qty));
+        }
+
+        return bcadd($qty, '0', 4);
     }
 }

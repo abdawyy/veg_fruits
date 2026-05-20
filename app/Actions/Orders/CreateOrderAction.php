@@ -2,7 +2,7 @@
 
 namespace App\Actions\Orders;
 
-use App\Contracts\Payments\PaymentGatewayInterface;
+use App\Payments\PaymentGatewayResolver;
 use App\DTO\CartLineDto;
 use App\DTO\CreateOrderPayload;
 use App\DTO\OrderLineDraftDto;
@@ -20,7 +20,7 @@ final class CreateOrderAction
 {
     public function __construct(
         private readonly CalculateCartTotalService $cartTotals,
-        private readonly PaymentGatewayInterface $paymentGateway,
+        private readonly PaymentGatewayResolver $paymentGateways,
     ) {}
 
     public function execute(CreateOrderPayload $payload): Order
@@ -40,11 +40,13 @@ final class CreateOrderAction
 
         $totals = $this->cartTotals->execute($cartLines, $payload->packagingFee);
 
+        $paymentGateway = $this->paymentGateways->resolve($payload->paymentGatewayId);
+
         $city = City::query()->whereKey($payload->cityId)->where('is_active', true)->firstOrFail();
         $shippingFee = DecimalMath::normalizeNumericString((string) $city->shipping_fee);
         $grandTotal = DecimalMath::add($totals->grandTotal, $shippingFee);
 
-        $order = DB::transaction(function () use ($payload, $totals, $city, $shippingFee, $grandTotal) {
+        $order = DB::transaction(function () use ($payload, $totals, $city, $shippingFee, $grandTotal, $paymentGateway) {
             $order = Order::query()->create([
                 'reference' => 'AL-'.strtoupper(Str::random(10)),
                 'user_id' => $payload->userId,
@@ -55,7 +57,7 @@ final class CreateOrderAction
                 'customer_name' => $payload->customerName,
                 'customer_email' => $payload->customerEmail,
                 'status' => OrderStatus::Pending,
-                'payment_gateway' => $this->paymentGateway->getIdentifier(),
+                'payment_gateway' => $paymentGateway->getIdentifier(),
                 'packaging_code' => $payload->packagingCode,
                 'subtotal' => $totals->linesSubtotal,
                 'packaging_fee' => $totals->orderPackagingFee,
@@ -79,7 +81,7 @@ final class CreateOrderAction
                 ]);
             }
 
-            $this->paymentGateway->handleCheckout($order->fresh());
+            $paymentGateway->handleCheckout($order->fresh());
 
             return $order->fresh();
         });

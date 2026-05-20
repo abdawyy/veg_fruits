@@ -32,7 +32,8 @@ final class PhaseACheckoutGuardsTest extends TestCase
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
-            'kg' => 1,
+            'unit' => 'kg',
+            'quantity' => 1,
         ])->assertSessionHasErrors('product_id');
     }
 
@@ -73,6 +74,7 @@ final class PhaseACheckoutGuardsTest extends TestCase
 
         $this->post(route('store.checkout.store'), [
             'checkout_nonce' => str_repeat('a', 40),
+            'payment_method' => 'cod',
             'city_id' => $city->id,
             'shipping_address_line1' => '1 Test St',
             'customer_phone' => '01000000000',
@@ -110,13 +112,15 @@ final class PhaseACheckoutGuardsTest extends TestCase
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
-            'kg' => 1,
+            'unit' => 'kg',
+            'quantity' => 1,
         ]);
 
         $this->withSession(['checkout_nonce' => $nonce]);
 
         $payload = [
             'checkout_nonce' => $nonce,
+            'payment_method' => 'cod',
             'city_id' => $city->id,
             'shipping_address_line1' => '2 Test St',
             'customer_phone' => '01000000001',

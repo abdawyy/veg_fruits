@@ -29,6 +29,7 @@
                                 'old' => number_format((float) $change['snapshot'], 2),
                                 'new' => number_format((float) $change['current'], 2),
                                 'currency' => config('aldawy.currency', 'EGP'),
+                                'unit' => ($change['unit'] ?? 'kg') === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg'),
                             ]) }}
                         </li>
                     @endforeach
@@ -85,11 +86,19 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 text-end">
-                                    <form method="post" action="{{ route('store.cart.update') }}" class="inline-flex items-center gap-2">
+                                    <form method="post" action="{{ route('store.cart.update') }}" class="inline-flex flex-wrap items-center justify-end gap-2">
                                         @csrf
                                         <input type="hidden" name="line" value="{{ $line }}">
-                                        <input type="number" name="kg" step="0.25" min="0.25" value="{{ $row['kg'] }}"
-                                            class="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                        <input type="hidden" name="unit" value="{{ $row['unit'] }}">
+                                        <input
+                                            type="number"
+                                            name="quantity"
+                                            step="{{ $row['unit'] === 'piece' ? '1' : '0.25' }}"
+                                            min="{{ $row['unit'] === 'piece' ? '1' : '0.25' }}"
+                                            value="{{ $row['quantity'] }}"
+                                            class="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                        >
+                                        <span class="text-xs text-slate-500">{{ $row['unit'] === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg') }}</span>
                                         <button type="submit" class="rounded-lg bg-surface px-2 py-1 text-xs font-semibold text-brand hover:bg-brand/10 dark:bg-slate-800">{{ __('aldawy.cart_update') }}</button>
                                     </form>
                                 </td>
@@ -196,6 +205,21 @@
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="notes">{{ __('aldawy.checkout_notes') }}</label>
                                 <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">{{ old('notes') }}</textarea>
                             </div>
+                            @if (count($paymentOptions) > 1)
+                                <fieldset>
+                                    <legend class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('aldawy.checkout_payment') }}</legend>
+                                    <div class="mt-2 space-y-2">
+                                        @foreach ($paymentOptions as $id => $label)
+                                            <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                                                <input type="radio" name="payment_method" value="{{ $id }}" @checked(old('payment_method', 'cod') === $id) required>
+                                                <span>{{ $label }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </fieldset>
+                            @else
+                                <input type="hidden" name="payment_method" value="cod">
+                            @endif
                             <button id="aldawy-checkout-submit" type="submit" class="w-full rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60">
                                 {{ __('aldawy.checkout_submit') }}
                             </button>

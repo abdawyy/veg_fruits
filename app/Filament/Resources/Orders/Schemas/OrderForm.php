@@ -35,9 +35,7 @@ class OrderForm
                 TextInput::make('customer_name')->maxLength(255),
                 TextInput::make('customer_email')->email()->maxLength(255),
                 Select::make('status')
-                    ->options(collect(OrderStatus::cases())->mapWithKeys(
-                        fn (OrderStatus $s) => [$s->value => $s->name]
-                    )->all())
+                    ->options(OrderStatus::options())
                     ->required(),
                 TextInput::make('shipping_address_line1')->maxLength(255)->label(__('Street address')),
                 TextInput::make('shipping_address_line2')->maxLength(255)->label(__('Address line 2'))->nullable(),

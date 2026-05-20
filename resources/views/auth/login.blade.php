@@ -22,7 +22,10 @@
         </div>
 
         <div>
-            <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">{{ __('aldawy.password') }}</label>
+            <div class="flex items-center justify-between gap-2">
+                <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">{{ __('aldawy.password') }}</label>
+                <a href="{{ route('password.request') }}" class="text-xs font-semibold text-brand hover:text-brand-dark">{{ __('aldawy.forgot_password_link') }}</a>
+            </div>
             <input id="password" name="password" type="password" required autocomplete="current-password"
                 class="mt-1 w-full rounded-xl border border-slate-200 bg-canvas px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
         </div>

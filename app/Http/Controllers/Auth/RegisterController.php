@@ -50,11 +50,19 @@ final class RegisterController extends Controller
 
         event(new Registered($user));
 
+        if (config('aldawy.require_email_verification')) {
+            $user->sendEmailVerificationNotification();
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 
         $linkGuestOrders->execute($user, $request->session()->pull('link_guest_order_id'));
         $request->session()->forget('checkout_order_id');
+
+        if (config('aldawy.require_email_verification') && ! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice')->with('status', __('aldawy.registered'));
+        }
 
         return $this->redirectAfterAuth($request)->with('status', __('aldawy.registered'));
     }

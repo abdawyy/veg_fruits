@@ -28,6 +28,8 @@ return [
     'shop_subtitle' => 'فواكه وخضروات بالعربية والإنجليزية — حدّث الأسعار من لوحة الإدارة.',
     'items' => 'أصناف',
     'per_kg' => 'كيلو',
+    'per_piece' => 'قطعة',
+    'cart_unit' => 'الوحدة',
     'or_piece' => 'أو :p للقطعة',
     'piece_price' => 'القطعة: :price',
 
@@ -218,4 +220,36 @@ return [
     'checkout_guest_login' => 'تسجيل الدخول',
 
     'product_estimate_label' => 'تقدير إجمالي السطر',
+
+    'payment_cod' => 'الدفع عند الاستلام',
+    'payment_online' => 'دفع أونلاين (بانتظار التأكيد)',
+    'payment_online_pending_note' => 'تم اختيار الدفع أونلاين — بانتظار تأكيد الدفع.',
+    'payment_online_pending_admin' => 'دفع أونلاين بانتظار تأكيد الموظف',
+    'checkout_payment' => 'طريقة الدفع',
+
+    'forgot_password_link' => 'نسيت كلمة المرور؟',
+    'forgot_password_title' => 'استعادة كلمة المرور',
+    'forgot_password_sub' => 'أدخل بريدك وسنرسل رابط إعادة التعيين.',
+    'forgot_password_submit' => 'إرسال الرابط',
+    'reset_password_title' => 'كلمة مرور جديدة',
+    'reset_password_sub' => 'أدخل كلمة المرور الجديدة أدناه.',
+    'reset_password_submit' => 'تحديث كلمة المرور',
+    'back_to_login' => 'العودة لتسجيل الدخول',
+
+    'verify_email_title' => 'تأكيد البريد الإلكتروني',
+    'verify_email_sub' => 'تحقق من بريدك قبل استخدام حسابي.',
+    'verify_email_resend' => 'إعادة إرسال رابط التأكيد',
+    'verification_link_sent' => 'تم إرسال رابط تأكيد جديد إلى بريدك.',
+
+    'cart_unit_unavailable' => 'هذه الوحدة غير متاحة لهذا المنتج.',
+    'cart_price_changed_line' => ':old ← :new :currency / :unit',
+
+    'order_cancel_action' => 'إلغاء الطلب',
+    'order_cancelled' => 'تم إلغاء الطلب.',
+    'order_cancel_forbidden' => 'لا يمكنك إلغاء هذا الطلب.',
+    'order_cancel_not_allowed' => 'لم يعد بالإمكان إلغاء هذا الطلب.',
+
+    'mail_status_subject' => 'طلب :ref — تحديث الحالة',
+    'mail_status_intro' => 'طلبك :ref أصبح الآن: :status.',
+    'mail_status_footer' => 'شكراً لتسوقك من الدوي.',
 ];
