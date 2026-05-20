@@ -33,20 +33,20 @@ final class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        $linkGuestOrders->execute($request->user(), $request->session()->pull('link_guest_order_id'));
+        $linked = $linkGuestOrders->execute($request->user(), $request->session()->pull('link_guest_order_id'));
 
         $intended = $request->input('redirect');
         if (is_string($intended) && $intended !== '') {
             if (str_starts_with($intended, '/') && ! str_starts_with($intended, '//')) {
-                return redirect()->to($intended);
+                return $this->redirectWithLinkedNotice($linked, redirect()->to($intended));
             }
             $host = parse_url($intended, PHP_URL_HOST);
             if ($host && $host === $request->getHost()) {
-                return redirect()->to($intended);
+                return $this->redirectWithLinkedNotice($linked, redirect()->to($intended));
             }
         }
 
-        return redirect()->intended(route('store.home'));
+        return $this->redirectWithLinkedNotice($linked, redirect()->intended(route('store.home')));
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -56,5 +56,14 @@ final class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('store.home');
+    }
+
+    private function redirectWithLinkedNotice(int $linked, RedirectResponse $response): RedirectResponse
+    {
+        if ($linked > 0) {
+            return $response->with('status', __('aldawy.orders_linked', ['count' => $linked]));
+        }
+
+        return $response;
     }
 }

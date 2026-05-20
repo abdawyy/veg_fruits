@@ -8,4 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Generates orders for due produce-box subscriptions (see ProcessDueSubscriptionsAction).
 Schedule::command('aldawy:process-subscriptions')->dailyAt('06:00');

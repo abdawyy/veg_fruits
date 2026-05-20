@@ -9,8 +9,10 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\InvoiceDownloadController;
+use App\Http\Controllers\ProduceBoxController;
 use App\Http\Controllers\ProductEstimateController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StorefrontController::class, 'home'])->name('store.home');
@@ -22,6 +24,11 @@ Route::post('/products/{product}/estimate', ProductEstimateController::class)
     ->middleware('throttle:cart')
     ->name('store.product.estimate');
 Route::get('/special-services', [StorefrontController::class, 'services'])->name('store.services');
+Route::get('/boxes', [ProduceBoxController::class, 'index'])->name('store.boxes');
+Route::get('/boxes/{produceBox}', [ProduceBoxController::class, 'show'])->name('store.boxes.show');
+Route::post('/boxes/{produceBox}/cart', [ProduceBoxController::class, 'addToCart'])
+    ->middleware('throttle:cart')
+    ->name('store.boxes.cart');
 
 Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
 Route::middleware('throttle:cart')->group(function (): void {
@@ -49,6 +56,9 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::post('/boxes/{produceBox}/subscribe', [SubscriptionController::class, 'store'])
+        ->middleware('throttle:checkout')
+        ->name('store.boxes.subscribe');
     Route::get('/email/verify', [VerifyEmailController::class, 'notice'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verify'])
         ->middleware('signed')

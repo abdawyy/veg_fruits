@@ -85,6 +85,7 @@
                             <a href="{{ route('store.fruits') }}" role="menuitem" class="block px-4 py-2.5 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800" @click="browseOpen = false">{{ __('aldawy.nav_fruits') }}</a>
                             <a href="{{ route('store.vegetables') }}" role="menuitem" class="block px-4 py-2.5 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800" @click="browseOpen = false">{{ __('aldawy.nav_vegetables') }}</a>
                             <a href="{{ route('store.services') }}" role="menuitem" class="block px-4 py-2.5 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800" @click="browseOpen = false">{{ __('aldawy.nav_services') }}</a>
+                            <a href="{{ route('store.boxes') }}" role="menuitem" class="block px-4 py-2.5 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800" @click="browseOpen = false">{{ __('aldawy.nav_boxes') }}</a>
                         </div>
                     </div>
                     @include('store.partials.cart-nav-icon', ['variant' => 'desktop'])
@@ -158,6 +159,7 @@
                     <a href="{{ route('store.fruits') }}" class="block rounded-lg px-5 py-2.5 text-sm text-slate-700 hover:bg-surface dark:text-slate-200 dark:hover:bg-slate-800" @click="navOpen = false">{{ __('aldawy.nav_fruits') }}</a>
                     <a href="{{ route('store.vegetables') }}" class="block rounded-lg px-5 py-2.5 text-sm text-slate-700 hover:bg-surface dark:text-slate-200 dark:hover:bg-slate-800" @click="navOpen = false">{{ __('aldawy.nav_vegetables') }}</a>
                     <a href="{{ route('store.services') }}" class="block rounded-lg px-5 py-2.5 text-sm text-slate-700 hover:bg-surface dark:text-slate-200 dark:hover:bg-slate-800" @click="navOpen = false">{{ __('aldawy.nav_services') }}</a>
+                    <a href="{{ route('store.boxes') }}" class="block rounded-lg px-5 py-2.5 text-sm text-slate-700 hover:bg-surface dark:text-slate-200 dark:hover:bg-slate-800" @click="navOpen = false">{{ __('aldawy.nav_boxes') }}</a>
                 </div>
             </details>
             @include('store.partials.cart-nav-icon', ['variant' => 'drawer'])

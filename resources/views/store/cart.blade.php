@@ -58,9 +58,36 @@
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($rows as $row)
                             @php
+                                $line = (int) $row['line'];
+                                $isBox = ($row['kind'] ?? 'product') === 'box';
+                            @endphp
+                            @if ($isBox)
+                                @php /** @var \App\Models\ProduceBox $box */ $box = $row['produce_box']; @endphp
+                                <tr>
+                                    <td class="px-4 py-4" colspan="2">
+                                        <p class="font-semibold text-slate-800 dark:text-white">
+                                            {{ __('aldawy.cart_box_line') }}: {{ $box->getTranslation('name', app()->getLocale()) }}
+                                        </p>
+                                        <p class="mt-1 text-xs text-slate-500">{{ __('aldawy.box_items_count', ['count' => $box->items->count()]) }}</p>
+                                        @if (! empty($row['price_changed']))
+                                            <p class="mt-1 text-[10px] font-semibold text-amber-700">{{ __('aldawy.cart_line_price_changed') }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4 text-end text-sm text-slate-500">1 {{ __('aldawy.per_box') }}</td>
+                                    <td class="px-4 py-4 text-end font-semibold text-brand">{{ number_format((float) $row['line_subtotal'], 2) }}</td>
+                                    <td class="px-4 py-4 text-end">
+                                        <form method="post" action="{{ route('store.cart.remove') }}" onsubmit="return confirm('{{ __('aldawy.cart_remove_confirm') }}');">
+                                            @csrf
+                                            <input type="hidden" name="line" value="{{ $line }}">
+                                            <button type="submit" class="text-sm font-semibold text-danger hover:underline">{{ __('aldawy.cart_remove') }}</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @continue
+                            @endif
+                            @php
                                 /** @var \App\Models\Product $product */
                                 $product = $row['product'];
-                                $line = (int) $row['line'];
                             @endphp
                             <tr>
                                 <td class="px-4 py-4">

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\PackagingType;
+use App\Models\ProduceBox;
 use App\Models\Product;
 use App\Services\Money\DecimalMath;
 use App\Services\Pricing\SurchargeOnBase;
@@ -15,6 +16,10 @@ final class StoreCart
     public const UNIT_KG = 'kg';
 
     public const UNIT_PIECE = 'piece';
+
+    public const KIND_PRODUCT = 'product';
+
+    public const KIND_BOX = 'box';
 
     /**
      * @return list<array{
@@ -68,12 +73,17 @@ final class StoreCart
             return collect();
         }
 
+        $productLines = array_values(array_filter($lines, fn ($l) => ($l['type'] ?? self::KIND_PRODUCT) === self::KIND_PRODUCT));
+        if ($productLines === []) {
+            return collect();
+        }
+
         $products = Product::query()
-            ->whereIn('id', array_map(fn ($l) => (int) $l['product_id'], $lines))
+            ->whereIn('id', array_map(fn ($l) => (int) $l['product_id'], $productLines))
             ->get()
             ->keyBy('id');
 
-        return collect($lines)->map(function (array $row) use ($products) {
+        return collect($productLines)->map(function (array $row) use ($products) {
             $snapshot = $row['unit_price_snapshot'] ?? null;
             if ($snapshot === null || $snapshot === '') {
                 return null;
@@ -125,6 +135,7 @@ final class StoreCart
         $packId = self::normalizePackagingId($packagingTypeId);
 
         $newLine = [
+            'type' => self::KIND_PRODUCT,
             'product_id' => $productId,
             'unit' => $unit,
             'quantity' => $quantity,
@@ -156,10 +167,33 @@ final class StoreCart
         session([self::SESSION_KEY => $lines]);
     }
 
+    public static function addBox(int $produceBoxId, ?string $unitPriceSnapshot = null): void
+    {
+        $newLine = [
+            'type' => self::KIND_BOX,
+            'produce_box_id' => $produceBoxId,
+            'quantity' => '1',
+            'unit_price_snapshot' => $unitPriceSnapshot !== null
+                ? DecimalMath::normalizeNumericString($unitPriceSnapshot)
+                : null,
+        ];
+
+        $lines = self::lines();
+        $key = self::lineKey($newLine);
+        foreach ($lines as $i => $line) {
+            if (self::lineKey($line) === $key) {
+                return;
+            }
+        }
+
+        $lines[] = $newLine;
+        session([self::SESSION_KEY => $lines]);
+    }
+
     public static function update(int $index, string $unit, string $quantity): void
     {
         $lines = self::lines();
-        if (! isset($lines[$index])) {
+        if (! isset($lines[$index]) || ($lines[$index]['type'] ?? self::KIND_PRODUCT) !== self::KIND_PRODUCT) {
             return;
         }
 
@@ -191,7 +225,7 @@ final class StoreCart
         ?int $packagingTypeId,
     ): void {
         $lines = self::lines();
-        if (! isset($lines[$index])) {
+        if (! isset($lines[$index]) || ($lines[$index]['type'] ?? self::KIND_PRODUCT) !== self::KIND_PRODUCT) {
             return;
         }
 
@@ -204,6 +238,7 @@ final class StoreCart
         }
 
         $lines[$index] = [
+            'type' => self::KIND_PRODUCT,
             'product_id' => (int) $lines[$index]['product_id'],
             'unit' => $unit,
             'quantity' => $quantity,
@@ -234,71 +269,127 @@ final class StoreCart
             return collect();
         }
 
-        $ids = array_unique(array_map(fn ($l) => (int) $l['product_id'], $lines));
-        $products = Product::query()
-            ->whereIn('id', $ids)
-            ->where('is_active', true)
-            ->with([
-                'preparationServices' => fn ($q) => $q->where('preparation_services.is_active', true),
-                'packagingTypes' => fn ($q) => $q->where('packaging_types.is_active', true),
-            ])
-            ->get()
-            ->keyBy('id');
+        $resolved = collect();
 
-        return collect($lines)->map(function (array $row, int $lineIndex) use ($products) {
-            $product = $products->get((int) $row['product_id']);
-            if (! $product instanceof Product) {
-                return null;
+        $productLines = array_values(array_filter($lines, fn ($l) => ($l['type'] ?? self::KIND_PRODUCT) === self::KIND_PRODUCT));
+        if ($productLines !== []) {
+            $ids = array_unique(array_map(fn ($l) => (int) $l['product_id'], $productLines));
+            $products = Product::query()
+                ->whereIn('id', $ids)
+                ->where('is_active', true)
+                ->with([
+                    'preparationServices' => fn ($q) => $q->where('preparation_services.is_active', true),
+                    'packagingTypes' => fn ($q) => $q->where('packaging_types.is_active', true),
+                ])
+                ->get()
+                ->keyBy('id');
+
+            foreach ($lines as $lineIndex => $row) {
+                if (($row['type'] ?? self::KIND_PRODUCT) !== self::KIND_PRODUCT) {
+                    continue;
+                }
+
+                $product = $products->get((int) $row['product_id']);
+                if (! $product instanceof Product) {
+                    continue;
+                }
+
+                $unit = $row['unit'];
+                $quantity = $row['quantity'];
+                $unitPrice = self::unitPriceForProduct($product, $unit);
+                if ($unitPrice === null) {
+                    continue;
+                }
+
+                $prepIds = self::normalizePrepIds($row['preparation_service_ids'] ?? []);
+                $packagingTypeId = self::normalizePackagingId($row['packaging_type_id'] ?? null);
+                $enabledPrep = $product->preparationServices->filter(fn ($p) => (bool) $p->pivot->is_enabled);
+                $enabledPack = $product->packagingTypes->filter(fn ($p) => (bool) $p->pivot->is_enabled);
+                $selectedPrep = $enabledPrep->whereIn('id', $prepIds)->values();
+                $packagingType = $packagingTypeId
+                    ? $enabledPack->firstWhere('id', $packagingTypeId)
+                    : null;
+
+                $lineBase = DecimalMath::mul($unitPrice, $quantity);
+                $servicesSurcharge = SurchargeOnBase::sumForRules($lineBase, $selectedPrep);
+                $amountAfterServices = DecimalMath::add($lineBase, $servicesSurcharge);
+                $packagingSurcharge = $packagingType
+                    ? SurchargeOnBase::amount($amountAfterServices, $packagingType)
+                    : DecimalMath::normalizeNumericString('0');
+                $lineSubtotal = DecimalMath::add($amountAfterServices, $packagingSurcharge);
+
+                $snapshot = isset($row['unit_price_snapshot']) && $row['unit_price_snapshot'] !== ''
+                    ? DecimalMath::normalizeNumericString((string) $row['unit_price_snapshot'])
+                    : null;
+
+                $resolved->push([
+                    'kind' => self::KIND_PRODUCT,
+                    'line' => $lineIndex,
+                    'product' => $product,
+                    'unit' => $unit,
+                    'quantity' => $quantity,
+                    'preparation_service_ids' => $prepIds,
+                    'packaging_type_id' => $packagingType?->id,
+                    'preparation_services' => $selectedPrep,
+                    'packaging_type' => $packagingType,
+                    'line_base' => $lineBase,
+                    'services_surcharge' => $servicesSurcharge,
+                    'packaging_surcharge' => $packagingSurcharge,
+                    'line_subtotal' => $lineSubtotal,
+                    'unit_price_snapshot' => $snapshot,
+                    'price_changed' => $snapshot !== null && bccomp($snapshot, $unitPrice, 4) !== 0,
+                ]);
             }
+        }
 
-            $unit = $row['unit'];
-            $quantity = $row['quantity'];
-            $unitPrice = self::unitPriceForProduct($product, $unit);
-            if ($unitPrice === null) {
-                return null;
+        $boxIds = [];
+        foreach ($lines as $row) {
+            if (($row['type'] ?? '') === self::KIND_BOX) {
+                $boxIds[] = (int) $row['produce_box_id'];
             }
+        }
 
-            $prepIds = self::normalizePrepIds($row['preparation_service_ids'] ?? []);
-            $packagingTypeId = self::normalizePackagingId($row['packaging_type_id'] ?? null);
+        if ($boxIds !== []) {
+            $boxes = ProduceBox::query()
+                ->whereIn('id', array_unique($boxIds))
+                ->where('is_active', true)
+                ->with(['items.product'])
+                ->get()
+                ->keyBy('id');
 
-            $enabledPrep = $product->preparationServices->filter(fn ($p) => (bool) $p->pivot->is_enabled);
-            $enabledPack = $product->packagingTypes->filter(fn ($p) => (bool) $p->pivot->is_enabled);
+            foreach ($lines as $lineIndex => $row) {
+                if (($row['type'] ?? '') !== self::KIND_BOX) {
+                    continue;
+                }
 
-            $selectedPrep = $enabledPrep->whereIn('id', $prepIds)->values();
-            $packagingType = $packagingTypeId
-                ? $enabledPack->firstWhere('id', $packagingTypeId)
-                : null;
+                $box = $boxes->get((int) $row['produce_box_id']);
+                if (! $box instanceof ProduceBox) {
+                    continue;
+                }
 
-            $lineBase = DecimalMath::mul($unitPrice, $quantity);
-            $servicesSurcharge = SurchargeOnBase::sumForRules($lineBase, $selectedPrep);
-            $amountAfterServices = DecimalMath::add($lineBase, $servicesSurcharge);
-            $packagingSurcharge = $packagingType
-                ? SurchargeOnBase::amount($amountAfterServices, $packagingType)
-                : DecimalMath::normalizeNumericString('0');
-            $lineSubtotal = DecimalMath::add($amountAfterServices, $packagingSurcharge);
+                $unitPrice = DecimalMath::normalizeNumericString((string) $box->price);
+                $quantity = '1';
+                $lineSubtotal = DecimalMath::mul($unitPrice, $quantity);
+                $snapshot = isset($row['unit_price_snapshot']) && $row['unit_price_snapshot'] !== ''
+                    ? DecimalMath::normalizeNumericString((string) $row['unit_price_snapshot'])
+                    : null;
 
-            $snapshot = isset($row['unit_price_snapshot']) && $row['unit_price_snapshot'] !== ''
-                ? DecimalMath::normalizeNumericString((string) $row['unit_price_snapshot'])
-                : null;
-            $priceChanged = $snapshot !== null && bccomp($snapshot, $unitPrice, 4) !== 0;
+                $resolved->push([
+                    'kind' => self::KIND_BOX,
+                    'line' => $lineIndex,
+                    'produce_box' => $box,
+                    'quantity' => $quantity,
+                    'line_subtotal' => $lineSubtotal,
+                    'unit_price_snapshot' => $snapshot,
+                    'price_changed' => $snapshot !== null && bccomp($snapshot, $unitPrice, 4) !== 0,
+                    'line_base' => $lineSubtotal,
+                    'services_surcharge' => '0',
+                    'packaging_surcharge' => '0',
+                ]);
+            }
+        }
 
-            return [
-                'line' => $lineIndex,
-                'product' => $product,
-                'unit' => $unit,
-                'quantity' => $quantity,
-                'preparation_service_ids' => $prepIds,
-                'packaging_type_id' => $packagingType?->id,
-                'preparation_services' => $selectedPrep,
-                'packaging_type' => $packagingType,
-                'line_base' => $lineBase,
-                'services_surcharge' => $servicesSurcharge,
-                'packaging_surcharge' => $packagingSurcharge,
-                'line_subtotal' => $lineSubtotal,
-                'unit_price_snapshot' => $snapshot,
-                'price_changed' => $priceChanged,
-            ];
-        })->filter()->values();
+        return $resolved->sortBy('line')->values();
     }
 
     public static function subtotal(): string
@@ -330,7 +421,33 @@ final class StoreCart
      */
     private static function normalizeLine(mixed $row): ?array
     {
-        if (! is_array($row) || ! isset($row['product_id'])) {
+        if (! is_array($row)) {
+            return null;
+        }
+
+        $type = $row['type'] ?? (isset($row['produce_box_id']) ? self::KIND_BOX : self::KIND_PRODUCT);
+
+        if ($type === self::KIND_BOX) {
+            if (! isset($row['produce_box_id'])) {
+                return null;
+            }
+
+            $snapshot = $row['unit_price_snapshot'] ?? null;
+            if ($snapshot !== null && $snapshot !== '' && is_numeric((string) $snapshot)) {
+                $snapshot = DecimalMath::normalizeNumericString((string) $snapshot);
+            } else {
+                $snapshot = null;
+            }
+
+            return [
+                'type' => self::KIND_BOX,
+                'produce_box_id' => (int) $row['produce_box_id'],
+                'quantity' => '1',
+                'unit_price_snapshot' => $snapshot,
+            ];
+        }
+
+        if (! isset($row['product_id'])) {
             return null;
         }
 
@@ -353,6 +470,7 @@ final class StoreCart
         }
 
         return [
+            'type' => self::KIND_PRODUCT,
             'product_id' => (int) $row['product_id'],
             'unit' => $unit,
             'quantity' => $quantity,
@@ -362,13 +480,17 @@ final class StoreCart
         ];
     }
 
-    /** @param  array{product_id: int, unit: string, quantity: string, preparation_service_ids: list<int>, packaging_type_id: int|null}  $line */
+    /** @param  array<string, mixed>  $line */
     private static function lineKey(array $line): string
     {
-        $prep = $line['preparation_service_ids'];
+        if (($line['type'] ?? self::KIND_PRODUCT) === self::KIND_BOX) {
+            return 'box|'.(int) $line['produce_box_id'];
+        }
+
+        $prep = $line['preparation_service_ids'] ?? [];
         sort($prep);
 
-        return $line['product_id'].'|'.$line['unit'].'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
+        return 'product|'.$line['product_id'].'|'.$line['unit'].'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
     }
 
     /** @return list<int> */

@@ -9,12 +9,12 @@ class ProcessSubscriptionOrdersCommand extends Command
 {
     protected $signature = 'aldawy:process-subscriptions';
 
-    protected $description = 'Process due produce-box subscriptions (counts due rows; extend to generate orders).';
+    protected $description = 'Generate orders for due produce-box subscriptions.';
 
     public function handle(ProcessDueSubscriptionsAction $action): int
     {
-        $due = $action->execute();
-        $this->info("Due subscriptions: {$due}");
+        $processed = $action->execute();
+        $this->info("Subscription orders created: {$processed}");
 
         return self::SUCCESS;
     }

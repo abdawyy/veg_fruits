@@ -79,12 +79,12 @@ Do these first for the best ROI:
 
 | Done | # | Task | Ease | Primary files |
 |------|---|------|------|-----------------|
-| [ ] | 1 | Produce boxes — Filament CRUD | Medium | new `ProduceBoxResource`, models exist |
-| [ ] | 2 | Produce boxes — storefront pages + cart | Hard | `StorefrontController`, routes, `StoreCart` |
-| [ ] | 3 | Subscriptions — `ProcessDueSubscriptionsAction` creates orders | Hard | `ProcessDueSubscriptionsAction.php`, `CreateOrderAction.php` |
-| [ ] | 4 | Subscriptions — storefront signup UI | Hard | routes, checkout integration |
-| [ ] | 5 | Guest order linking on register/login | Medium | auth controllers, `Order` matching by phone/email |
-| [ ] | 6 | Disable or document subscription cron until Phase D ready | **Easy** | `routes/console.php` |
+| [x] | 1 | Produce boxes — Filament CRUD | Medium | new `ProduceBoxResource`, models exist |
+| [x] | 2 | Produce boxes — storefront pages + cart | Hard | `StorefrontController`, routes, `StoreCart` |
+| [x] | 3 | Subscriptions — `ProcessDueSubscriptionsAction` creates orders | Hard | `ProcessDueSubscriptionsAction.php`, `CreateOrderAction.php` |
+| [x] | 4 | Subscriptions — storefront signup UI | Hard | routes, checkout integration |
+| [x] | 5 | Guest order linking on register/login | Medium | auth controllers, `Order` matching by phone/email |
+| [x] | 6 | Disable or document subscription cron until Phase D ready | **Easy** | `routes/console.php` |
 
 ---
 

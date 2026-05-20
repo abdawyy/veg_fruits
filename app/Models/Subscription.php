@@ -37,4 +37,9 @@ class Subscription extends Model
     {
         return $this->belongsTo(ProduceBox::class);
     }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
 }

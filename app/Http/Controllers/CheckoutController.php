@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Models\Order;
 use App\Models\User;
 use App\Payments\PaymentGatewayResolver;
+use App\Services\Money\DecimalMath;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -79,6 +80,25 @@ final class CheckoutController extends Controller
 
         $draftLines = [];
         foreach ($rows as $row) {
+            if (($row['kind'] ?? StoreCart::KIND_PRODUCT) === StoreCart::KIND_BOX) {
+                /** @var \App\Models\ProduceBox $box */
+                $box = $row['produce_box'];
+                $unitPrice = DecimalMath::normalizeNumericString((string) $box->price);
+                $draftLines[] = new OrderLineDraftDto(
+                    productId: null,
+                    produceBoxId: $box->id,
+                    productNameSnapshot: $box->getTranslations('name'),
+                    unit: 'box',
+                    quantity: $row['quantity'],
+                    services: [],
+                    packaging: '',
+                    unitPrice: $unitPrice,
+                    servicesSurchargeTotal: '0',
+                );
+
+                continue;
+            }
+
             /** @var \App\Models\Product $product */
             $product = $row['product'];
             $servicesMap = [];
@@ -87,9 +107,7 @@ final class CheckoutController extends Controller
             }
             $pkg = $row['packaging_type'];
             $packagingCode = $pkg ? (string) $pkg->code : '';
-
             $extras = bcadd($row['services_surcharge'], $row['packaging_surcharge'], 4);
-
             $unit = $row['unit'];
             $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
             if ($unitPrice === null) {

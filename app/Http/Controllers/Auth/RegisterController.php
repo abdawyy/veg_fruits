@@ -57,14 +57,22 @@ final class RegisterController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        $linkGuestOrders->execute($user, $request->session()->pull('link_guest_order_id'));
+        $linked = $linkGuestOrders->execute($user, $request->session()->pull('link_guest_order_id'));
         $request->session()->forget('checkout_order_id');
 
         if (config('aldawy.require_email_verification') && ! $user->hasVerifiedEmail()) {
-            return redirect()->route('verification.notice')->with('status', __('aldawy.registered'));
+            $status = $linked > 0
+                ? __('aldawy.registered_orders_linked', ['count' => $linked])
+                : __('aldawy.registered');
+
+            return redirect()->route('verification.notice')->with('status', $status);
         }
 
-        return $this->redirectAfterAuth($request)->with('status', __('aldawy.registered'));
+        $status = $linked > 0
+            ? __('aldawy.registered_orders_linked', ['count' => $linked])
+            : __('aldawy.registered');
+
+        return $this->redirectAfterAuth($request)->with('status', $status);
     }
 
     private function redirectAfterAuth(Request $request): RedirectResponse
