@@ -8,6 +8,9 @@
 
     <form method="post" action="{{ route('register') }}" class="mt-6 space-y-4">
         @csrf
+        @if (! empty($redirect))
+            <input type="hidden" name="redirect" value="{{ $redirect }}">
+        @endif
 
         <div>
             <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">{{ __('aldawy.name') }}</label>
@@ -58,6 +61,6 @@
 
     <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         {{ __('aldawy.have_account') }}
-        <a href="{{ route('login') }}" class="font-semibold text-brand hover:text-brand-dark">{{ __('aldawy.nav_login') }}</a>
+        <a href="{{ route('login', ! empty($redirect) ? ['redirect' => $redirect] : []) }}" class="font-semibold text-brand hover:text-brand-dark">{{ __('aldawy.nav_login') }}</a>
     </p>
 @endsection

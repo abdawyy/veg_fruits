@@ -30,7 +30,7 @@ final class OnOrderCreatedGenerateInvoiceAndNotify implements ShouldQueue
             ['order' => $order->id],
         );
 
-        $this->sms->send($order->customer_phone, __('Your AL-DAWY invoice is ready. Download: :url', ['url' => $signed]));
+        $this->sms->send($order->customer_phone, __('aldawy.sms_invoice_ready', ['url' => $signed]));
 
         $order->loadMissing('user');
         $confirmation = new OrderConfirmationNotification($order, $signed);

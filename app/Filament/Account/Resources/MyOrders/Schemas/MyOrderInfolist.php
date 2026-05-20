@@ -2,6 +2,7 @@
 
 namespace App\Filament\Account\Resources\MyOrders\Schemas;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -17,7 +18,10 @@ class MyOrderInfolist
                     ->columns(2)
                     ->schema([
                         TextEntry::make('reference'),
-                        TextEntry::make('status'),
+                        TextEntry::make('status')
+                            ->formatStateUsing(fn (OrderStatus|string|null $state): string => $state instanceof OrderStatus
+                                ? $state->label()
+                                : (is_string($state) ? (OrderStatus::tryFrom($state)?->label() ?? $state) : '—')),
                         TextEntry::make('customer_phone'),
                         TextEntry::make('customer_email')->placeholder('—'),
                         TextEntry::make('city_id')

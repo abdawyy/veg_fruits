@@ -83,5 +83,50 @@ document.addEventListener('submit', async (e) => {
     }
 });
 
+function aldawyBindProductEstimates() {
+    document.querySelectorAll('form[data-product-estimate]').forEach((form) => {
+        const url = form.getAttribute('data-product-estimate');
+        const out = form.querySelector('[data-estimate-value]');
+        if (!url || !out) {
+            return;
+        }
+        let timer = null;
+        const run = async () => {
+            const fd = new FormData(form);
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': aldawyCsrfToken(),
+                    },
+                    body: fd,
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.formatted) {
+                    out.textContent = data.formatted;
+                } else {
+                    out.textContent = '—';
+                }
+            } catch {
+                out.textContent = '—';
+            }
+        };
+        const schedule = () => {
+            clearTimeout(timer);
+            timer = setTimeout(run, 280);
+        };
+        form.querySelectorAll('input, select').forEach((el) => {
+            el.addEventListener('input', schedule);
+            el.addEventListener('change', schedule);
+        });
+        schedule();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', aldawyBindProductEstimates);
+
 window.aldawyToast = aldawyToast;
 window.aldawySetCartCount = aldawySetCartCount;

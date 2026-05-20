@@ -53,6 +53,20 @@
                 {{ __('aldawy.invoice_total') }}: {{ number_format((float) $order->total, 2) }} {{ config('aldawy.currency', 'EGP') }}
             </p>
         </div>
+        @if ($showGuestAccountNudge ?? false)
+            <div class="mt-8 rounded-2xl border border-brand/30 bg-brand/5 p-6 text-center dark:bg-brand/10">
+                <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ __('aldawy.checkout_guest_nudge_title') }}</p>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ __('aldawy.checkout_guest_nudge_sub') }}</p>
+                <div class="mt-4 flex flex-wrap justify-center gap-3">
+                    <a href="{{ route('register', ['redirect' => url('/my')]) }}" class="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark">
+                        {{ __('aldawy.checkout_guest_register') }}
+                    </a>
+                    <a href="{{ route('login', ['redirect' => url('/my')]) }}" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-800 hover:bg-surface dark:border-slate-700 dark:text-white">
+                        {{ __('aldawy.checkout_guest_login') }}
+                    </a>
+                </div>
+            </div>
+        @endif
         <div class="mt-8 flex flex-wrap justify-center gap-4">
             <a href="{{ route('store.shop') }}" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-800 hover:bg-surface dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">{{ __('aldawy.cta_shop') }}</a>
             @auth

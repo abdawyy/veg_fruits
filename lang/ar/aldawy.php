@@ -193,4 +193,29 @@ return [
     'invoice_subtotal' => 'المجموع الفرعي',
     'invoice_packaging' => 'التعبئة',
     'invoice_total' => 'الإجمالي',
+    'download_invoice' => 'تحميل الفاتورة (PDF)',
+
+    'order_status_pending' => 'قيد الانتظار',
+    'order_status_confirmed' => 'مؤكد',
+    'order_status_processing' => 'قيد التجهيز',
+    'order_status_shipped' => 'تم الشحن',
+    'order_status_delivered' => 'تم التوصيل',
+    'order_status_cancelled' => 'ملغى',
+
+    'sms_invoice_ready' => 'فاتورة الدوي جاهزة. التحميل: :url',
+
+    'cart_options_save' => 'حفظ الخيارات',
+    'cart_options_updated' => 'تم تحديث خيارات السلة.',
+    'cart_price_changed_title' => 'تغيّرت الأسعار منذ إضافة المنتجات',
+    'cart_price_changed_line' => ':old ← :new :currency / كيلو',
+    'cart_price_changed_hint' => 'الإجماليات أدناه بالأسعار الحالية. راجع الكميات قبل إتمام الطلب.',
+    'cart_line_price_changed' => 'السعر تغيّر منذ الإضافة',
+    'checkout_price_changed' => 'تغيّرت بعض الأسعار. راجع السلة وحاول مرة أخرى.',
+
+    'checkout_guest_nudge_title' => 'تابع طلبك من حسابي',
+    'checkout_guest_nudge_sub' => 'أنشئ حساباً أو سجّل الدخول بنفس البريد أو الهاتف المستخدم في هذا الطلب.',
+    'checkout_guest_register' => 'إنشاء حساب',
+    'checkout_guest_login' => 'تسجيل الدخول',
+
+    'product_estimate_label' => 'تقدير إجمالي السطر',
 ];

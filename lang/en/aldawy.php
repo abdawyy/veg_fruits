@@ -190,4 +190,29 @@ return [
     'invoice_subtotal' => 'Subtotal',
     'invoice_packaging' => 'Packaging',
     'invoice_total' => 'Total',
+    'download_invoice' => 'Download invoice (PDF)',
+
+    'order_status_pending' => 'Pending',
+    'order_status_confirmed' => 'Confirmed',
+    'order_status_processing' => 'Processing',
+    'order_status_shipped' => 'Shipped',
+    'order_status_delivered' => 'Delivered',
+    'order_status_cancelled' => 'Cancelled',
+
+    'sms_invoice_ready' => 'Your AL-DAWY invoice is ready. Download: :url',
+
+    'cart_options_save' => 'Save options',
+    'cart_options_updated' => 'Cart options updated.',
+    'cart_price_changed_title' => 'Prices updated since items were added',
+    'cart_price_changed_line' => ':old → :new :currency / kg',
+    'cart_price_changed_hint' => 'Totals below use current prices. Refresh quantities or remove items if needed before checkout.',
+    'cart_line_price_changed' => 'Price updated since added',
+    'checkout_price_changed' => 'Some prices changed. Review your cart and try checkout again.',
+
+    'checkout_guest_nudge_title' => 'Track this order in My account',
+    'checkout_guest_nudge_sub' => 'Create a free account or sign in with the same email or phone you used for this order.',
+    'checkout_guest_register' => 'Create account',
+    'checkout_guest_login' => 'Sign in',
+
+    'product_estimate_label' => 'Estimated line total',
 ];

@@ -7,6 +7,7 @@ use App\DTO\CreateOrderPayload;
 use App\DTO\OrderLineDraftDto;
 use App\Models\City;
 use App\Models\Order;
+use App\Models\User;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -65,6 +66,13 @@ final class CheckoutController extends Controller
                 ->withErrors(['cart' => __('aldawy.checkout_cart_changed')]);
         }
 
+        if (StoreCart::hasPriceChanges()) {
+            return redirect()
+                ->route('store.cart')
+                ->withErrors(['cart' => __('aldawy.checkout_price_changed')])
+                ->withInput();
+        }
+
         $request->session()->put('checkout_in_flight', true);
 
         $draftLines = [];
@@ -121,6 +129,11 @@ final class CheckoutController extends Controller
         StoreCart::clear();
 
         $request->session()->put('checkout_order_id', $order->id);
+        if ($request->user() === null) {
+            $request->session()->put('link_guest_order_id', $order->id);
+        } else {
+            $this->saveDefaultDeliveryAddress($request->user(), $data);
+        }
 
         return redirect()->route('store.checkout.thanks');
     }
@@ -134,6 +147,19 @@ final class CheckoutController extends Controller
 
         $order = Order::query()->with(['items', 'city'])->findOrFail((int) $id);
 
-        return view('store.checkout-thanks', compact('order'));
+        return view('store.checkout-thanks', [
+            'order' => $order,
+            'showGuestAccountNudge' => ! $request->user() && $order->user_id === null,
+        ]);
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function saveDefaultDeliveryAddress(User $user, array $data): void
+    {
+        $user->forceFill([
+            'default_city_id' => (int) $data['city_id'],
+            'default_address_line1' => $data['shipping_address_line1'],
+            'default_address_line2' => $data['shipping_address_line2'] ?? null,
+        ])->save();
     }
 }

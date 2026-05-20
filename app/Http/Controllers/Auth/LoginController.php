@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Orders\LinkGuestOrdersToUserAction;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ final class LoginController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LinkGuestOrdersToUserAction $linkGuestOrders): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'string', 'email'],
@@ -31,6 +32,8 @@ final class LoginController extends Controller
         }
 
         $request->session()->regenerate();
+
+        $linkGuestOrders->execute($request->user(), $request->session()->pull('link_guest_order_id'));
 
         $intended = $request->input('redirect');
         if (is_string($intended) && $intended !== '') {

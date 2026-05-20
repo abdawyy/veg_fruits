@@ -1,14 +1,26 @@
 @php
     $locale = app()->getLocale();
 @endphp
-<form method="post" action="{{ route('store.cart.add') }}" data-ajax-cart class="mt-6 flex flex-wrap items-end gap-2">
+<form
+    method="post"
+    action="{{ route('store.cart.add') }}"
+    data-ajax-cart
+    data-product-estimate="{{ route('store.product.estimate', $product) }}"
+    class="mt-6 flex flex-col gap-3"
+>
     @csrf
     <input type="hidden" name="product_id" value="{{ $product->id }}">
     <label class="sr-only" for="kg-detail-{{ $product->id }}">{{ __('aldawy.cart_qty') }}</label>
     <input id="kg-detail-{{ $product->id }}" name="kg" type="number" step="0.25" min="0.25" value="1"
         class="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-    @include('store.partials.product-cart-options', ['product' => $product])
-    <button type="submit" class="rounded-xl bg-brand px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark">
-        {{ __('aldawy.add_to_cart') }}
-    </button>
+    <div class="flex flex-wrap items-end gap-2">
+        @include('store.partials.product-cart-options', ['product' => $product])
+        <button type="submit" class="rounded-xl bg-brand px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark">
+            {{ __('aldawy.add_to_cart') }}
+        </button>
+    </div>
+    <p class="text-sm text-slate-600 dark:text-slate-300" data-estimate-output aria-live="polite">
+        <span class="font-semibold text-slate-700 dark:text-slate-200">{{ __('aldawy.product_estimate_label') }}:</span>
+        <span data-estimate-value>—</span>
+    </p>
 </form>

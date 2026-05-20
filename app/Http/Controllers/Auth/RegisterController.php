@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Orders\LinkGuestOrdersToUserAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -14,12 +15,14 @@ use Illuminate\View\View;
 
 final class RegisterController extends Controller
 {
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'redirect' => $request->string('redirect')->toString(),
+        ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LinkGuestOrdersToUserAction $linkGuestOrders): RedirectResponse
     {
         if ($request->input('phone_number') === '' || $request->input('phone_number') === null) {
             $request->merge(['phone_number' => null]);
@@ -50,6 +53,25 @@ final class RegisterController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('store.home')->with('status', __('aldawy.registered'));
+        $linkGuestOrders->execute($user, $request->session()->pull('link_guest_order_id'));
+        $request->session()->forget('checkout_order_id');
+
+        return $this->redirectAfterAuth($request)->with('status', __('aldawy.registered'));
+    }
+
+    private function redirectAfterAuth(Request $request): RedirectResponse
+    {
+        $intended = $request->input('redirect');
+        if (is_string($intended) && $intended !== '') {
+            if (str_starts_with($intended, '/') && ! str_starts_with($intended, '//')) {
+                return redirect()->to($intended);
+            }
+            $host = parse_url($intended, PHP_URL_HOST);
+            if ($host && $host === $request->getHost()) {
+                return redirect()->to($intended);
+            }
+        }
+
+        return redirect()->route('store.home');
     }
 }

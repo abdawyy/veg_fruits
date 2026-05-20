@@ -48,15 +48,15 @@ Do these first for the best ROI:
 
 | Done | # | Task | Ease | Primary files |
 |------|---|------|------|-----------------|
-| [ ] | 1 | Invoice download from `/my` orders | **Easy** | `app/Filament/Account/Resources/MyOrders/*` |
-| [ ] | 2 | Translated order status in account panel | **Easy** | `MyOrderInfolist`, account resources |
-| [ ] | 3 | Redirect to cart after register (`?redirect=`) | **Easy** | `RegisterController.php` |
-| [ ] | 4 | Edit prep/packaging on cart lines | Medium | `StoreCart.php`, `CartController.php`, cart Blade |
-| [ ] | 5 | Localize SMS template (EN/AR) | **Easy** | `OnOrderCreatedGenerateInvoiceAndNotify.php`, lang files |
-| [ ] | 6 | Post-checkout guest nudge (register/login to track order) | Medium | thanks page, auth controllers |
-| [ ] | 7 | Price change warning (stale cart vs live DB) | Medium | `StoreCart.php`, cart/checkout views |
-| [ ] | 8 | Estimated line total on product page (optional AJAX) | Medium | product Blade, pricing services |
-| [ ] | 9 | Saved addresses / default city for logged-in users | Hard | new migration + checkout prefill |
+| [x] | 1 | Invoice download from `/my` orders | **Easy** | `app/Filament/Account/Resources/MyOrders/*` |
+| [x] | 2 | Translated order status in account panel | **Easy** | `MyOrderInfolist`, account resources |
+| [x] | 3 | Redirect to cart after register (`?redirect=`) | **Easy** | `RegisterController.php` |
+| [x] | 4 | Edit prep/packaging on cart lines | Medium | `StoreCart.php`, `CartController.php`, cart Blade |
+| [x] | 5 | Localize SMS template (EN/AR) | **Easy** | `OnOrderCreatedGenerateInvoiceAndNotify.php`, lang files |
+| [x] | 6 | Post-checkout guest nudge (register/login to track order) | Medium | thanks page, auth controllers |
+| [x] | 7 | Price change warning (stale cart vs live DB) | Medium | `StoreCart.php`, cart/checkout views |
+| [x] | 8 | Estimated line total on product page (optional AJAX) | Medium | product Blade, pricing services |
+| [x] | 9 | Saved addresses / default city for logged-in users | Hard | new migration + checkout prefill |
 
 ---
 

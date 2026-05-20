@@ -18,6 +18,24 @@
                 </ul>
             </div>
         @endif
+        @if ($priceChangedLines->isNotEmpty())
+            <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100">
+                <p class="font-semibold">{{ __('aldawy.cart_price_changed_title') }}</p>
+                <ul class="mt-2 list-inside list-disc">
+                    @foreach ($priceChangedLines as $change)
+                        <li>
+                            {{ $change['product']->getTranslation('name', app()->getLocale()) }}:
+                            {{ __('aldawy.cart_price_changed_line', [
+                                'old' => number_format((float) $change['snapshot'], 2),
+                                'new' => number_format((float) $change['current'], 2),
+                                'currency' => config('aldawy.currency', 'EGP'),
+                            ]) }}
+                        </li>
+                    @endforeach
+                </ul>
+                <p class="mt-2 text-xs">{{ __('aldawy.cart_price_changed_hint') }}</p>
+            </div>
+        @endif
         @if ($rows->isEmpty())
             <p class="rounded-2xl border border-dashed border-slate-200 bg-surface p-12 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                 {{ __('aldawy.cart_empty') }}
@@ -57,20 +75,13 @@
                                     </div>
                                 </td>
                                 <td class="max-w-[14rem] px-4 py-4 align-top text-xs text-slate-600 dark:text-slate-300">
-                                    @if ($row['preparation_services']->isNotEmpty())
-                                        <p class="font-semibold text-slate-700 dark:text-slate-200">{{ __('aldawy.cart_line_prep') }}</p>
-                                        <ul class="mt-1 list-inside list-disc text-slate-500 dark:text-slate-400">
-                                            @foreach ($row['preparation_services'] as $svc)
-                                                <li>{{ $svc->getTranslation('name', app()->getLocale()) }}</li>
-                                            @endforeach
-                                        </ul>
-                                    @endif
-                                    @if ($row['packaging_type'])
-                                        <p class="mt-2 font-semibold text-slate-700 dark:text-slate-200">{{ __('aldawy.cart_line_pack') }}</p>
-                                        <p class="text-slate-500 dark:text-slate-400">{{ $row['packaging_type']->getTranslation('name', app()->getLocale()) }}</p>
-                                    @endif
-                                    @if ($row['preparation_services']->isEmpty() && ! $row['packaging_type'])
-                                        <span class="text-slate-400">—</span>
+                                    @include('store.partials.cart-line-options-form', [
+                                        'product' => $product,
+                                        'row' => $row,
+                                        'line' => $line,
+                                    ])
+                                    @if (! empty($row['price_changed']))
+                                        <p class="mt-2 text-[10px] font-semibold text-amber-700 dark:text-amber-300">{{ __('aldawy.cart_line_price_changed') }}</p>
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 text-end">
@@ -125,6 +136,10 @@
                         {{ __('aldawy.checkout_no_cities') }}
                     </div>
                 @else
+                    @php
+                        $selectedCityId = (string) old('city_id', $defaultCityId ?? $cities->first()?->id);
+                        $selectedCity = $cities->firstWhere('id', (int) $selectedCityId) ?? $cities->first();
+                    @endphp
                     <div class="rounded-2xl border border-slate-200 bg-white/90 p-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
                         <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ __('aldawy.checkout_title') }}</h2>
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.checkout_sub') }}</p>
@@ -143,7 +158,7 @@
                                         <option
                                             value="{{ $city->id }}"
                                             data-fee="{{ $city->shipping_fee }}"
-                                            @selected((string) old('city_id', $cities->first()->id) === (string) $city->id)
+                                            @selected($selectedCityId === (string) $city->id)
                                         >
                                             {{ $city->getTranslation('name', app()->getLocale()) }}
                                             — {{ __('aldawy.checkout_shipping') }} {{ number_format((float) $city->shipping_fee, 2) }} {{ config('aldawy.currency', 'EGP') }}
@@ -154,27 +169,27 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="shipping_address_line1">{{ __('aldawy.checkout_address1') }}</label>
-                                <input id="shipping_address_line1" name="shipping_address_line1" type="text" required value="{{ old('shipping_address_line1') }}"
+                                <input id="shipping_address_line1" name="shipping_address_line1" type="text" required value="{{ $defaultAddressLine1 }}"
                                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="shipping_address_line2">{{ __('aldawy.checkout_address2') }}</label>
-                                <input id="shipping_address_line2" name="shipping_address_line2" type="text" value="{{ old('shipping_address_line2') }}"
+                                <input id="shipping_address_line2" name="shipping_address_line2" type="text" value="{{ $defaultAddressLine2 }}"
                                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="customer_phone">{{ __('aldawy.checkout_phone') }}</label>
-                                <input id="customer_phone" name="customer_phone" type="text" required value="{{ old('customer_phone', auth()->user()?->phone_number ?? '') }}"
+                                <input id="customer_phone" name="customer_phone" type="text" required value="{{ $defaultPhone }}"
                                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="customer_name">{{ __('aldawy.checkout_name') }}</label>
-                                <input id="customer_name" name="customer_name" type="text" value="{{ old('customer_name', auth()->user()?->name ?? '') }}"
+                                <input id="customer_name" name="customer_name" type="text" value="{{ $defaultName }}"
                                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="customer_email">{{ __('aldawy.checkout_email') }}</label>
-                                <input id="customer_email" name="customer_email" type="email" value="{{ old('customer_email', auth()->user()?->email ?? '') }}"
+                                <input id="customer_email" name="customer_email" type="email" value="{{ $defaultEmail }}"
                                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div>
@@ -210,14 +225,14 @@
                             <div class="flex justify-between gap-4 text-slate-600 dark:text-slate-300">
                                 <dt>{{ __('aldawy.checkout_shipping') }}</dt>
                                 <dd class="font-semibold text-slate-800 dark:text-slate-100">
-                                    <span class="aldawy-checkout-shipping-display" id="aldawy-checkout-shipping">{{ number_format((float) ($cities->first()->shipping_fee ?? 0), 2) }}</span>
+                                    <span class="aldawy-checkout-shipping-display" id="aldawy-checkout-shipping">{{ number_format((float) ($selectedCity->shipping_fee ?? 0), 2) }}</span>
                                     {{ config('aldawy.currency', 'EGP') }}
                                 </dd>
                             </div>
                         </dl>
                         <p class="mt-6 text-2xl font-bold text-brand">
                             {{ __('aldawy.checkout_grand_total') }}:
-                            <span class="aldawy-checkout-total-display" id="aldawy-checkout-total">{{ number_format((float) $subtotal + (float) ($cities->first()->shipping_fee ?? 0), 2) }}</span>
+                            <span class="aldawy-checkout-total-display" id="aldawy-checkout-total">{{ number_format((float) $subtotal + (float) ($selectedCity->shipping_fee ?? 0), 2) }}</span>
                             <span class="text-base font-semibold text-slate-500 dark:text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
                         </p>
                         <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.checkout_cod') }}</p>
