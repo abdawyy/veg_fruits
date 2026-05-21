@@ -3,7 +3,9 @@
 > **Purpose:** Single source of truth for developers and AI coding agents working on this repository.  
 > **Brand:** AL-DAWY — fresh fruits & vegetables e-commerce (Egypt-focused, EGP currency).  
 > **Composer package:** `aldawy/storefront`  
-> **Related:** [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — missing features, flow improvements, bugs & roadmap
+> **Related:** [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — historical audit + what shipped (Phases A–E)  
+> **Backlog:** [TODO.md](./TODO.md) · **Verification:** [docs/VERIFICATION.md](./docs/VERIFICATION.md)  
+> **Last updated:** 2026-05-20 (post Phases A–E)
 
 ---
 
@@ -16,9 +18,9 @@ AL-DAWY is a **Laravel 13** monolith that powers:
 | **Public storefront** | `/`, `/shop`, `/cart`, `/checkout` | Customers (guest or logged-in) |
 | **Admin panel** (Filament v5) | `/admin` | Staff (`users.is_admin = true`) |
 | **Customer account** (Filament) | `/my` | Registered customers |
-| **REST API** (Sanctum) | `/api/*` | Mobile / integrations (minimal today) |
+| **REST API** (Sanctum) | `/api/v1/*` + `/api/user`, `/api/orders` | Mobile / integrations |
 
-**Core business:** Sell produce by **kg** (and optionally by piece), with optional **preparation services** (wash, peel, etc.) and **packaging types** that add fixed or percentage surcharges. Checkout uses **cash on delivery (COD)**. Orders trigger **PDF invoices**, **email**, and **SMS** (SMS currently logs only).
+**Core business:** Sell produce by **kg** or **piece**, optional **preparation** and **packaging** surcharges, **produce boxes** (one-time or **subscription**). Checkout: **COD** (default) and optional **online pending** payment. **Coupons**, optional **stock tracking**. Orders trigger **queued** PDF invoice, **email**, and **SMS** (`log` or `http` driver).
 
 **Languages:** English (`en`) and Arabic (`ar`) via Spatie Translatable on models + `lang/{locale}/aldawy.php` + CMS content strings.
 
@@ -49,7 +51,7 @@ AL-DAWY is a **Laravel 13** monolith that powers:
 ```
 fruits&veg/
 ├── app/
-│   ├── Actions/           # Single-purpose command objects (orders, invoices, subscriptions)
+│   ├── Actions/           # Orders, invoices, subscriptions, auth (OTP), coupons
 │   ├── Console/Commands/  # Scheduled artisan commands
 │   ├── Contracts/         # Payment + SMS interfaces
 │   ├── DTO/               # Typed payloads (cart lines, order creation)
@@ -59,18 +61,18 @@ fruits&veg/
 │   ├── Filament/          # Admin panel resources, widgets, pages
 │   ├── Filament/Account/  # Customer panel (my orders)
 │   ├── Http/
-│   │   ├── Controllers/   # Storefront, cart, checkout, auth, invoices
+│   │   ├── Controllers/   # Storefront, cart, checkout, auth, API v1, invoices
 │   │   ├── Middleware/    # Locale, visitor tracking, Filament auth
 │   │   └── Resources/     # API JSON transformers
 │   ├── Imports/           # Excel imports
 │   ├── Listeners/         # OrderCreated → invoice + notify
 │   ├── Models/            # Eloquent models (17)
 │   ├── Notifications/     # Mail notifications
-│   ├── Payments/          # CashOnDeliveryGateway
+│   ├── Payments/          # COD + OnlinePendingPaymentGateway
 │   ├── Providers/         # AppServiceProvider + Filament panels
 │   ├── Services/          # Cart totals, pricing, money math, product price updates
-│   ├── Sms/               # LogSmsSender (stub)
-│   └── Support/           # StoreCart (session), Cms, StoreSeo, ProduceStockPhoto
+│   ├── Sms/               # LogSmsSender, HttpSmsSender
+│   └── Support/           # StoreCart, MoneyCents, Cms, StoreSeo, SpreadsheetImportRunner
 ├── bootstrap/app.php      # Middleware registration, routing
 ├── config/
 │   ├── aldawy.php         # Currency, decimal scale, invoice sender name
@@ -82,7 +84,7 @@ fruits&veg/
 ├── resources/views/       # Blade: store, auth, pdf, filament overrides
 ├── routes/
 │   ├── web.php            # Storefront + auth + signed invoice download
-│   ├── api.php            # Sanctum user + orders
+│   ├── api.php            # Sanctum + v1 catalog, cart quote, create order
 │   └── console.php        # Subscription scheduler
 └── tests/                 # Feature + unit (cart, checkout, totals)
 ```
@@ -123,18 +125,21 @@ Surcharges can be **fixed amount** or **percent of base** (`surcharge_is_percent
 Order total:
 
 ```
-order.subtotal     = Σ line totals (from CalculateCartTotalService)
-order.packaging_fee = order-level packaging (often 0 in current checkout)
+order.subtotal      = Σ line totals (from CalculateCartTotalService)
+order.packaging_fee = order-level fee (storefront checkout passes 0; per-line packaging in surcharges)
+order.discount_amount = coupon discount (optional)
 order.shipping_fee  = city.shipping_fee
-order.total         = subtotal + packaging_fee + shipping_fee
+order.total         = subtotal − discount + packaging_fee + shipping_fee
 ```
 
 ### 4.4 Cart storage
 
-- **Session key:** `aldawy_cart` (`StoreCart::SESSION_KEY`)
-- Line shape: `{ product_id, kg, preparation_service_ids[], packaging_type_id? }`
-- Lines merge when same product + same prep services + same packaging
-- Resolution loads products with enabled prep/packaging pivots and computes surcharges
+- **Session keys:** `aldawy_cart`, `aldawy_coupon_code`
+- **Line kinds:** `product` (unit `kg` | `piece`, quantity) or `box` (produce box, qty 1)
+- Product lines: `{ type, product_id, unit, quantity, preparation_service_ids[], packaging_type_id?, unit_price_snapshot? }`
+- Lines merge on product+unit+prep+packaging or box id
+- `resolved()` drops inactive products, out-of-stock lines, and invalid units
+- **Coupon:** `ApplyCouponService` at cart display and checkout
 
 ---
 
@@ -162,23 +167,25 @@ erDiagram
 | Table | Role |
 |-------|------|
 | `categories` | Fruit/veg groupings; JSON `name`, `slug` (translatable) |
-| `products` | SKU, `price_per_kg`, optional `price_per_piece`, images, `view_count` |
+| `products` | SKU, `price_per_kg`, `price_per_piece`, `track_stock`, `stock_quantity`, images |
+| `coupons` | Percent/fixed discounts, usage limits, date range |
+| `import_audit_logs` | Excel import dry-run/commit results |
 | `preparation_services` | Code, surcharge rules, sort order |
 | `packaging_types` | Code, surcharge rules, sort order |
 | `preparation_service_product` | Per-product enablement |
 | `packaging_type_product` | Per-product enablement |
 | `produce_boxes` | Curated box SKUs (subscription-ready) |
 | `produce_box_items` | Box composition |
-| `orders` | Reference `AL-XXXXXXXXXX`, customer info, fees, status, `invoice_path` |
+| `orders` | Reference `AL-XXXXXXXXXX`, `coupon_id`, `discount_amount`, fees, status, `invoice_path` |
 | `order_items` | Snapshots: `product_name_snapshot`, unit, qty, services JSON, packaging code |
-| `subscriptions` | Recurring box orders (`interval`, `next_order_at`) — **Phase 2 incomplete** |
+| `subscriptions` | Recurring box orders; cron creates orders via `ProcessDueSubscriptionsAction` |
 | `cities` | Shipping zones + `shipping_fee` |
 | `content_strings` | CMS key → en/ar values (cached forever) |
 | `seo_settings` | Global + per-route meta, OG image |
 | `home_banners` | Carousel slides |
 | `site_visitors` | Session-based analytics (hashed IP/UA) |
 | `site_page_views` | Per-path view log |
-| `phone_verifications` | OTP storage (not fully wired in storefront auth yet) |
+| `phone_verifications` | OTP for `/login/phone` storefront auth |
 
 ### 5.3 Order status lifecycle
 
@@ -212,11 +219,16 @@ Default seeded admin: `admin@aldawy.local` / `password` (see `DatabaseSeeder`).
 | GET | `/vegetables` | StorefrontController@vegetables | store.vegetables |
 | GET | `/products/{product}` | StorefrontController@product | store.product |
 | GET | `/special-services` | StorefrontController@services | store.services |
-| GET/POST | `/cart/*` | CartController | store.cart.* |
+| GET | `/boxes`, `/boxes/{box}` | ProduceBoxController | store.boxes.* |
+| POST | `/boxes/{box}/cart`, `/subscribe` | ProduceBox / Subscription | auth for subscribe |
+| GET/POST | `/cart/*` | CartController | store.cart.* (incl. coupon) |
 | POST | `/checkout` | CheckoutController@store | store.checkout.store |
-| GET | `/checkout/thanks` | CheckoutController@thanks | store.checkout.thanks |
-| GET/POST | `/login`, `/register` | Auth controllers | login, register |
-| GET | `/invoices/{order}/download` | InvoiceDownloadController | invoices.download (signed URL) |
+| GET | `/checkout/thanks`, `/checkout/invoice` | CheckoutController / session invoice | |
+| GET/POST | `/login`, `/register`, `/login/phone` | Auth | email, OTP |
+| GET | `/forgot-password`, `/reset-password` | Password reset | |
+| GET | `/email/verify` | Email verification (optional) | |
+| GET | `/invoices/{order}/download` | InvoiceDownloadController | signed + auth rules |
+| GET | `/my/orders/{order}/invoice` | AccountInvoiceDownloadController | auth owner |
 
 ### 6.2 Checkout flow
 
@@ -226,16 +238,21 @@ Cart (session) → POST /checkout (validate city, address, phone)
   → CreateOrderAction (DB transaction)
   → PaymentGatewayInterface::handleCheckout (COD)
   → OrderCreated event
-  → Listener: PDF + SMS + emails (customer + admins)
-  → Clear cart → redirect thanks page (order id in session flash)
+  → OrderCreated → **queued** listener: PDF + SMS + emails
+  → Clear cart → thanks page (`checkout_order_id` in session)
 ```
 
 ### 6.3 API (`routes/api.php`)
 
-| Endpoint | Auth | Returns |
+| Endpoint | Auth | Purpose |
 |----------|------|---------|
-| `GET /api/user` | Sanctum | `UserResource` |
-| `GET /api/orders` | Sanctum | Paginated `OrderResource` collection |
+| `GET /api/user` | Sanctum | Current user |
+| `GET /api/orders` | Sanctum | Paginated own orders |
+| `GET /api/v1/catalog/categories` | Public | Category list |
+| `GET /api/v1/catalog/products` | Public | Product catalog (+ search) |
+| `GET /api/v1/catalog/products/{id}` | Public | Single product |
+| `POST /api/v1/cart/quote` | Public | Price quote for line payload |
+| `POST /api/v1/orders` | Public/guest | Create order (body lines + delivery) |
 
 ### 6.4 Middleware (global web stack)
 
@@ -255,8 +272,11 @@ Cart (session) → POST /checkout (validate city, address, phone)
 
 | Resource | Model | Notes |
 |----------|-------|-------|
-| `ProductResource` | Product | Translatable name/slug/desc, image upload, prep/packaging relations |
-| `OrderResource` | Order | Status, items relation manager, exports |
+| `CategoryResource` | Category | EN/AR names, slugs |
+| `ProductResource` | Product | Stock, translatable fields, prep/packaging, import dry-run |
+| `ProduceBoxResource` | ProduceBox | Box CRUD + item repeater |
+| `CouponResource` | Coupon | Discount codes |
+| `OrderResource` | Order | Translated status labels, items, exports |
 | `CityResource` | City | Shipping fees |
 | `PreparationServiceResource` | PreparationService | Surcharge rules |
 | `PackagingTypeResource` | PackagingType | Surcharge rules |
@@ -286,10 +306,10 @@ Admin can import/export via Maatwebsite classes in `app/Imports/*` and `app/Expo
 
 **Provider:** `App\Providers\Filament\AccountPanelProvider`  
 **Path:** `/my`  
-**Features:** Profile, `CustomerDashboard`, `MyOrderResource` (list/view own orders)  
-**Auth:** Any logged-in user (no `is_admin` required).
+**Features:** Profile, `CustomerDashboard`, `MyOrderResource` (list/view, **invoice download**, **cancel** pending/confirmed orders)  
+**Auth:** Any logged-in user; optional `ALDAWY_REQUIRE_EMAIL_VERIFICATION`.
 
-Storefront login/register uses classic controllers (`LoginController`, `RegisterController`), not Filament login on account panel (`->login(null)`).
+Storefront auth: email/password, **password reset**, **phone OTP** (`/login/phone`), guest order **linking** on login/register.
 
 ---
 
@@ -310,28 +330,30 @@ CheckoutController
 
 ### 9.2 Post-order listener
 
-`OnOrderCreatedGenerateInvoiceAndNotify`:
+`OnOrderCreatedGenerateInvoiceAndNotify` (**implements `ShouldQueue`**):
 
-1. `GenerateInvoicePdfAction` → stores path on `orders.invoice_path`
-2. Temporary signed URL (30 days) for download
-3. SMS via `SmsSenderInterface` (currently `LogSmsSender`)
-4. `OrderConfirmationNotification` to customer email
-5. `AdminNewOrderNotification` to all `is_admin` users
+1. `GenerateInvoicePdfAction` → `orders.invoice_path`
+2. Signed download URL (`ALDAWY_INVOICE_SIGNED_DAYS`, default 14)
+3. SMS via `SmsSenderInterface` (`log` or `http`)
+4. `OrderConfirmationNotification` (localized)
+5. `AdminNewOrderNotification` to admins
+
+`OrderObserver` sends queued `OrderStatusChangedNotification` on status updates.
 
 ### 9.3 Cart controller
 
-`CartController` — add/update/remove/clear; supports AJAX JSON responses for add (see `CartAjaxAddTest`).
+`CartController` — add/update/remove/clear/options, **coupons**, stock checks; AJAX add; dispatches `cart-updated` for Livewire drawer.
 
-### 9.4 Subscriptions (incomplete)
+### 9.4 Subscriptions
 
-- Model + migration exist
-- `ProcessDueSubscriptionsAction` only **counts** due subscriptions (does not create orders yet)
-- Scheduled: `aldawy:process-subscriptions` daily at 06:00 (`routes/console.php`)
-- Comment in action: *"Phase 2: delegate to CreateOrderAction with box lines"*
+- `SubscribeToProduceBoxAction` — signup + first order
+- `ProcessDueSubscriptionsAction` — cron creates renewal orders, advances `next_order_at`
+- `aldawy:process-subscriptions` daily 06:00
 
 ### 9.5 Produce boxes
 
-`ProduceBox` + `ProduceBoxItem` support bundled products. Storefront subscription/box checkout is **not fully implemented** in web routes; schema is ready.
+- Admin: `ProduceBoxResource`
+- Storefront: `/boxes`, cart as `KIND_BOX`, subscription form on box detail page
 
 ---
 
@@ -348,6 +370,9 @@ CheckoutController
 
 - `components/store/⚡product-search-bar.blade.php`
 - `components/store/⚡price-notice-banner.blade.php`
+- `components/store/⚡cart-preview-drawer.blade.php`
+
+**JS:** `resources/js/money.js` — integer cents for checkout total display (avoids float drift).
 
 **PDF templates:** `resources/views/pdf/invoice.blade.php`, `catalog.blade.php`, `orders-summary.blade.php`
 
@@ -367,7 +392,8 @@ CheckoutController
 
 1. **CMS** — `ContentString` table, cached in `Cms::text($key, $fallback)`  
 2. **Lang files** — `lang/{locale}/aldawy.php` (large storefront dictionary)  
-3. **Filament** — uses Laravel `__()` for admin labels
+3. **Filament** — uses Laravel `__()` for admin labels  
+4. **Guidelines** — [docs/CMS_AND_LANG.md](./docs/CMS_AND_LANG.md)
 
 ### 11.3 SEO
 
@@ -384,6 +410,11 @@ CheckoutController
 | `invoice_sender_name` | `ALDAWY_INVOICE_SENDER_NAME` | abdelrahman mohamed |
 | `currency` | `ALDAWY_CURRENCY` | EGP |
 | `decimal_scale` | `ALDAWY_DECIMAL_SCALE` | 4 |
+| `invoice_signed_days` | `ALDAWY_INVOICE_SIGNED_DAYS` | 14 |
+| `sms.driver` | `ALDAWY_SMS_DRIVER` | log \| http |
+| `payments.online_enabled` | `ALDAWY_ONLINE_PAYMENT_ENABLED` | false |
+| `require_email_verification` | `ALDAWY_REQUIRE_EMAIL_VERIFICATION` | false |
+| `otp.enabled` | `ALDAWY_PHONE_OTP_ENABLED` | true |
 
 ### 12.2 Important `.env` variables
 
@@ -409,13 +440,15 @@ ANALYTICS_META_PIXEL_ID
 2. `2026_05_12_120000_create_aldawy_commerce_tables.php` — core commerce
 3. Product images, content_strings, seo, visitors, view_count
 4. Home banners, cities, shipping address on orders
-5. Visitor insights + page views, banner image upload
+5. Visitor insights + page views, banner image upload  
+6. Default delivery fields on users, coupons/stock/import audit (Phase E)
 
 ### 13.2 Seeders
 
 | Seeder | Purpose |
 |--------|---------|
 | `ProduceCatalogSeeder` | Categories + products from `database/seeders/Catalog/produce_items.php` |
+| `ProduceBoxSeeder` | Sample produce box (after catalog) |
 | `CatalogOperationsSeeder` | Prep services, packaging types, pivots |
 | `HomeBannerSeeder` | Sample banners |
 | `DatabaseSeeder` | Calls above + creates admin user |
@@ -430,9 +463,12 @@ Run: `php artisan migrate --seed`
 |------|--------|
 | `tests/Unit/CalculateCartTotalServiceTest.php` | Line + order total math |
 | `tests/Feature/CartAjaxAddTest.php` | AJAX add to cart |
-| `tests/Feature/CheckoutTest.php` | End-to-end checkout |
+| `tests/Feature/CheckoutTest.php` | Checkout + queued listener |
+| `tests/Feature/PhaseACheckoutGuardsTest.php` | Guards, idempotency |
+| `tests/Feature/PhaseDCommerceTest.php` | Boxes, subscriptions |
+| `tests/Feature/InvoiceDownloadAuthorizationTest.php` | Invoice auth |
 
-Run: `composer test` or `php artisan test`
+CI: `.github/workflows/tests.yml`. Run: `php artisan test`
 
 ---
 
@@ -444,31 +480,28 @@ Run: `composer test` or `php artisan test`
 2. Bind in `AppServiceProvider::register()`
 3. Set `payment_gateway` identifier on orders (already stored)
 
-### 15.2 Add real SMS
+### 15.2 SMS & payments (configured)
 
-1. Implement `App\Contracts\Sms\SmsSenderInterface`
-2. Replace `LogSmsSender` binding in `AppServiceProvider`
+- SMS: set `ALDAWY_SMS_DRIVER=http` and HTTP env vars in `config/aldawy.php`
+- Payments: set `ALDAWY_ONLINE_PAYMENT_ENABLED=true` for online pending gateway
 
-### 15.3 Complete subscriptions
+### 15.3 Subscriptions & boxes (implemented)
 
-1. Extend `ProcessDueSubscriptionsAction` to build `CreateOrderPayload` from `ProduceBox` lines
-2. Advance `next_order_at` based on `SubscriptionInterval` enum
-3. Wire storefront UI for box signup (routes TBD)
+See `ProcessDueSubscriptionsAction`, `SubscribeToProduceBoxAction`, `ProduceBoxController`, `BuildOrderLinesFromProduceBoxAction`.
 
-### 15.4 Sell by piece on storefront
+### 15.4 Sell by piece (implemented)
 
-- Model supports `sell_by_piece` + `price_per_piece`
-- Current cart/checkout path uses **kg only** (`unit: 'kg'` in `CheckoutController`)
+`StoreCart::UNIT_PIECE`, cart UI unit selector, `CheckoutController` draft mapping.
 
 ---
 
 ## 16. Security notes
 
-- Invoice download uses **signed URLs** (`middleware('signed')`, 30-day expiry in listener)
-- Visitor tracking stores **hashed** IP and user-agent (`sha256` + `app.key`)
-- Admin panel gated by `is_admin` + Filament auth
-- CSRF on all web POST routes
-- Sanctum for API token auth
+- **Invoice download:** signed URLs (configurable expiry), rate-limited; logged-in users must match order ownership or guest identity — see [docs/INVOICE_ACCESS.md](./docs/INVOICE_ACCESS.md)
+- **Checkout:** `checkout_nonce` + `checkout_in_flight`; cart/checkout throttled
+- Visitor tracking: hashed IP/UA
+- Admin: `is_admin` + Filament auth
+- CSRF on web POST; Sanctum on API
 
 ---
 
@@ -490,18 +523,17 @@ php artisan aldawy:process-subscriptions
 
 ---
 
-## 18. Known gaps & technical debt
+## 18. Remaining / optional enhancements
 
-| Area | Status |
+| Area | Notes |
 |------|--------|
-| Subscriptions → auto orders | Schema only; action counts due rows, does not create orders |
-| Produce box checkout | Not exposed on storefront |
-| Piece-based cart | DB + model ready; cart uses kg only |
-| Phone OTP auth | `phone_verifications` table exists; storefront uses email/password |
-| SMS | Logs to Laravel log, no provider |
-| Payment | COD only |
-| API | Minimal (user + orders list) |
-| README.md | Still default Laravel README (not project-specific) |
+| **Payment capture** | Online gateway marks pending; no PSP webhook/capture yet |
+| **SMS production** | Configure `ALDAWY_SMS_DRIVER=http` for live provider |
+| **API cart session** | v1 quote/orders use request body lines, not server session cart |
+| **Import audit UI** | `import_audit_logs` table exists; no Filament resource yet |
+| **Other Excel imports** | Dry-run runner wired on products; cities/orders can adopt same pattern |
+
+Phases A–E are **shipped** — see [TODO.md](./TODO.md) and [docs/VERIFICATION.md](./docs/VERIFICATION.md).
 
 ---
 
@@ -538,4 +570,4 @@ When modifying this codebase:
 
 ---
 
-*Document generated from codebase analysis. Update this file when adding major features (payments, subscriptions, piece-based cart, etc.).*
+*Document maintained with codebase. Major commerce features (Phases A–E) documented as of 2026-05-20.*

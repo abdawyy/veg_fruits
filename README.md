@@ -6,6 +6,7 @@ Laravel 13 e-commerce for **AL-DAWY** (Egypt, EGP): public shop, Filament admin 
 
 | Doc | Purpose |
 |-----|---------|
+| [MARKETING_GUIDE.md](./MARKETING_GUIDE.md) | **Product & marketing** — fruits, veg, offers (for humans & AI) |
 | [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) | Architecture, routes, data model |
 | [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) | Gaps and risks |
 | [TODO.md](./TODO.md) | Master backlog (Phases A–E) |
