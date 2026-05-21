@@ -38,18 +38,25 @@ final class CreateOrderAction
             );
         }
 
+        // packagingFee on payload is order-level only; per-line prep/packaging surcharges are in each line's servicesSurchargeTotal.
         $totals = $this->cartTotals->execute($cartLines, $payload->packagingFee);
 
         $paymentGateway = $this->paymentGateways->resolve($payload->paymentGatewayId);
 
         $city = City::query()->whereKey($payload->cityId)->where('is_active', true)->firstOrFail();
         $shippingFee = DecimalMath::normalizeNumericString((string) $city->shipping_fee);
-        $grandTotal = DecimalMath::add($totals->grandTotal, $shippingFee);
+        $discount = DecimalMath::normalizeNumericString($payload->discountAmount);
+        $afterDiscount = DecimalMath::sub($totals->grandTotal, $discount);
+        if (bccomp($afterDiscount, '0', 4) < 0) {
+            $afterDiscount = '0';
+        }
+        $grandTotal = DecimalMath::add($afterDiscount, $shippingFee);
 
-        $order = DB::transaction(function () use ($payload, $totals, $city, $shippingFee, $grandTotal, $paymentGateway) {
+        $order = DB::transaction(function () use ($payload, $totals, $city, $shippingFee, $grandTotal, $paymentGateway, $discount) {
             $order = Order::query()->create([
                 'reference' => 'AL-'.strtoupper(Str::random(10)),
                 'user_id' => $payload->userId,
+                'coupon_id' => $payload->couponId,
                 'city_id' => $city->id,
                 'shipping_address_line1' => $payload->shippingAddressLine1,
                 'shipping_address_line2' => $payload->shippingAddressLine2,
@@ -61,12 +68,24 @@ final class CreateOrderAction
                 'packaging_code' => $payload->packagingCode,
                 'subtotal' => $totals->linesSubtotal,
                 'packaging_fee' => $totals->orderPackagingFee,
+                'discount_amount' => $discount,
                 'shipping_fee' => $shippingFee,
                 'total' => $grandTotal,
                 'notes' => $payload->notes,
             ]);
 
             foreach ($payload->lines as $index => $line) {
+                if ($line->productId !== null) {
+                    $product = \App\Models\Product::query()->lockForUpdate()->find($line->productId);
+                    if ($product && $product->track_stock && $product->stock_quantity !== null) {
+                        $remaining = DecimalMath::sub((string) $product->stock_quantity, $line->quantity);
+                        if (bccomp($remaining, '0', 4) < 0) {
+                            throw new \RuntimeException(__('aldawy.stock_insufficient'));
+                        }
+                        $product->forceFill(['stock_quantity' => $remaining])->save();
+                    }
+                }
+
                 OrderItem::query()->create([
                     'order_id' => $order->id,
                     'product_id' => $line->productId,
@@ -82,6 +101,10 @@ final class CreateOrderAction
             }
 
             $paymentGateway->handleCheckout($order->fresh());
+
+            if ($payload->couponId !== null) {
+                \App\Models\Coupon::query()->whereKey($payload->couponId)->increment('used_count');
+            }
 
             return $order->fresh();
         });

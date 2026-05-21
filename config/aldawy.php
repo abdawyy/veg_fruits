@@ -46,4 +46,15 @@ return [
     */
     'require_email_verification' => (bool) env('ALDAWY_REQUIRE_EMAIL_VERIFICATION', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Phone OTP login (storefront)
+    |--------------------------------------------------------------------------
+    */
+    'otp' => [
+        'enabled' => (bool) env('ALDAWY_PHONE_OTP_ENABLED', true),
+        'driver' => env('ALDAWY_OTP_DRIVER', 'log'),
+        'ttl_minutes' => (int) env('ALDAWY_OTP_TTL_MINUTES', 10),
+    ],
+
 ];

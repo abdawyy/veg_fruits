@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Orders\Schemas;
 use App\Enums\OrderStatus;
 use App\Models\City;
 use App\Models\User;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -39,8 +40,13 @@ class OrderForm
                     ->required(),
                 TextInput::make('shipping_address_line1')->maxLength(255)->label(__('Street address')),
                 TextInput::make('shipping_address_line2')->maxLength(255)->label(__('Address line 2'))->nullable(),
+                Placeholder::make('packaging_fee_help')
+                    ->label('')
+                    ->content(__('Order packaging_fee is an order-level snapshot (usually 0 on storefront). Per-line prep/packaging surcharges are stored on each order item.'))
+                    ->columnSpanFull(),
                 TextInput::make('subtotal')->disabled(),
-                TextInput::make('packaging_fee')->disabled(),
+                TextInput::make('packaging_fee')->disabled()->label(__('Order packaging fee (snapshot)')),
+                TextInput::make('discount_amount')->disabled()->label(__('Discount')),
                 TextInput::make('shipping_fee')->disabled()->label(__('Shipping (snapshot)')),
                 TextInput::make('total')->disabled(),
                 TextInput::make('invoice_path')->disabled(),

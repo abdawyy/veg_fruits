@@ -40,6 +40,11 @@
         </button>
     </form>
 
+    @if (config('aldawy.otp.enabled'))
+        <p class="mt-4 text-center text-sm">
+            <a href="{{ route('phone.login', request()->only('redirect')) }}" class="font-semibold text-brand hover:text-brand-dark">{{ __('aldawy.phone_login_link') }}</a>
+        </p>
+    @endif
     <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         {{ __('aldawy.no_account') }}
         <a href="{{ route('register') }}" class="font-semibold text-brand hover:text-brand-dark">{{ __('aldawy.nav_register') }}</a>

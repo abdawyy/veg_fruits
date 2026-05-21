@@ -35,6 +35,11 @@ class ProductForm
                             ->maxLength(64)
                             ->unique(ignoreRecord: true),
                         Toggle::make('is_active')->default(true),
+                        Toggle::make('track_stock')->label(__('Track stock')),
+                        TextInput::make('stock_quantity')
+                            ->numeric()
+                            ->label(__('Stock quantity'))
+                            ->visible(fn ($get) => (bool) $get('track_stock')),
                         Toggle::make('sell_by_piece')->label(__('Sell by piece')),
                     ]),
                 Section::make(__('Names & slugs'))

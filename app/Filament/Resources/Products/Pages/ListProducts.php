@@ -13,6 +13,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Storage;
+use App\Support\Imports\SpreadsheetImportRunner;
+use Filament\Forms\Components\Toggle;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ListProducts extends ListRecords
@@ -51,6 +53,9 @@ class ListProducts extends ListRecords
                             'application/vnd.ms-excel',
                         ])
                         ->required(),
+                    Toggle::make('dry_run')
+                        ->label(__('Dry run (validate only)'))
+                        ->default(true),
                 ])
                 ->action(function (array $data): void {
                     $relative = $data['file'] ?? null;
@@ -60,8 +65,27 @@ class ListProducts extends ListRecords
                         return;
                     }
                     $path = Storage::disk('local')->path($relative);
-                    Excel::import(new ProductsImport, $path);
-                    Notification::make()->title(__('Import finished'))->success()->send();
+                    $runner = app(SpreadsheetImportRunner::class);
+                    $dryRun = (bool) ($data['dry_run'] ?? true);
+
+                    if ($dryRun) {
+                        $result = $runner->dryRun(ProductsImport::class, $path);
+                        $runner->logDryRun(ProductsImport::class, $path, $result, auth()->id(), basename($relative));
+                        Notification::make()
+                            ->title(__('Dry run complete'))
+                            ->body(__('OK: :ok — Failed: :failed', ['ok' => $result['ok'], 'failed' => $result['failed']]))
+                            ->success()
+                            ->send();
+
+                        return;
+                    }
+
+                    $log = $runner->commit(ProductsImport::class, $path, auth()->id(), basename($relative));
+                    Notification::make()
+                        ->title(__('Import finished'))
+                        ->body(__('OK: :ok — Failed: :failed', ['ok' => $log->rows_ok, 'failed' => $log->rows_failed]))
+                        ->success()
+                        ->send();
                 }),
             CreateAction::make(),
         ];

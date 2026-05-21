@@ -8,6 +8,17 @@
         </div>
     </div>
 
+    <div class="mx-auto max-w-4xl px-4 py-8">
+        <div class="rounded-2xl border border-brand/30 bg-brand/5 p-6 text-sm text-slate-700 dark:bg-brand/10 dark:text-slate-200">
+            <h2 class="font-bold text-slate-900 dark:text-white">{{ __('aldawy.services_rules_title') }}</h2>
+            <ul class="mt-3 list-inside list-disc space-y-2">
+                <li>{{ __('aldawy.services_rules_catalog') }}</li>
+                <li>{{ __('aldawy.services_rules_per_product') }}</li>
+                <li>{{ __('aldawy.services_rules_checkout') }}</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="mx-auto max-w-4xl space-y-16 px-4 py-14">
         <section>
             <h2 class="border-b border-slate-200 pb-3 text-xl font-bold text-slate-900 dark:border-slate-800 dark:text-white">{{ __('aldawy.services_prep_section') }}</h2>

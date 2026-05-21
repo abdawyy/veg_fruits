@@ -29,6 +29,8 @@ class Product extends Model
         'price_per_piece',
         'sell_by_piece',
         'is_active',
+        'track_stock',
+        'stock_quantity',
         'view_count',
     ];
 
@@ -66,11 +68,40 @@ class Product extends Model
         return $query->where('is_active', true);
     }
 
+    public function isOutOfStock(): bool
+    {
+        if (! $this->track_stock) {
+            return false;
+        }
+
+        $qty = $this->stock_quantity;
+
+        return $qty === null || bccomp((string) $qty, '0', 4) <= 0;
+    }
+
+    public function hasStockFor(string $requestedQty): bool
+    {
+        if (! $this->track_stock) {
+            return true;
+        }
+
+        if ($this->stock_quantity === null) {
+            return false;
+        }
+
+        $requested = \App\Services\Money\DecimalMath::normalizeNumericString($requestedQty);
+        $available = \App\Services\Money\DecimalMath::normalizeNumericString((string) $this->stock_quantity);
+
+        return bccomp($available, $requested, 4) >= 0;
+    }
+
     protected function casts(): array
     {
         return [
             'sell_by_piece' => 'boolean',
             'is_active' => 'boolean',
+            'track_stock' => 'boolean',
+            'stock_quantity' => 'decimal:4',
             'price_per_kg' => 'decimal:4',
             'price_per_piece' => 'decimal:4',
             'view_count' => 'integer',

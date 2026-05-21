@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Product;
+use App\Services\Coupons\ApplyCouponService;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
+use Livewire\Livewire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,9 +30,26 @@ final class CartController extends Controller
             $request->session()->put('checkout_nonce', Str::random(40));
         }
 
+        $couponCode = StoreCart::couponCode();
+        $discountAmount = '0';
+        $appliedCoupon = null;
+        if ($couponCode !== null && bccomp($subtotal, '0', 4) > 0) {
+            try {
+                $applied = app(ApplyCouponService::class)->execute($couponCode, $subtotal);
+                $discountAmount = $applied['discount'];
+                $appliedCoupon = $applied['coupon'];
+            } catch (ValidationException $e) {
+                StoreCart::setCouponCode(null);
+                $couponCode = null;
+            }
+        }
+
         return view('store.cart', [
             'rows' => $rows,
             'subtotal' => $subtotal,
+            'discountAmount' => $discountAmount,
+            'couponCode' => $couponCode,
+            'appliedCoupon' => $appliedCoupon,
             'cities' => $cities,
             'priceChangedLines' => $priceChangedLines,
             'paymentOptions' => $paymentOptions,
@@ -73,6 +92,12 @@ final class CartController extends Controller
             ]);
         }
 
+        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+            throw ValidationException::withMessages([
+                'product_id' => [__('aldawy.stock_insufficient')],
+            ]);
+        }
+
         StoreCart::add(
             (int) $data['product_id'],
             $unit,
@@ -81,6 +106,8 @@ final class CartController extends Controller
             isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null,
             $unitPrice,
         );
+
+        $this->dispatchCartUpdated();
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -101,7 +128,10 @@ final class CartController extends Controller
             'quantity' => ['required', 'numeric', 'min:0.01', 'max:500'],
         ]);
 
+        $this->assertLineStock((int) $data['line'], (string) $data['quantity']);
+
         StoreCart::update((int) $data['line'], $data['unit'], (string) $data['quantity']);
+        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_updated'));
     }
@@ -117,6 +147,8 @@ final class CartController extends Controller
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
 
+        $this->assertLineStock((int) $data['line'], (string) $data['quantity']);
+
         StoreCart::updateLine(
             (int) $data['line'],
             $data['unit'],
@@ -124,6 +156,7 @@ final class CartController extends Controller
             $data['preparation_service_ids'] ?? [],
             isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null,
         );
+        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_options_updated'));
     }
@@ -135,6 +168,7 @@ final class CartController extends Controller
         ]);
 
         StoreCart::remove((int) $data['line']);
+        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_removed'));
     }
@@ -142,8 +176,55 @@ final class CartController extends Controller
     public function clear(): RedirectResponse
     {
         StoreCart::clear();
+        $this->dispatchCartUpdated();
 
         return redirect()->route('store.cart')->with('status', __('aldawy.cart_cleared'));
+    }
+
+    public function applyCoupon(Request $request, ApplyCouponService $coupons): RedirectResponse
+    {
+        $data = $request->validate([
+            'coupon_code' => ['required', 'string', 'max:32'],
+        ]);
+
+        $subtotal = StoreCart::subtotal();
+        if (bccomp($subtotal, '0', 4) <= 0) {
+            throw ValidationException::withMessages([
+                'coupon_code' => [__('aldawy.coupon_cart_empty')],
+            ]);
+        }
+
+        $coupons->execute($data['coupon_code'], $subtotal);
+        StoreCart::setCouponCode($data['coupon_code']);
+
+        return back()->with('status', __('aldawy.coupon_applied'));
+    }
+
+    public function removeCoupon(): RedirectResponse
+    {
+        StoreCart::setCouponCode(null);
+
+        return back()->with('status', __('aldawy.coupon_removed'));
+    }
+
+    private function assertLineStock(int $lineIndex, string $quantity): void
+    {
+        $lines = StoreCart::lines();
+        if (! isset($lines[$lineIndex]) || ($lines[$lineIndex]['type'] ?? StoreCart::KIND_PRODUCT) !== StoreCart::KIND_PRODUCT) {
+            return;
+        }
+
+        $product = Product::query()->find((int) $lines[$lineIndex]['product_id']);
+        if (! $product || $product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+            throw ValidationException::withMessages([
+                'quantity' => [__('aldawy.stock_insufficient')],
+            ]);
+        }
+    }
+
+    private function dispatchCartUpdated(): void
+    {
+        Livewire::dispatch('cart-updated');
     }
 
     /** @param  array<string, mixed>  $data */

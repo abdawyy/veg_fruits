@@ -26,6 +26,9 @@ class ProductResource extends JsonResource
             'image_url' => $this->image_url,
             'image_path' => $this->image_path,
             'display_image_url' => $this->display_image_url,
+            'track_stock' => (bool) $this->track_stock,
+            'stock_quantity' => $this->stock_quantity,
+            'in_stock' => ! $this->isOutOfStock(),
         ];
     }
 }

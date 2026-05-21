@@ -20,5 +20,7 @@ final readonly class CreateOrderPayload
         public array $lines,
         public ?string $notes = null,
         public string $paymentGatewayId = 'cod',
+        public ?int $couponId = null,
+        public string $discountAmount = '0',
     ) {}
 }

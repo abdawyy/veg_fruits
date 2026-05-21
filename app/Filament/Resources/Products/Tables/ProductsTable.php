@@ -37,6 +37,10 @@ class ProductsTable
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('view_count')->label(__('Views'))->sortable()->numeric(),
+                TextColumn::make('stock_quantity')
+                    ->label(__('Stock'))
+                    ->placeholder('—')
+                    ->toggleable(),
                 IconColumn::make('is_active')->boolean(),
                 TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])

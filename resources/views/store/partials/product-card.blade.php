@@ -40,6 +40,9 @@
                 {{ __('aldawy.piece_price', ['price' => number_format((float) $product->price_per_piece, 2)]) }}
             </p>
         @endif
+        @if ($product->isOutOfStock())
+            <p class="mt-4 border-t border-slate-100 pt-4 text-xs font-semibold text-danger dark:border-slate-800">{{ __('aldawy.stock_out') }}</p>
+        @else
         <form method="post" action="{{ route('store.cart.add') }}" data-ajax-cart class="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
             @csrf
             <input type="hidden" name="product_id" value="{{ $product->id }}">
@@ -51,5 +54,6 @@
             </div>
             @include('store.partials.product-cart-options', ['product' => $product])
         </form>
+        @endif
     </div>
 </article>

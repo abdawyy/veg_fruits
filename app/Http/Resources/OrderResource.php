@@ -20,6 +20,7 @@ class OrderResource extends JsonResource
             'customer_phone' => $this->customer_phone,
             'subtotal' => $this->subtotal,
             'packaging_fee' => $this->packaging_fee,
+            'discount_amount' => $this->discount_amount ?? 0,
             'total' => $this->total,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
             'created_at' => $this->created_at,

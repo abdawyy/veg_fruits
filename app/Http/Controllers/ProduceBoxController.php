@@ -60,6 +60,8 @@ final class ProduceBoxController extends Controller
             (string) $produceBox->price,
         );
 
+        \Livewire\Livewire::dispatch('cart-updated');
+
         return redirect()
             ->route('store.cart')
             ->with('status', __('aldawy.box_added_to_cart'));

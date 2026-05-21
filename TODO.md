@@ -92,18 +92,18 @@ Do these first for the best ROI:
 
 | Done | # | Task | Ease | Primary files |
 |------|---|------|------|-----------------|
-| [ ] | 1 | Cart preview drawer (wire `cart_preview_*` lang keys) | Medium | new Livewire/Blade, `lang/*/aldawy.php` |
-| [ ] | 2 | Category Filament resource | Easy→Med | new `CategoryResource` |
-| [ ] | 3 | Coupons / discounts | Hard | schema, cart math, admin |
-| [ ] | 4 | Inventory / stock management | Hard | schema, cart, admin, out-of-stock UX |
-| [ ] | 5 | API write endpoints (catalog, cart, create order) | Hard | `routes/api.php`, controllers, resources |
-| [ ] | 6 | Phone OTP auth | Hard | `phone_verifications`, auth flow |
-| [ ] | 7 | Admin translated order status labels | **Easy** | Filament `OrderResource` |
-| [ ] | 8 | Clarify `orders.packaging_fee` vs line surcharges (docs/UI) | **Easy** | admin docs, `CreateOrderAction` |
-| [ ] | 9 | Excel import dry-run + row errors + audit log | Medium | `app/Imports/*`, Filament import actions |
-| [ ] | 10 | CMS vs lang file guidelines (internal doc) | **Easy** | docs only |
-| [ ] | 11 | Services page — clarify global vs per-product rules | **Easy** | `store/services.blade.php` |
-| [ ] | 12 | Unified account UX doc (`/my` vs storefront login) | **Easy** | docs only |
+| [x] | 1 | Cart preview drawer (wire `cart_preview_*` lang keys) | Medium | new Livewire/Blade, `lang/*/aldawy.php` |
+| [x] | 2 | Category Filament resource | Easy→Med | new `CategoryResource` |
+| [x] | 3 | Coupons / discounts | Hard | schema, cart math, admin |
+| [x] | 4 | Inventory / stock management | Hard | schema, cart, admin, out-of-stock UX |
+| [x] | 5 | API write endpoints (catalog, cart, create order) | Hard | `routes/api.php`, controllers, resources |
+| [x] | 6 | Phone OTP auth | Hard | `phone_verifications`, auth flow |
+| [x] | 7 | Admin translated order status labels | **Easy** | Filament `OrderResource` |
+| [x] | 8 | Clarify `orders.packaging_fee` vs line surcharges (docs/UI) | **Easy** | admin docs, `CreateOrderAction` |
+| [x] | 9 | Excel import dry-run + row errors + audit log | Medium | `app/Imports/*`, Filament import actions |
+| [x] | 10 | CMS vs lang file guidelines (internal doc) | **Easy** | docs only |
+| [x] | 11 | Services page — clarify global vs per-product rules | **Easy** | `store/services.blade.php` |
+| [x] | 12 | Unified account UX doc (`/my` vs storefront login) | **Easy** | docs only |
 
 ---
 

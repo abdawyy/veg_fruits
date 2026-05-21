@@ -12,6 +12,7 @@ class Order extends Model
     protected $fillable = [
         'reference',
         'user_id',
+        'coupon_id',
         'city_id',
         'shipping_address_line1',
         'shipping_address_line2',
@@ -23,6 +24,7 @@ class Order extends Model
         'packaging_code',
         'subtotal',
         'packaging_fee',
+        'discount_amount',
         'shipping_fee',
         'total',
         'invoice_path',
@@ -35,6 +37,7 @@ class Order extends Model
             'status' => OrderStatus::class,
             'subtotal' => 'decimal:4',
             'packaging_fee' => 'decimal:4',
+            'discount_amount' => 'decimal:4',
             'shipping_fee' => 'decimal:4',
             'total' => 'decimal:4',
         ];
@@ -48,6 +51,11 @@ class Order extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function items(): HasMany

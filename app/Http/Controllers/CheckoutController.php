@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Orders\CreateOrderAction;
+use App\Services\Coupons\ApplyCouponService;
 use App\DTO\CreateOrderPayload;
 use App\DTO\OrderLineDraftDto;
 use App\Models\City;
@@ -134,6 +135,16 @@ final class CheckoutController extends Controller
             $email = $request->user()?->email;
         }
 
+        $subtotal = StoreCart::subtotal();
+        $couponId = null;
+        $discountAmount = '0';
+        $couponCode = StoreCart::couponCode();
+        if ($couponCode !== null && bccomp($subtotal, '0', 4) > 0) {
+            $applied = app(ApplyCouponService::class)->execute($couponCode, $subtotal);
+            $couponId = $applied['coupon']->id;
+            $discountAmount = $applied['discount'];
+        }
+
         $payload = new CreateOrderPayload(
             userId: $request->user()?->id,
             cityId: (int) $data['city_id'],
@@ -147,6 +158,8 @@ final class CheckoutController extends Controller
             lines: $draftLines,
             notes: $data['notes'] ?? null,
             paymentGatewayId: $data['payment_method'],
+            couponId: $couponId,
+            discountAmount: $discountAmount,
         );
 
         try {

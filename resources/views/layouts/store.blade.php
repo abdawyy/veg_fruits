@@ -206,6 +206,7 @@
             <p class="mt-4 text-xs text-slate-500">{{ __('aldawy.photo_credit') }}</p>
         </div>
     </footer>
+    <livewire:store.cart-preview-drawer />
     @livewireScripts
 </body>
 </html>

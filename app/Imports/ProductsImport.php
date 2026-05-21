@@ -9,6 +9,32 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 
 class ProductsImport implements ToModel, WithHeadingRow, WithValidation
 {
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function importRules(): array
+    {
+        return [
+            'sku' => ['required', 'string', 'max:64'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'price_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'track_stock' => ['nullable'],
+            'stock_quantity' => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    public static function applyRow(array $row): void
+    {
+        $instance = new self;
+        $model = $instance->model($row);
+        if ($model !== null) {
+            $model->save();
+        }
+    }
+
     public function model(array $row)
     {
         $sku = trim((string) ($row['sku'] ?? ''));
@@ -65,6 +91,15 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
                 || (string) $row['is_active'] === '1';
         }
 
+        if (isset($row['track_stock'])) {
+            $product->track_stock = filter_var($row['track_stock'], FILTER_VALIDATE_BOOLEAN)
+                || (string) $row['track_stock'] === '1';
+        }
+
+        if (isset($row['stock_quantity']) && $row['stock_quantity'] !== '') {
+            $product->stock_quantity = $row['stock_quantity'];
+        }
+
         if (isset($row['image_url']) && $row['image_url'] !== '') {
             $product->image_url = (string) $row['image_url'];
         }
@@ -77,10 +112,6 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
      */
     public function rules(): array
     {
-        return [
-            'sku' => ['required', 'string', 'max:64'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'price_per_kg' => ['nullable', 'numeric', 'min:0'],
-        ];
+        return self::importRules();
     }
 }

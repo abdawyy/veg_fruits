@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PhoneVerification extends Model
 {
-    protected $fillable = ['phone_number', 'code', 'expires_at'];
+    protected $fillable = [
+        'phone_number',
+        'code',
+        'expires_at',
+    ];
 
     protected function casts(): array
     {

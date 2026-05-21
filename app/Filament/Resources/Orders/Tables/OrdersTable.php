@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Tables;
 
+use App\Enums\OrderStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -32,7 +33,10 @@ class OrdersTable
                 TextColumn::make('city')
                     ->label(__('City'))
                     ->formatStateUsing(fn ($state, $record) => $record->city?->getTranslation('name', 'en') ?? '—'),
-                TextColumn::make('status')->badge()->sortable(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => OrderStatus::tryFrom((string) $state)?->label() ?? (string) $state),
                 TextColumn::make('total')->sortable(),
                 TextColumn::make('payment_gateway')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->dateTime()->sortable(),

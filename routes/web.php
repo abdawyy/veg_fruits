@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountInvoiceDownloadController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\PhoneAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -36,6 +37,8 @@ Route::middleware('throttle:cart')->group(function (): void {
     Route::post('/cart/update', [CartController::class, 'update'])->name('store.cart.update');
     Route::post('/cart/options', [CartController::class, 'updateOptions'])->name('store.cart.options');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('store.cart.remove');
+    Route::post('/cart/coupon', [CartController::class, 'applyCoupon'])->name('store.cart.coupon');
+    Route::post('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('store.cart.coupon.remove');
 });
 Route::post('/cart/clear', [CartController::class, 'clear'])->name('store.cart.clear');
 
@@ -45,6 +48,14 @@ Route::post('/checkout', [CheckoutController::class, 'store'])
 Route::get('/checkout/thanks', [CheckoutController::class, 'thanks'])->name('store.checkout.thanks');
 
 Route::middleware('guest')->group(function (): void {
+    Route::get('/login/phone', [PhoneAuthController::class, 'create'])->name('phone.login');
+    Route::post('/login/phone', [PhoneAuthController::class, 'sendOtp'])
+        ->middleware('throttle:6,1')
+        ->name('phone.login.send');
+    Route::get('/login/phone/verify', [PhoneAuthController::class, 'verifyForm'])->name('phone.login.verify');
+    Route::post('/login/phone/verify', [PhoneAuthController::class, 'verify'])
+        ->middleware('throttle:12,1')
+        ->name('phone.login.verify.submit');
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
     Route::get('/register', [RegisterController::class, 'create'])->name('register');

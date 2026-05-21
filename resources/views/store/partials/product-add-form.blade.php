@@ -1,6 +1,9 @@
 @php
     $locale = app()->getLocale();
 @endphp
+@if ($product->isOutOfStock())
+    <p class="mt-6 rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm font-semibold text-danger">{{ __('aldawy.stock_out') }}</p>
+@else
 <form
     method="post"
     action="{{ route('store.cart.add') }}"
@@ -22,3 +25,4 @@
         <span data-estimate-value>—</span>
     </p>
 </form>
+@endif

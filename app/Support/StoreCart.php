@@ -13,6 +13,8 @@ final class StoreCart
 {
     public const SESSION_KEY = 'aldawy_cart';
 
+    public const COUPON_SESSION_KEY = 'aldawy_coupon_code';
+
     public const UNIT_KG = 'kg';
 
     public const UNIT_PIECE = 'piece';
@@ -259,7 +261,25 @@ final class StoreCart
 
     public static function clear(): void
     {
-        session()->forget(self::SESSION_KEY);
+        session()->forget([self::SESSION_KEY, self::COUPON_SESSION_KEY]);
+    }
+
+    public static function couponCode(): ?string
+    {
+        $code = session(self::COUPON_SESSION_KEY);
+
+        return is_string($code) && $code !== '' ? $code : null;
+    }
+
+    public static function setCouponCode(?string $code): void
+    {
+        if ($code === null || trim($code) === '') {
+            session()->forget(self::COUPON_SESSION_KEY);
+
+            return;
+        }
+
+        session([self::COUPON_SESSION_KEY => strtoupper(trim($code))]);
     }
 
     public static function resolved(): Collection
@@ -291,6 +311,10 @@ final class StoreCart
 
                 $product = $products->get((int) $row['product_id']);
                 if (! $product instanceof Product) {
+                    continue;
+                }
+
+                if ($product->isOutOfStock() || ! $product->hasStockFor($row['quantity'])) {
                     continue;
                 }
 

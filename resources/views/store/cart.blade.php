@@ -166,6 +166,23 @@
                 </div>
             </div>
 
+            <div class="mt-6 rounded-2xl border border-slate-200 bg-white/90 p-6 dark:border-slate-800 dark:bg-slate-900/90">
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white">{{ __('aldawy.coupon_title') }}</h2>
+                @if ($appliedCoupon)
+                    <p class="mt-2 text-sm text-brand">{{ __('aldawy.coupon_active', ['code' => $couponCode]) }} (−{{ number_format((float) $discountAmount, 2) }} {{ config('aldawy.currency', 'EGP') }})</p>
+                    <form method="post" action="{{ route('store.cart.coupon.remove') }}" class="mt-3">
+                        @csrf
+                        <button type="submit" class="text-sm font-semibold text-danger hover:underline">{{ __('aldawy.coupon_remove') }}</button>
+                    </form>
+                @else
+                    <form method="post" action="{{ route('store.cart.coupon') }}" class="mt-3 flex flex-wrap gap-2">
+                        @csrf
+                        <input type="text" name="coupon_code" value="{{ old('coupon_code') }}" placeholder="{{ __('aldawy.coupon_placeholder') }}" class="min-w-[10rem] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950">
+                        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white">{{ __('aldawy.coupon_apply') }}</button>
+                    </form>
+                @endif
+            </div>
+
             <div class="mt-10 grid gap-8 lg:grid-cols-2">
                 @if ($cities->isEmpty())
                     <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-sm text-amber-900 backdrop-blur-md dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100 lg:col-span-2">
@@ -273,6 +290,12 @@
                                     {{ config('aldawy.currency', 'EGP') }}
                                 </dd>
                             </div>
+                            @if (bccomp($discountAmount ?? '0', '0', 4) > 0)
+                                <div class="flex justify-between gap-4 text-slate-600 dark:text-slate-300">
+                                    <dt>{{ __('aldawy.checkout_discount') }}</dt>
+                                    <dd class="font-semibold text-success">−{{ number_format((float) $discountAmount, 2) }} {{ config('aldawy.currency', 'EGP') }}</dd>
+                                </div>
+                            @endif
                             <div class="flex justify-between gap-4 text-slate-600 dark:text-slate-300">
                                 <dt>{{ __('aldawy.checkout_shipping') }}</dt>
                                 <dd class="font-semibold text-slate-800 dark:text-slate-100">
@@ -283,7 +306,7 @@
                         </dl>
                         <p class="mt-6 text-2xl font-bold text-brand">
                             {{ __('aldawy.checkout_grand_total') }}:
-                            <span class="aldawy-checkout-total-display" id="aldawy-checkout-total">{{ number_format((float) $subtotal + (float) ($selectedCity->shipping_fee ?? 0), 2) }}</span>
+                            <span class="aldawy-checkout-total-display" id="aldawy-checkout-total">{{ number_format(max(0, (float) $subtotal - (float) ($discountAmount ?? 0) + (float) ($selectedCity->shipping_fee ?? 0)), 2) }}</span>
                             <span class="text-base font-semibold text-slate-500 dark:text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
                         </p>
                         <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.checkout_cod') }}</p>
@@ -296,6 +319,7 @@
                             var totEl = document.getElementById('aldawy-checkout-total');
                             if (!sel || !subEl || !shipEl || !totEl) return;
                             var sub = parseFloat(subEl.getAttribute('data-amount') || '0', 10);
+                            var discount = parseFloat('{{ (float) ($discountAmount ?? 0) }}', 10) || 0;
                             function sync() {
                                 var opt = sel.options[sel.selectedIndex];
                                 var fee = opt ? parseFloat(String(opt.getAttribute('data-fee') || '0'), 10) : 0;
@@ -304,7 +328,7 @@
                                 document.querySelectorAll('.aldawy-checkout-shipping-display').forEach(function (el) {
                                     el.textContent = fee.toFixed(2);
                                 });
-                                var total = (sub + fee).toFixed(2);
+                                var total = Math.max(0, sub - discount + fee).toFixed(2);
                                 totEl.textContent = total;
                                 document.querySelectorAll('.aldawy-checkout-total-display').forEach(function (el) {
                                     el.textContent = total;
