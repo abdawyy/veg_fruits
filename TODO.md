@@ -2,7 +2,8 @@
 
 > **Purpose:** Actionable backlog sorted for maximum output — priority first, quick wins called out.  
 > **Sources:** [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) · [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md)  
-> **Last updated:** 2026-05-20
+> **Last updated:** 2026-05-20  
+> **Verification:** [docs/VERIFICATION.md](./docs/VERIFICATION.md) — code audit of Phases A–E and §1–§4
 
 **How to use this file**
 
@@ -21,13 +22,13 @@ Do these first for the best ROI:
 - [x] Remove or update stale `storefront_coming` lang keys
 - [x] Disable checkout submit button after first click ([CheckoutController](./app/Http/Controllers/CheckoutController.php), checkout view)
 - [x] Reject inactive products on cart add (`is_active` in [CartController](./app/Http/Controllers/CartController.php))
-- [ ] Update [README.md](./README.md) — link to `PROJECT_ANALYSIS.md` and `PROJECT_GAPS_AND_ISSUES.md`
+- [x] Update [README.md](./README.md) — link to `PROJECT_ANALYSIS.md` and `PROJECT_GAPS_AND_ISSUES.md`
 - [x] Queue `OnOrderCreatedGenerateInvoiceAndNotify` (`ShouldQueue` + queue worker)
 - [x] Server-side checkout idempotency (session flag or idempotency key)
 - [x] Error at checkout if resolved cart has fewer lines than session cart ([StoreCart](./app/Support/StoreCart.php))
 - [x] Enable feature tests in CI (SQLite PDO or PostgreSQL test DB)
-- [ ] Invoice download from `/my` order view ([MyOrders](./app/Filament/Account/Resources/MyOrders/))
-- [ ] Translated order status labels in customer account panel
+- [x] Invoice download from `/my` order view ([MyOrders](./app/Filament/Account/Resources/MyOrders/))
+- [x] Translated order status labels in customer account panel
 
 ---
 
@@ -109,52 +110,54 @@ Do these first for the best ROI:
 
 ## 1. Missing features
 
+> **Status:** Shipped in Phases A–E (2026-05-20). Section kept as a checklist mirror of the original gap list.
+
 ### By priority (highest first)
 
 | Done | # | Feature | Notes |
 |------|---|---------|-------|
-| [ ] | 1 | Stock / inactive product behavior | At minimum: reject inactive at cart; later full inventory |
-| [ ] | 2 | Password reset | Not implemented |
-| [ ] | 3 | Customer invoice in `/my` | Today: email/SMS signed link only |
-| [ ] | 4 | Guest → account order linking | `user_id` nullable; no retroactive link |
-| [ ] | 5 | Status-change customer notifications | Only new-order mail today |
-| [ ] | 6 | Real SMS | `LogSmsSender` only |
-| [ ] | 7 | Online payments | COD only |
-| [ ] | 8 | Sell by piece | Model ready; cart/checkout kg-only |
-| [ ] | 9 | Email verification | Column exists; no flow |
-| [ ] | 10 | Customer order cancellation | Admin-only status changes |
-| [ ] | 11 | Category admin (Filament) | Seed/import only |
-| [ ] | 12 | Produce boxes admin + storefront | Models exist; no CRUD/UI |
-| [ ] | 13 | Subscriptions (cron + signup) | Cron counts only; no orders |
-| [ ] | 14 | API commerce | `GET user`, `GET orders` only |
-| [ ] | 15 | Inventory / stock fields | Not in schema |
-| [ ] | 16 | Coupons / discounts | Not implemented |
-| [ ] | 17 | Cart preview drawer | Lang keys exist; no UI |
-| [ ] | 18 | Phone OTP auth | Table exists; email/password only |
+| [x] | 1 | Stock / inactive product behavior | Inactive rejected at cart; `track_stock` + quantity checks (Phase E) |
+| [x] | 2 | Password reset | Forgot/reset routes + views (Phase C) |
+| [x] | 3 | Customer invoice in `/my` | `AccountInvoiceDownloadController` + Filament action (Phase B) |
+| [x] | 4 | Guest → account order linking | `LinkGuestOrdersToUserAction` on login/register (Phase B/D) |
+| [x] | 5 | Status-change customer notifications | `OrderObserver` + queued mail (Phase C) |
+| [x] | 6 | Real SMS | `HttpSmsSender` + `ALDAWY_SMS_DRIVER` (Phase C) |
+| [x] | 7 | Online payments | `OnlinePendingPaymentGateway` when enabled (Phase C) |
+| [x] | 8 | Sell by piece | `StoreCart` kg/piece + UI (Phase C) |
+| [x] | 9 | Email verification | `MustVerifyEmail` + routes (Phase C) |
+| [x] | 10 | Customer order cancellation | `CancelCustomerOrderAction` on `/my` (Phase C) |
+| [x] | 11 | Category admin (Filament) | `CategoryResource` (Phase E) |
+| [x] | 12 | Produce boxes admin + storefront | CRUD + `/boxes` + cart (Phase D) |
+| [x] | 13 | Subscriptions (cron + signup) | `ProcessDueSubscriptionsAction` + signup UI (Phase D) |
+| [x] | 14 | API commerce | `GET/POST /api/v1/catalog`, quote, orders (Phase E) |
+| [x] | 15 | Inventory / stock fields | Migration + admin + storefront UX (Phase E) |
+| [x] | 16 | Coupons / discounts | Schema + cart/checkout + admin (Phase E) |
+| [x] | 17 | Cart preview drawer | Livewire `cart-preview-drawer` (Phase E) |
+| [x] | 18 | Phone OTP auth | `/login/phone` flow (Phase E) |
 
 ### By ease (easiest first)
 
 | Done | # | Feature |
 |------|---|---------|
-| [ ] | 1 | Cart preview drawer |
-| [ ] | 2 | Category Filament resource |
-| [ ] | 3 | Customer order cancellation |
-| [ ] | 4 | Email verification |
-| [ ] | 5 | Password reset |
-| [ ] | 6 | Status-change notifications |
-| [ ] | 7 | Customer invoice in `/my` |
-| [ ] | 8 | Guest order linking |
-| [ ] | 9 | Real SMS provider |
-| [ ] | 10 | Online payment gateway |
-| [ ] | 11 | Sell by piece |
-| [ ] | 12 | Produce boxes admin |
-| [ ] | 13 | Produce boxes storefront |
-| [ ] | 14 | Subscriptions cron → orders |
-| [ ] | 15 | Subscriptions storefront signup |
-| [ ] | 16 | API commerce endpoints |
-| [ ] | 17 | Inventory / stock |
-| [ ] | 18 | Coupons / discounts |
-| [ ] | 19 | Phone OTP auth |
+| [x] | 1 | Cart preview drawer |
+| [x] | 2 | Category Filament resource |
+| [x] | 3 | Customer order cancellation |
+| [x] | 4 | Email verification |
+| [x] | 5 | Password reset |
+| [x] | 6 | Status-change notifications |
+| [x] | 7 | Customer invoice in `/my` |
+| [x] | 8 | Guest order linking |
+| [x] | 9 | Real SMS provider |
+| [x] | 10 | Online payment gateway |
+| [x] | 11 | Sell by piece |
+| [x] | 12 | Produce boxes admin |
+| [x] | 13 | Produce boxes storefront |
+| [x] | 14 | Subscriptions cron → orders |
+| [x] | 15 | Subscriptions storefront signup |
+| [x] | 16 | API commerce endpoints |
+| [x] | 17 | Inventory / stock |
+| [x] | 18 | Coupons / discounts |
+| [x] | 19 | Phone OTP auth |
 
 ---
 
@@ -166,27 +169,27 @@ Do these first for the best ROI:
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Checkout idempotency |
-| [ ] | 2 | Reject inactive products + checkout mismatch error |
-| [ ] | 3 | Price change warning |
-| [ ] | 4 | Post-checkout account nudge + order link on login |
-| [ ] | 5 | Edit prep/packaging in cart |
-| [ ] | 6 | Estimated total on product page |
-| [ ] | 7 | Saved addresses |
-| [ ] | 8 | Fix `register_sub` copy |
+| [x] | 1 | Checkout idempotency |
+| [x] | 2 | Reject inactive products + checkout mismatch error |
+| [x] | 3 | Price change warning |
+| [x] | 4 | Post-checkout account nudge + order link on login |
+| [x] | 5 | Edit prep/packaging in cart |
+| [x] | 6 | Estimated total on product page |
+| [x] | 7 | Saved addresses |
+| [x] | 8 | Fix `register_sub` copy |
 
 #### Ease
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Fix `register_sub` copy |
-| [ ] | 2 | Checkout idempotency (UI disable button) |
-| [ ] | 3 | Post-checkout account nudge |
-| [ ] | 4 | Estimated total on product page |
-| [ ] | 5 | Edit prep/packaging in cart |
-| [ ] | 6 | Price change warning |
-| [ ] | 7 | Saved addresses |
-| [ ] | 8 | Reject inactive at add |
+| [x] | 1 | Fix `register_sub` copy |
+| [x] | 2 | Checkout idempotency (UI disable button) |
+| [x] | 3 | Post-checkout account nudge |
+| [x] | 4 | Estimated total on product page |
+| [x] | 5 | Edit prep/packaging in cart |
+| [x] | 6 | Price change warning |
+| [x] | 7 | Saved addresses |
+| [x] | 8 | Reject inactive at add |
 
 **Files:** `app/Support/StoreCart.php` · `app/Http/Controllers/CartController.php` · `app/Http/Controllers/CheckoutController.php` · `resources/views/store/cart.blade.php` · `lang/en/aldawy.php` · `lang/ar/aldawy.php`
 
@@ -198,21 +201,21 @@ Do these first for the best ROI:
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Queue post-order work |
-| [ ] | 2 | Invoice download in `/my` |
-| [ ] | 3 | Translated order status (customer + admin) |
-| [ ] | 4 | Clarify `orders.packaging_fee` reporting |
-| [ ] | 5 | Localize SMS template |
+| [x] | 1 | Queue post-order work |
+| [x] | 2 | Invoice download in `/my` |
+| [x] | 3 | Translated order status (customer + admin) |
+| [x] | 4 | Clarify `orders.packaging_fee` reporting |
+| [x] | 5 | Localize SMS template |
 
 #### Ease
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Localize SMS template |
-| [ ] | 2 | Translated order status |
-| [ ] | 3 | Clarify packaging_fee (docs) |
-| [ ] | 4 | Invoice download in `/my` |
-| [ ] | 5 | Queue post-order work |
+| [x] | 1 | Localize SMS template |
+| [x] | 2 | Translated order status |
+| [x] | 3 | Clarify packaging_fee (docs) |
+| [x] | 4 | Invoice download in `/my` |
+| [x] | 5 | Queue post-order work |
 
 **Files:** `app/Listeners/OnOrderCreatedGenerateInvoiceAndNotify.php` · `app/Actions/Invoices/GenerateInvoicePdfAction.php` · `app/Filament/Account/Resources/MyOrders/*`
 
@@ -224,21 +227,21 @@ Do these first for the best ROI:
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Password reset |
-| [ ] | 2 | Redirect after register (`?redirect=`) |
-| [ ] | 3 | Guest order linking |
-| [ ] | 4 | Phone / OTP login |
-| [ ] | 5 | Document or unify `/my` vs storefront account UX |
+| [x] | 1 | Password reset |
+| [x] | 2 | Redirect after register (`?redirect=`) |
+| [x] | 3 | Guest order linking |
+| [x] | 4 | Phone / OTP login |
+| [x] | 5 | Document or unify `/my` vs storefront account UX |
 
 #### Ease
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Redirect after register |
-| [ ] | 2 | Document account UX |
-| [ ] | 3 | Password reset |
-| [ ] | 4 | Guest order linking |
-| [ ] | 5 | Phone / OTP login |
+| [x] | 1 | Redirect after register |
+| [x] | 2 | Document account UX |
+| [x] | 3 | Password reset |
+| [x] | 4 | Guest order linking |
+| [x] | 5 | Phone / OTP login |
 
 **Files:** `app/Http/Controllers/Auth/LoginController.php` · `RegisterController.php` · `AccountPanelProvider.php`
 
@@ -250,19 +253,19 @@ Do these first for the best ROI:
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Subscriptions cron — implement or disable |
-| [ ] | 2 | Excel import dry-run + errors + audit |
-| [ ] | 3 | CMS vs lang guidelines |
-| [ ] | 4 | Remove stale lang keys |
+| [x] | 1 | Subscriptions cron — implement or disable |
+| [x] | 2 | Excel import dry-run + errors + audit |
+| [x] | 3 | CMS vs lang guidelines |
+| [x] | 4 | Remove stale lang keys |
 
 #### Ease
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Remove stale lang keys |
-| [ ] | 2 | Disable subscription cron until ready |
-| [ ] | 3 | CMS vs lang guidelines |
-| [ ] | 4 | Excel import improvements |
+| [x] | 1 | Remove stale lang keys |
+| [x] | 2 | Disable subscription cron until ready |
+| [x] | 3 | CMS vs lang guidelines |
+| [x] | 4 | Excel import improvements |
 
 **Files:** `ProcessDueSubscriptionsAction.php` · `routes/console.php` · `app/Imports/*`
 
@@ -274,17 +277,17 @@ Do these first for the best ROI:
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Feature tests in CI |
-| [ ] | 2 | Project README |
-| [ ] | 3 | More tests (idempotency, inactive cart, etc.) |
+| [x] | 1 | Feature tests in CI |
+| [x] | 2 | Project README |
+| [x] | 3 | More tests (idempotency, inactive cart, etc.) |
 
 #### Ease
 
 | Done | # | Improvement |
 |------|---|-------------|
-| [ ] | 1 | Project README |
-| [ ] | 2 | Feature tests in CI |
-| [ ] | 3 | Additional test coverage |
+| [x] | 1 | Project README |
+| [x] | 2 | Feature tests in CI |
+| [x] | 3 | Additional test coverage |
 
 **Files:** `tests/Feature/CheckoutTest.php` · `tests/Feature/CartAjaxAddTest.php` · `README.md`
 
@@ -298,21 +301,21 @@ Do these first for the best ROI:
 
 | Done | # | Issue | Fix |
 |------|---|-------|-----|
-| [ ] | 1 | Synchronous order listener | Queue listener |
-| [ ] | 2 | Double-submit checkout | Idempotency + UI |
-| [ ] | 3 | Inactive products in cart | Validate `is_active`; checkout mismatch error |
-| [ ] | 4 | Feature tests skipped | CI SQLite or PG |
+| [x] | 1 | Synchronous order listener | Queue listener |
+| [x] | 2 | Double-submit checkout | Idempotency + UI |
+| [x] | 3 | Inactive products in cart | Validate `is_active`; checkout mismatch error |
+| [x] | 4 | Feature tests skipped | CI SQLite or PG |
 
 #### Ease
 
 | Done | # | Issue | Fix |
 |------|---|-------|-----|
-| [ ] | 1 | Double-submit (UI) | Disable submit button |
-| [ ] | 2 | Inactive at add | `CartController` validation |
-| [ ] | 3 | Feature tests skipped | CI config |
-| [ ] | 4 | Synchronous listener | `ShouldQueue` |
-| [ ] | 5 | Server checkout idempotency | Session flag / key |
-| [ ] | 6 | Lines dropped at resolve | Compare counts at checkout |
+| [x] | 1 | Double-submit (UI) | Disable submit button |
+| [x] | 2 | Inactive at add | `CartController` validation |
+| [x] | 3 | Feature tests skipped | CI config |
+| [x] | 4 | Synchronous listener | `ShouldQueue` |
+| [x] | 5 | Server checkout idempotency | Session flag / key |
+| [x] | 6 | Lines dropped at resolve | Compare counts at checkout |
 
 ---
 
@@ -322,23 +325,23 @@ Do these first for the best ROI:
 
 | Done | # | Issue |
 |------|---|-------|
-| [ ] | 1 | No rate limiting on cart/checkout |
-| [ ] | 2 | Invoice signed URL scope (secret link; no ownership) |
-| [ ] | 3 | Checkout UI `parseFloat` rounding |
-| [ ] | 4 | SMS hardcoded English |
-| [ ] | 5 | Misleading `register_sub` |
-| [ ] | 6 | Stale `storefront_coming` copy |
+| [x] | 1 | No rate limiting on cart/checkout |
+| [x] | 2 | Invoice signed URL scope (secret link; no ownership) |
+| [x] | 3 | Checkout UI `parseFloat` rounding |
+| [x] | 4 | SMS hardcoded English |
+| [x] | 5 | Misleading `register_sub` |
+| [x] | 6 | Stale `storefront_coming` copy |
 
 #### Ease
 
 | Done | # | Issue |
 |------|---|-------|
-| [ ] | 1 | `register_sub` copy |
-| [ ] | 2 | `storefront_coming` copy |
-| [ ] | 3 | SMS localization |
-| [ ] | 4 | Cart Blade float math |
-| [ ] | 5 | Rate limiting middleware |
-| [ ] | 6 | Invoice scope hardening |
+| [x] | 1 | `register_sub` copy |
+| [x] | 2 | `storefront_coming` copy |
+| [x] | 3 | SMS localization |
+| [x] | 4 | Cart Blade float math |
+| [x] | 5 | Rate limiting middleware |
+| [x] | 6 | Invoice scope hardening |
 
 ---
 
@@ -348,19 +351,19 @@ Do these first for the best ROI:
 
 | Done | # | Issue |
 |------|---|-------|
-| [ ] | 1 | Raw order status in customer panel |
-| [ ] | 2 | Services page vs per-product expectations |
-| [ ] | 3 | All notifications sent inline (not queued) |
-| [ ] | 4 | `cart_preview_*` strings unused |
+| [x] | 1 | Raw order status in customer panel |
+| [x] | 2 | Services page vs per-product expectations |
+| [x] | 3 | All notifications sent inline (not queued) |
+| [x] | 4 | `cart_preview_*` strings unused |
 
 #### Ease
 
 | Done | # | Issue |
 |------|---|-------|
-| [ ] | 1 | Raw status labels |
-| [ ] | 2 | Cart preview component |
-| [ ] | 3 | Services page copy |
-| [ ] | 4 | Queue all mail notifications |
+| [x] | 1 | Raw status labels |
+| [x] | 2 | Cart preview component |
+| [x] | 3 | Services page copy |
+| [x] | 4 | Queue all mail notifications |
 
 ---
 
@@ -378,14 +381,14 @@ Do these first for the best ROI:
 
 | Done | Gap | Priority | Ease |
 |------|-----|----------|------|
-| [ ] | Subscriptions → auto orders | Phase D | Hard |
-| [ ] | Produce box checkout | Phase D | Hard |
-| [ ] | Piece-based cart | Phase C | Medium |
-| [ ] | Phone OTP auth | Phase E | Hard |
-| [ ] | SMS (real provider) | Phase C | Easy→Med |
-| [ ] | Payment (beyond COD) | Phase C | Med→Hard |
-| [ ] | API (minimal today) | Phase E | Hard |
-| [ ] | README (default Laravel) | Phase A / week 1 | **Easy** |
+| [x] | Subscriptions → auto orders | Phase D | Hard |
+| [x] | Produce box checkout | Phase D | Hard |
+| [x] | Piece-based cart | Phase C | Medium |
+| [x] | Phone OTP auth | Phase E | Hard |
+| [x] | SMS (real provider) | Phase C | Easy→Med |
+| [x] | Payment (beyond COD) | Phase C | Med→Hard |
+| [x] | API (minimal today) | Phase E | Hard |
+| [x] | README (default Laravel) | Phase A / week 1 | **Easy** |
 
 ---
 
@@ -408,7 +411,10 @@ Do these first for the best ROI:
 
 | Date | Completed | Notes |
 |------|-----------|-------|
-| | | |
+| 2026-05-20 | Phases A–E | Checkout, account, commerce, Phase E nice-to-haves |
+| 2026-05-20 | §1 Missing features | All 18 items closed — synced with shipped work |
+| 2026-05-20 | Verification pass | [docs/VERIFICATION.md](./docs/VERIFICATION.md); README updated; 2 polish items remain in §3.2 |
+| 2026-05-20 | Final polish | Invoice auth, thanks invoice link, cents-based checkout JS, §3.2 closed |
 
 ---
 

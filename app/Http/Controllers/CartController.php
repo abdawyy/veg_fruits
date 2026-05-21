@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Product;
 use App\Services\Coupons\ApplyCouponService;
+use App\Support\Money\MoneyCents;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Livewire\Livewire;
@@ -44,9 +45,17 @@ final class CartController extends Controller
             }
         }
 
+        $shippingCentsByCity = [];
+        foreach ($cities as $city) {
+            $shippingCentsByCity[$city->id] = MoneyCents::fromDecimal((string) $city->shipping_fee);
+        }
+
         return view('store.cart', [
             'rows' => $rows,
             'subtotal' => $subtotal,
+            'subtotalCents' => MoneyCents::fromDecimal($subtotal),
+            'discountCents' => MoneyCents::fromDecimal($discountAmount),
+            'shippingCentsByCity' => $shippingCentsByCity,
             'discountAmount' => $discountAmount,
             'couponCode' => $couponCode,
             'appliedCoupon' => $appliedCoupon,

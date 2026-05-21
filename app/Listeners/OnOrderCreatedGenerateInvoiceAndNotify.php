@@ -24,9 +24,10 @@ final class OnOrderCreatedGenerateInvoiceAndNotify implements ShouldQueue
         $order = $event->order;
         $this->invoicePdf->execute($order);
 
+        $signedDays = max(1, (int) config('aldawy.invoice_signed_days', 14));
         $signed = URL::temporarySignedRoute(
             'invoices.download',
-            now()->addDays(30),
+            now()->addDays($signedDays),
             ['order' => $order->id],
         );
 

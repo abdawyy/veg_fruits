@@ -210,6 +210,7 @@
                                     @foreach ($cities as $city)
                                         <option
                                             value="{{ $city->id }}"
+                                            data-fee-cents="{{ $shippingCentsByCity[$city->id] ?? 0 }}"
                                             data-fee="{{ $city->shipping_fee }}"
                                             @selected($selectedCityId === (string) $city->id)
                                         >
@@ -286,7 +287,7 @@
                             <div class="flex justify-between gap-4 text-slate-600 dark:text-slate-300">
                                 <dt>{{ __('aldawy.checkout_items_subtotal') }}</dt>
                                 <dd class="font-semibold text-slate-800 dark:text-slate-100">
-                                    <span id="aldawy-checkout-subtotal" data-amount="{{ (float) $subtotal }}" data-currency="{{ config('aldawy.currency', 'EGP') }}">{{ number_format((float) $subtotal, 2) }}</span>
+                                    <span id="aldawy-checkout-subtotal" data-cents="{{ $subtotalCents }}" data-currency="{{ config('aldawy.currency', 'EGP') }}">{{ number_format((float) $subtotal, 2) }}</span>
                                     {{ config('aldawy.currency', 'EGP') }}
                                 </dd>
                             </div>
@@ -317,21 +318,27 @@
                             var subEl = document.getElementById('aldawy-checkout-subtotal');
                             var shipEl = document.getElementById('aldawy-checkout-shipping');
                             var totEl = document.getElementById('aldawy-checkout-total');
+                            var formatCents = window.aldawyFormatCents || function (c) { return (c / 100).toFixed(2); };
+                            var sumCents = window.aldawySumCents || function () {
+                                return Array.prototype.slice.call(arguments).reduce(function (a, b) { return a + (Number(b) || 0); }, 0);
+                            };
                             if (!sel || !subEl || !shipEl || !totEl) return;
-                            var sub = parseFloat(subEl.getAttribute('data-amount') || '0', 10);
-                            var discount = parseFloat('{{ (float) ($discountAmount ?? 0) }}', 10) || 0;
+                            var subCents = parseInt(subEl.getAttribute('data-cents') || '0', 10) || 0;
+                            var discountCents = {{ (int) ($discountCents ?? 0) }};
                             function sync() {
                                 var opt = sel.options[sel.selectedIndex];
-                                var fee = opt ? parseFloat(String(opt.getAttribute('data-fee') || '0'), 10) : 0;
-                                if (isNaN(fee)) fee = 0;
-                                shipEl.textContent = fee.toFixed(2);
+                                var feeCents = opt ? parseInt(opt.getAttribute('data-fee-cents') || '0', 10) : 0;
+                                if (isNaN(feeCents)) feeCents = 0;
+                                var feeText = formatCents(feeCents);
+                                shipEl.textContent = feeText;
                                 document.querySelectorAll('.aldawy-checkout-shipping-display').forEach(function (el) {
-                                    el.textContent = fee.toFixed(2);
+                                    el.textContent = feeText;
                                 });
-                                var total = Math.max(0, sub - discount + fee).toFixed(2);
-                                totEl.textContent = total;
+                                var totalCents = Math.max(0, sumCents(subCents, -discountCents, feeCents));
+                                var totalText = formatCents(totalCents);
+                                totEl.textContent = totalText;
                                 document.querySelectorAll('.aldawy-checkout-total-display').forEach(function (el) {
-                                    el.textContent = total;
+                                    el.textContent = totalText;
                                 });
                             }
                             sel.addEventListener('change', sync);

@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CheckoutInvoiceDownloadController;
 use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Controllers\ProduceBoxController;
 use App\Http\Controllers\ProductEstimateController;
@@ -46,6 +47,9 @@ Route::post('/checkout', [CheckoutController::class, 'store'])
     ->middleware('throttle:checkout')
     ->name('store.checkout.store');
 Route::get('/checkout/thanks', [CheckoutController::class, 'thanks'])->name('store.checkout.thanks');
+Route::get('/checkout/invoice', CheckoutInvoiceDownloadController::class)
+    ->middleware('throttle:30,1')
+    ->name('store.checkout.invoice');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login/phone', [PhoneAuthController::class, 'create'])->name('phone.login');
@@ -84,5 +88,5 @@ Route::middleware('auth')->group(function (): void {
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
 Route::get('/invoices/{order}/download', InvoiceDownloadController::class)
-    ->middleware('signed')
+    ->middleware(['signed', 'throttle:30,1'])
     ->name('invoices.download');

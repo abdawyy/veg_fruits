@@ -13,6 +13,8 @@ return [
 
     'decimal_scale' => (int) env('ALDAWY_DECIMAL_SCALE', 4),
 
+    'invoice_signed_days' => (int) env('ALDAWY_INVOICE_SIGNED_DAYS', 14),
+
     /*
     |--------------------------------------------------------------------------
     | SMS (driver: log | http)

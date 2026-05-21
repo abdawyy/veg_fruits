@@ -68,6 +68,13 @@
             </div>
         @endif
         <div class="mt-8 flex flex-wrap justify-center gap-4">
+            @if ($invoiceReady ?? false)
+                <a href="{{ route('store.checkout.invoice') }}" class="rounded-xl border border-brand px-6 py-3 text-sm font-bold text-brand hover:bg-brand/10">
+                    {{ __('aldawy.download_invoice') }}
+                </a>
+            @else
+                <p class="w-full text-center text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.invoice_generating') }}</p>
+            @endif
             <a href="{{ route('store.shop') }}" class="rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-800 hover:bg-surface dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">{{ __('aldawy.cta_shop') }}</a>
             @auth
                 <a href="{{ url('/my') }}" class="rounded-xl bg-brand px-6 py-3 text-sm font-bold text-white hover:bg-brand-dark">{{ __('aldawy.account_tile_orders') }}</a>

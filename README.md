@@ -1,58 +1,76 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AL-DAWY — Fresh produce storefront
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 13 e-commerce for **AL-DAWY** (Egypt, EGP): public shop, Filament admin (`/admin`), customer account (`/my`), and a minimal API.
 
-## About Laravel
+## Documentation
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Doc | Purpose |
+|-----|---------|
+| [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) | Architecture, routes, data model |
+| [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) | Gaps and risks |
+| [TODO.md](./TODO.md) | Master backlog (Phases A–E) |
+| [docs/VERIFICATION.md](./docs/VERIFICATION.md) | Code audit vs backlog (2026-05-20) |
+| [docs/PACKAGING_FEES.md](./docs/PACKAGING_FEES.md) | Order vs line packaging fees |
+| [docs/CMS_AND_LANG.md](./docs/CMS_AND_LANG.md) | When to use CMS vs lang files |
+| [docs/ACCOUNT_UX.md](./docs/ACCOUNT_UX.md) | Storefront login vs `/my` |
+| [docs/INVOICE_ACCESS.md](./docs/INVOICE_ACCESS.md) | Invoice download routes & security |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.3+
+- Composer, Node.js (for Vite assets)
+- SQLite/MySQL/PostgreSQL
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Quick start
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm install && npm run build
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Admin user (after seed): `admin@aldawy.local` / `password` — see [DatabaseSeeder](./database/seeders/DatabaseSeeder.php).
 
-## Contributing
+Run a queue worker so order PDFs, email, and SMS run after checkout:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan queue:work
+```
 
-## Code of Conduct
+## Tests & CI
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan test
+```
 
-## Security Vulnerabilities
+GitHub Actions: [.github/workflows/tests.yml](./.github/workflows/tests.yml) (PHP 8.3, SQLite).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Key URLs
+
+| URL | Description |
+|-----|-------------|
+| `/` | Storefront home |
+| `/shop`, `/cart`, `/boxes` | Catalog & cart |
+| `/login`, `/login/phone` | Email or OTP login |
+| `/my` | Customer account (Filament) |
+| `/admin` | Admin panel |
+
+## API (v1)
+
+- `GET /api/v1/catalog/categories`
+- `GET /api/v1/catalog/products`
+- `POST /api/v1/cart/quote`
+- `POST /api/v1/orders`
+
+Sanctum: `GET /api/user`, `GET /api/orders` (authenticated).
+
+## Environment highlights
+
+See [.env.example](./.env.example) for SMS (`ALDAWY_SMS_DRIVER`), online payments (`ALDAWY_ONLINE_PAYMENT_ENABLED`), email verification, and phone OTP (`ALDAWY_PHONE_OTP_ENABLED`).
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT (application code). Product images may use third-party stock URLs per [lang copy](./lang/en/aldawy.php).

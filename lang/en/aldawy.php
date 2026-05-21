@@ -315,4 +315,7 @@ return [
     'otp_invalid' => 'Invalid or expired code.',
     'otp_disabled' => 'Phone login is not enabled.',
     'otp_sms_message' => 'Your AL-DAWY code: :code',
+
+    'invoice_not_ready' => 'Invoice is not ready yet. Check your email in a few minutes.',
+    'invoice_generating' => 'Your invoice PDF is being generated — refresh this page shortly or use the link in your email.',
 ];

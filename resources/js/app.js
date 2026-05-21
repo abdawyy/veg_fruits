@@ -1,5 +1,10 @@
 import './bootstrap';
+import { aldawyFormatCents, aldawyMoneyToCents, aldawySumCents } from './money';
 import Alpine from 'alpinejs';
+
+window.aldawyMoneyToCents = aldawyMoneyToCents;
+window.aldawyFormatCents = aldawyFormatCents;
+window.aldawySumCents = aldawySumCents;
 
 window.Alpine = Alpine;
 Alpine.start();

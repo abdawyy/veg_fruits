@@ -182,16 +182,20 @@ final class CheckoutController extends Controller
 
     public function thanks(Request $request): View|RedirectResponse
     {
-        $id = $request->session()->pull('checkout_order_id');
+        $id = $request->session()->get('checkout_order_id');
         if (! $id) {
             return redirect()->route('store.shop')->with('status', __('aldawy.checkout_session_expired'));
         }
 
         $order = Order::query()->with(['items', 'city'])->findOrFail((int) $id);
 
+        $invoiceReady = $order->invoice_path !== null
+            && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->invoice_path);
+
         return view('store.checkout-thanks', [
             'order' => $order,
             'showGuestAccountNudge' => ! $request->user() && $order->user_id === null,
+            'invoiceReady' => $invoiceReady,
         ]);
     }
 
