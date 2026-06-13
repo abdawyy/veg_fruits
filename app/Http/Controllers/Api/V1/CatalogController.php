@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Products\RecordProductViewAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\ProductResource;
@@ -45,6 +46,8 @@ final class CatalogController extends Controller
     {
         abort_unless($product->is_active, 404);
         $product->load('category');
+
+        app(RecordProductViewAction::class)->execute($product);
 
         return response()->json(['data' => new ProductResource($product)]);
     }

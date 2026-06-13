@@ -36,7 +36,9 @@ class OrdersTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => OrderStatus::tryFrom((string) $state)?->label() ?? (string) $state),
+                    ->formatStateUsing(fn (OrderStatus|string|null $state): string => $state instanceof OrderStatus
+                        ? $state->label()
+                        : (is_string($state) ? (OrderStatus::tryFrom($state)?->label() ?? $state) : '—')),
                 TextColumn::make('total')->sortable(),
                 TextColumn::make('payment_gateway')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->dateTime()->sortable(),

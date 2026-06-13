@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
     'name',
@@ -29,7 +30,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected function casts(): array
     {
@@ -44,10 +45,23 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
-            'admin' => (bool) $this->is_admin,
+            'admin' => $this->canAccessAdminPanel(),
             'account' => true,
             default => false,
         };
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        if (! $this->is_admin) {
+            return false;
+        }
+
+        if ($this->hasRole(config('filament-shield.super_admin.name', 'super_admin'))) {
+            return true;
+        }
+
+        return $this->roles()->exists();
     }
 
     /** @return BelongsTo<City, $this> */

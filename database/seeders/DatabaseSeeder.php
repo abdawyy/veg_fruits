@@ -17,8 +17,9 @@ class DatabaseSeeder extends Seeder
         $this->call(ProduceBoxSeeder::class);
         $this->call(CatalogOperationsSeeder::class);
         $this->call(HomeBannerSeeder::class);
+        $this->call(AdminRolesSeeder::class);
 
-        User::query()->updateOrCreate(
+        $admin = User::query()->updateOrCreate(
             ['email' => 'admin@aldawy.local'],
             [
                 'name' => 'AL-DAWY Admin',
@@ -28,5 +29,7 @@ class DatabaseSeeder extends Seeder
                 'is_admin' => true,
             ],
         );
+
+        $admin->syncRoles([config('filament-shield.super_admin.name', 'super_admin')]);
     }
 }

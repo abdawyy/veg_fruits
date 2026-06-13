@@ -3,7 +3,7 @@
 namespace App\Actions\Invoices;
 
 use App\Models\Order;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\Pdf\PdfRenderer;
 use Illuminate\Support\Facades\Storage;
 
 final class GenerateInvoicePdfAction
@@ -12,13 +12,13 @@ final class GenerateInvoicePdfAction
     {
         $order->load(['items', 'city']);
 
-        $pdf = Pdf::loadView('pdf.invoice', [
+        $pdfBinary = app(PdfRenderer::class)->render('pdf.invoice', [
             'order' => $order,
             'senderName' => config('aldawy.invoice_sender_name'),
-        ])->setPaper('a4');
+        ]);
 
         $relativePath = 'invoices/'.$order->reference.'.pdf';
-        Storage::disk('local')->put($relativePath, $pdf->output());
+        Storage::disk('local')->put($relativePath, $pdfBinary);
 
         $order->forceFill(['invoice_path' => $relativePath])->save();
 

@@ -1,14 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; }
-        h1 { font-size: 18px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th, td { border: 1px solid #ccc; padding: 6px; text-align: {{ app()->getLocale() === 'ar' ? 'right' : 'left' }}; }
-        .muted { color: #555; font-size: 11px; }
-    </style>
+    @include('pdf.partials.styles')
 </head>
 <body>
     <h1>{{ __('aldawy.invoice_title') }}</h1>
@@ -43,7 +37,7 @@
             @foreach ($order->items as $i => $item)
                 <tr>
                     <td>{{ $i + 1 }}</td>
-                    <td>
+                    <td lang="{{ app()->getLocale() }}">
                         @php
                             $names = $item->product_name_snapshot ?? [];
                             $label = is_array($names) ? ($names[app()->getLocale()] ?? reset($names) ?? '—') : '—';

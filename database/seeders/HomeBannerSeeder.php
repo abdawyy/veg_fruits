@@ -39,5 +39,36 @@ class HomeBannerSeeder extends Seeder
                 'hot_product_skus' => 'FRU-022,FRU-024,FRU-010,VEG-153',
             ],
         );
+
+        HomeBanner::query()->updateOrCreate(
+            ['sort_order' => 1],
+            [
+                'is_active' => true,
+                'starts_at' => null,
+                'ends_at' => null,
+                'title' => [
+                    'en' => 'Farm-fresh vegetables',
+                    'ar' => 'خضروات طازجة من المزرعة',
+                ],
+                'subtitle' => [
+                    'en' => 'Daily greens, tomatoes, and seasonal picks — washed and ready for your kitchen.',
+                    'ar' => 'خضروات يومية وطماطم وموسمية — مغسولة وجاهزة لمطبخك.',
+                ],
+                'badge_text' => [
+                    'en' => 'New week',
+                    'ar' => 'أسبوع جديد',
+                ],
+                'cta_label' => [
+                    'en' => 'Browse vegetables',
+                    'ar' => 'تصفح الخضروات',
+                ],
+                'cta_url' => '/vegetables',
+                'image_url' => 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=85',
+                'gradient_from' => '#16a34a',
+                'gradient_mid' => '#84cc16',
+                'gradient_to' => '#22c55e',
+                'hot_product_skus' => 'VEG-153,VEG-101',
+            ],
+        );
     }
 }

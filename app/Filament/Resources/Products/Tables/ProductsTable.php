@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Exports\ProductsExport;
+use App\Models\Product;
+use App\Support\Pdf\PdfRenderer;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -9,6 +13,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductsTable
 {
@@ -36,7 +42,26 @@ class ProductsTable
                     ->numeric(decimalPlaces: 2)
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('view_count')->label(__('Views'))->sortable()->numeric(),
+                TextColumn::make('view_count')
+                    ->label(__('Total views'))
+                    ->sortable()
+                    ->numeric()
+                    ->description(__('Product detail page loads')),
+                TextColumn::make('unique_visitors_count')
+                    ->label(__('Unique visitors'))
+                    ->numeric()
+                    ->sortable()
+                    ->default(0),
+                TextColumn::make('product_views_7d')
+                    ->label(__('Views (7d)'))
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('product_views_30d')
+                    ->label(__('Views (30d)'))
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('stock_quantity')
                     ->label(__('Stock'))
                     ->placeholder('—')
@@ -52,6 +77,35 @@ class ProductsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('export_excel')
+                        ->label(__('Export Excel'))
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->action(function (Collection $records) {
+                            $ids = $records->pluck('id')->all();
+
+                            return Excel::download(
+                                new ProductsExport($ids),
+                                'products-selected-'.now()->format('Y-m-d').'.xlsx',
+                            );
+                        }),
+                    BulkAction::make('export_pdf')
+                        ->label(__('Export PDF'))
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('gray')
+                        ->action(function (Collection $records) {
+                            $products = Product::query()
+                                ->whereIn('id', $records->pluck('id'))
+                                ->with('category')
+                                ->orderBy('name->en')
+                                ->get();
+
+                            return app(PdfRenderer::class)->downloadResponse(
+                                'pdf.catalog',
+                                ['products' => $products],
+                                'products-selected-'.now()->format('Y-m-d').'.pdf',
+                            );
+                        }),
                     DeleteBulkAction::make(),
                 ]),
             ]);

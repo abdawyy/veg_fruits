@@ -16,7 +16,7 @@ AL-DAWY is a **Laravel 13** monolith that powers:
 | Surface | Path | Audience |
 |---------|------|----------|
 | **Public storefront** | `/`, `/shop`, `/cart`, `/checkout` | Customers (guest or logged-in) |
-| **Admin panel** (Filament v5) | `/admin` | Staff (`users.is_admin = true`) |
+| **Admin panel** (Filament v5) | `/admin` | Staff (`is_admin` + Spatie role; Shield permissions) |
 | **Customer account** (Filament) | `/my` | Registered customers |
 | **REST API** (Sanctum) | `/api/v1/*` + `/api/user`, `/api/orders` | Mobile / integrations |
 
@@ -35,7 +35,7 @@ AL-DAWY is a **Laravel 13** monolith that powers:
 | Admin UI | **Filament 5.6** (two panels: admin + account) |
 | Interactivity | **Livewire 4.3** (store components: search bar, price banner) |
 | Frontend build | **Vite 7**, **Tailwind CSS 4**, **Alpine.js 3** |
-| PDF | `barryvdh/laravel-dompdf` |
+| PDF | `mpdf/mpdf` (UTF-8 / Arabic via `App\Support\Pdf\PdfRenderer`) |
 | Excel import/export | `maatwebsite/excel` |
 | i18n (DB fields) | `spatie/laravel-translatable` |
 | API auth | `laravel/sanctum` |
@@ -195,15 +195,19 @@ erDiagram
 
 New orders start as **`pending`** in `CreateOrderAction`.
 
-### 5.4 User roles
+### 5.4 User roles & permissions
 
-| Field | Meaning |
-|-------|---------|
-| `is_admin = true` | Can access `/admin` Filament panel |
+| Requirement | Meaning |
+|-------------|---------|
+| `is_admin = true` + Spatie role | Can open `/admin` (Shield enforces per-resource permissions) |
+| Role `super_admin` | Full admin access |
+| Roles `orders_manager`, `catalog_manager`, `content_manager`, `analytics_viewer` | Scoped access (see `AdminRolesSeeder`) |
 | Any authenticated user | Can access `/my` account panel |
 | Guest checkout | Allowed (`user_id` nullable on orders) |
 
-Default seeded admin: `admin@aldawy.local` / `password` (see `DatabaseSeeder`).
+Manage roles: **Admin → Shield → Roles**. Assign on **Users → Edit**.
+
+Default seeded admin: `admin@aldawy.local` / `password` with `super_admin` (see `DatabaseSeeder`).
 
 ---
 
@@ -266,7 +270,7 @@ Cart (session) → POST /checkout (validate city, address, phone)
 ## 7. Filament admin (`/admin`)
 
 **Provider:** `App\Providers\Filament\AdminPanelProvider`  
-**Auth:** `FilamentAuthenticate` + `User::canAccessPanel()` requires `is_admin` for `admin` panel.
+**Auth:** `FilamentAuthenticate` + `User::canAccessPanel()` requires `is_admin` and a role; Filament Shield + Spatie policies per resource.
 
 ### 7.1 Resources (CRUD)
 

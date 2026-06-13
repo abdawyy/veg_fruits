@@ -6,15 +6,15 @@ use App\Exports\ProductsExport;
 use App\Filament\Resources\Products\ProductResource;
 use App\Imports\ProductsImport;
 use App\Models\Product;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\Imports\SpreadsheetImportRunner;
+use App\Support\Pdf\PdfRenderer;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Storage;
-use App\Support\Imports\SpreadsheetImportRunner;
-use Filament\Forms\Components\Toggle;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ListProducts extends ListRecords
@@ -36,8 +36,11 @@ class ListProducts extends ListRecords
                 ->action(function () {
                     $products = Product::query()->active()->with('category')->orderBy('name->en')->get();
 
-                    return Pdf::loadView('pdf.catalog', ['products' => $products])
-                        ->download('aldawy-catalog-'.now()->format('Y-m-d').'.pdf');
+                    return app(PdfRenderer::class)->downloadResponse(
+                        'pdf.catalog',
+                        ['products' => $products],
+                        'aldawy-catalog-'.now()->format('Y-m-d').'.pdf',
+                    );
                 }),
             Action::make('import_excel')
                 ->label(__('Import Excel'))

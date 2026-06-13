@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Money\DecimalMath;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -89,8 +90,8 @@ class Product extends Model
             return false;
         }
 
-        $requested = \App\Services\Money\DecimalMath::normalizeNumericString($requestedQty);
-        $available = \App\Services\Money\DecimalMath::normalizeNumericString((string) $this->stock_quantity);
+        $requested = DecimalMath::normalizeNumericString($requestedQty);
+        $available = DecimalMath::normalizeNumericString((string) $this->stock_quantity);
 
         return bccomp($available, $requested, 4) >= 0;
     }
@@ -164,5 +165,10 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function productViews(): HasMany
+    {
+        return $this->hasMany(ProductView::class);
     }
 }

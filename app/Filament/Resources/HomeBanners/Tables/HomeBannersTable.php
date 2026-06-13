@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\HomeBanners\Tables;
 
+use App\Models\HomeBanner;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ReplicateAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -28,6 +30,11 @@ class HomeBannersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateAction::make()
+                    ->excludeAttributes(['image_path'])
+                    ->beforeReplicaSaved(function ($replica): void {
+                        $replica->sort_order = (int) (HomeBanner::query()->max('sort_order') ?? 0) + 1;
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -10,6 +10,15 @@ class EditProduct extends EditRecord
 {
     protected static string $resource = ProductResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $this->record = ProductResource::getEloquentQuery()
+            ->whereKey($this->record->getKey())
+            ->first() ?? $this->record;
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

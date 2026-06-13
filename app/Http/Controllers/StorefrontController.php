@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Products\RecordProductViewAction;
 use App\Models\Category;
 use App\Models\HomeBanner;
 use App\Models\PackagingType;
 use App\Models\PreparationService;
 use App\Models\Product;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 final class StorefrontController extends Controller
 {
@@ -37,7 +38,7 @@ final class StorefrontController extends Controller
             ->orderBy('id')
             ->get();
 
-        /** @var array<int, \Illuminate\Contracts\Pagination\LengthAwarePaginator> */
+        /** @var array<int, LengthAwarePaginator> */
         $categoryProductPages = [];
         if ($q === '') {
             foreach ($categories as $category) {
@@ -71,9 +72,7 @@ final class StorefrontController extends Controller
 
         $product->load(['category', 'preparationServices', 'packagingTypes']);
 
-        if (Schema::hasColumn('products', 'view_count')) {
-            $product->increment('view_count');
-        }
+        app(RecordProductViewAction::class)->execute($product);
 
         return view('store.product', compact('product'));
     }

@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Order */
+/** @mixin Order */
 class OrderResource extends JsonResource
 {
     /**
@@ -16,7 +17,7 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
-            'status' => $this->status,
+            'status' => $this->status->value,
             'customer_phone' => $this->customer_phone,
             'subtotal' => $this->subtotal,
             'packaging_fee' => $this->packaging_fee,

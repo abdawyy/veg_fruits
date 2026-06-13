@@ -1,25 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #111; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
-        th { background: #f3f4f6; }
-        h1 { font-size: 18px; margin: 0 0 8px; }
-    </style>
+    @include('pdf.partials.styles')
+    <style>body { font-size: 11px; }</style>
 </head>
 <body>
-    <h1>AL-DAWY — Product catalog</h1>
-    <p>{{ now()->toDateTimeString() }}</p>
+    <h1>AL-DAWY — {{ __('aldawy.shop_title') }}</h1>
+    <p class="muted">{{ now()->toDateTimeString() }}</p>
     <table>
         <thead>
             <tr>
                 <th>SKU</th>
-                <th>Name (EN)</th>
+                <th lang="en">{{ __('aldawy.invoice_item') }} (EN)</th>
+                <th lang="ar">{{ __('aldawy.invoice_item') }} (AR)</th>
                 <th>Category</th>
-                <th>Price / kg</th>
+                <th>{{ __('aldawy.invoice_line_total') }}</th>
                 <th>Active</th>
             </tr>
         </thead>
@@ -27,8 +23,9 @@
             @foreach ($products as $product)
                 <tr>
                     <td>{{ $product->sku }}</td>
-                    <td>{{ $product->getTranslation('name', 'en') }}</td>
-                    <td>{{ $product->category?->getTranslation('name', 'en') ?? '—' }}</td>
+                    <td lang="en">{{ $product->getTranslation('name', 'en') }}</td>
+                    <td lang="ar">{{ $product->getTranslation('name', 'ar') }}</td>
+                    <td>{{ $product->category?->getTranslation('name', app()->getLocale()) ?? '—' }}</td>
                     <td>{{ number_format((float) $product->price_per_kg, 2) }}</td>
                     <td>{{ $product->is_active ? 'yes' : 'no' }}</td>
                 </tr>

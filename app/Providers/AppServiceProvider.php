@@ -6,10 +6,12 @@ use App\Contracts\Sms\SmsSenderInterface;
 use App\Events\OrderCreated;
 use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Models\Order;
+use App\Models\SeoSetting;
 use App\Observers\OrderObserver;
 use App\Sms\HttpSmsSender;
 use App\Sms\LogSmsSender;
 use App\Support\Cms;
+use App\Support\Pdf\PdfRenderer;
 use App\Support\StoreCart;
 use App\Support\StoreSeo;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(PdfRenderer::class);
+
         $this->app->bind(SmsSenderInterface::class, function (): SmsSenderInterface {
             return match (config('aldawy.sms.driver')) {
                 'http' => $this->app->make(HttpSmsSender::class),
@@ -76,7 +80,7 @@ class AppServiceProvider extends ServiceProvider
                     'store.checkout.thanks' => __('aldawy.checkout_thanks_meta'),
                     default => '',
                 };
-            $og = \App\Models\SeoSetting::current()->og_image_url;
+            $og = SeoSetting::current()->og_image_url;
 
             $view->with('htmlTitle', trim($pageTitle).' — AL-DAWY');
             $view->with('pageMetaDescription', $pageDesc);

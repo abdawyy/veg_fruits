@@ -9,6 +9,16 @@
     </section>
 
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
+        <h2 class="text-base font-semibold text-gray-950 dark:text-white">Staff roles &amp; permissions</h2>
+        <ul class="mt-3 list-disc space-y-2 ps-5">
+            <li><strong>Roles</strong> — sidebar <em>Shield</em> → <strong>Roles</strong> (<code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin/shield/roles</code>). Create or edit roles and tick which resources, pages, and widgets each role may use.</li>
+            <li><strong>Super admin</strong> — role <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">super_admin</code> has every permission (full access).</li>
+            <li><strong>Starter roles</strong> (from seed): <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">orders_manager</code>, <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">catalog_manager</code>, <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">content_manager</code>, <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">analytics_viewer</code>.</li>
+            <li><strong>Assign to staff</strong> — <em>Customers</em> → <strong>Users</strong> → edit a user: enable <strong>Admin panel access</strong> and pick one or more roles. Without a role, an admin user cannot open the panel.</li>
+        </ul>
+    </section>
+
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Customers &amp; orders</h2>
         <ul class="mt-3 list-disc space-y-2 ps-5">
             <li><strong>Users</strong> — group <em>Customers</em> → list with email, phone, order count. Open a user to see their <strong>Orders</strong> tab.</li>
@@ -47,13 +57,13 @@
         <ul class="mt-3 list-disc space-y-2 ps-5">
             <li><strong>Public shop</strong> — customers browse the catalog, use the theme toggle, and add items to a <strong>session cart</strong> (<code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/cart</code>) with checkout.</li>
             <li><strong>Sign in</strong> — <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/login</code> and <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/register</code> for storefront accounts.</li>
-            <li><strong>Admin panel</strong> — <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin</code> (staff with <strong>Admin</strong> flag only).</li>
+            <li><strong>Admin panel</strong> — <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin</code> (staff with <strong>Admin panel access</strong> and at least one role).</li>
             <li><strong>My account</strong> — <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/my</code> — signed-in customers see profile and <strong>My orders</strong>.</li>
         </ul>
     </section>
 
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Storefront banners</h2>
-        <p class="mt-2">Group <em>Storefront</em> → <strong>Home banners</strong> for seasonal strips, image upload or URL, and hot SKUs. Excel import/export on the list page.</p>
+        <p class="mt-2">Group <em>Storefront</em> → <strong>Home banners</strong> for carousel slides (multiple active banners rotate on the home page). Use <strong>Create</strong> for one slide, <strong>Create multiple</strong> for several at once, or Excel import (leave <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">id</code> empty for new rows). Set <strong>sort order</strong> to control slide sequence.</p>
     </section>
 </div>

@@ -6,7 +6,7 @@ use App\Exports\OrdersExport;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Imports\OrdersImport;
 use App\Models\Order;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\Pdf\PdfRenderer;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
@@ -65,8 +65,11 @@ class ListOrders extends ListRecords
                         ->limit(500)
                         ->get();
 
-                    return Pdf::loadView('pdf.orders-summary', ['orders' => $orders])
-                        ->download('orders-summary-'.now()->format('Y-m-d').'.pdf');
+                    return app(PdfRenderer::class)->downloadResponse(
+                        'pdf.orders-summary',
+                        ['orders' => $orders],
+                        'orders-summary-'.now()->format('Y-m-d').'.pdf',
+                    );
                 }),
         ];
     }

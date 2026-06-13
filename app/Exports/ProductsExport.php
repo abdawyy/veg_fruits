@@ -3,15 +3,47 @@
 namespace App\Exports;
 
 use App\Models\Product;
+use App\Models\ProductView;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ProductsExport implements FromQuery, WithHeadings, WithMapping
 {
+    /**
+     * @param  list<int>|null  $productIds  When set, only these products are exported.
+     */
+    public function __construct(
+        private readonly ?array $productIds = null,
+    ) {}
+
     public function query()
     {
-        return Product::query()->orderBy('id');
+        $query = Product::query()->orderBy('id');
+
+        if ($this->productIds !== null) {
+            $query->whereIn('id', $this->productIds);
+        }
+
+        if (! Schema::hasTable('product_views')) {
+            return $query;
+        }
+
+        return $query
+            ->selectSub(
+                ProductView::query()
+                    ->selectRaw('count(distinct session_id)')
+                    ->whereColumn('product_views.product_id', 'products.id'),
+                'unique_visitors_count',
+            )
+            ->selectSub(
+                ProductView::query()
+                    ->selectRaw('count(*)')
+                    ->whereColumn('product_views.product_id', 'products.id')
+                    ->where('visited_at', '>=', now()->subDays(7)),
+                'product_views_7d',
+            );
     }
 
     /**
@@ -34,6 +66,8 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
             'sell_by_piece',
             'is_active',
             'view_count',
+            'unique_visitors_count',
+            'product_views_7d',
             'image_url',
             'image_path',
         ];
@@ -60,6 +94,8 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
             $product->sell_by_piece ? 1 : 0,
             $product->is_active ? 1 : 0,
             $product->view_count,
+            $product->unique_visitors_count ?? 0,
+            $product->product_views_7d ?? 0,
             $product->image_url,
             $product->image_path,
         ];

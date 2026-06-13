@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\RelationManagers;
 
+use App\Enums\OrderStatus;
 use App\Filament\Resources\Orders\OrderResource;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -29,7 +30,11 @@ class UserOrdersRelationManager extends RelationManager
                     ->url(fn ($record) => OrderResource::getUrl('edit', ['record' => $record])),
                 TextColumn::make('customer_email')->label(__('Order email'))->placeholder('—'),
                 TextColumn::make('customer_phone'),
-                TextColumn::make('status')->badge(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn (OrderStatus|string|null $state): string => $state instanceof OrderStatus
+                        ? $state->label()
+                        : (is_string($state) ? (OrderStatus::tryFrom($state)?->label() ?? $state) : '—')),
                 TextColumn::make('total')->numeric(decimalPlaces: 2),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])

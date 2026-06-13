@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Users\RelationManagers\UserOrdersRelationManager;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
 use BackedEnum;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -52,6 +55,10 @@ class UserResource extends Resource
                         TextEntry::make('email')->placeholder('—'),
                         TextEntry::make('phone_number')->label(__('Phone'))->placeholder('—'),
                         TextEntry::make('is_admin')->label(__('Admin user'))->badge(),
+                        TextEntry::make('roles.name')
+                            ->label(__('Roles'))
+                            ->badge()
+                            ->placeholder('—'),
                         TextEntry::make('email_verified_at')->dateTime()->placeholder('—'),
                         TextEntry::make('phone_verified_at')->dateTime()->placeholder('—'),
                         TextEntry::make('created_at')->dateTime(),
@@ -61,7 +68,19 @@ class UserResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema;
+        return $schema
+            ->components([
+                Toggle::make('is_admin')
+                    ->label(__('Admin panel access'))
+                    ->helperText(__('Allows login to /admin. Assign at least one role below for permissions.')),
+                Select::make('roles')
+                    ->label(__('Roles'))
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->helperText(__('Super admin has all permissions. Other roles limit catalog, orders, content, or analytics.')),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -81,25 +100,11 @@ class UserResource extends Resource
         return [
             'index' => ListUsers::route('/'),
             'view' => ViewUser::route('/{record}'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 
-    public static function canView($record): bool
-    {
-        return true;
-    }
-
     public static function canCreate(): bool
-    {
-        return false;
-    }
-
-    public static function canEdit($record): bool
-    {
-        return false;
-    }
-
-    public static function canDelete($record): bool
     {
         return false;
     }

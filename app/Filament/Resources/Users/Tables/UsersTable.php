@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -17,6 +18,10 @@ class UsersTable
                 TextColumn::make('email')->searchable()->sortable()->placeholder('—'),
                 TextColumn::make('phone_number')->label(__('Phone'))->searchable()->placeholder('—'),
                 IconColumn::make('is_admin')->label(__('Admin'))->boolean(),
+                TextColumn::make('roles.name')
+                    ->label(__('Roles'))
+                    ->badge()
+                    ->placeholder('—'),
                 TextColumn::make('orders_count')
                     ->counts('orders')
                     ->label(__('Orders'))
@@ -28,6 +33,7 @@ class UsersTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
                 //

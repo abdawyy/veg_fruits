@@ -16,7 +16,7 @@ class SalesOverviewStats extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $orderQuery = Order::query()->where('status', '!=', OrderStatus::Cancelled);
+        $orderQuery = Order::query()->where('status', '!=', OrderStatus::Cancelled->value);
 
         $revenue = (string) (clone $orderQuery)->sum('total');
         $orders = (clone $orderQuery)->count();
