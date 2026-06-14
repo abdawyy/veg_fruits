@@ -29,6 +29,8 @@ composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+php artisan shield:generate --all --panel=admin --no-interaction
+php artisan db:seed
 npm install && npm run build
 php artisan serve
 ```
