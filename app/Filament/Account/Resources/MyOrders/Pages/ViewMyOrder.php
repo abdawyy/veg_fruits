@@ -4,9 +4,9 @@ namespace App\Filament\Account\Resources\MyOrders\Pages;
 
 use App\Actions\Orders\CancelCustomerOrderAction;
 use App\Filament\Account\Resources\MyOrders\MyOrderResource;
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Models\Order;
 use Filament\Actions\Action;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,7 +14,15 @@ class ViewMyOrder extends ViewRecord
 {
     protected static string $resource = MyOrderResource::class;
 
-    protected function getHeaderActions(): array
+    /**
+     * @return array{0: string, 1: 'asc'|'desc'}
+     */
+    protected function getRecordNavigationSort(): array
+    {
+        return ['created_at', 'desc'];
+    }
+
+    protected function getResourceHeaderActions(): array
     {
         return [
             Action::make('cancelOrder')

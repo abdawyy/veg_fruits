@@ -91,5 +91,40 @@
                 </div>
             </div>
         </div>
+
+        @if ($previousProduct || $nextProduct)
+            <nav
+                class="mt-12 flex flex-col gap-3 border-t border-slate-200 pt-8 sm:flex-row sm:items-stretch sm:justify-between dark:border-slate-800"
+                aria-label="{{ __('aldawy.nav_browse') }}"
+            >
+                @if ($previousProduct)
+                    <a
+                        href="{{ route('store.product', $previousProduct) }}"
+                        class="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-canvas px-4 py-3 text-sm transition hover:border-brand/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand/50"
+                    >
+                        <span class="shrink-0 text-lg text-brand" aria-hidden="true">←</span>
+                        <span class="min-w-0">
+                            <span class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('aldawy.nav_previous_product') }}</span>
+                            <span class="block truncate font-semibold text-slate-800 dark:text-white">{{ $previousProduct->getTranslation('name', $locale) }}</span>
+                        </span>
+                    </a>
+                @else
+                    <span class="hidden flex-1 sm:block"></span>
+                @endif
+
+                @if ($nextProduct)
+                    <a
+                        href="{{ route('store.product', $nextProduct) }}"
+                        class="group flex min-w-0 flex-1 items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-canvas px-4 py-3 text-sm text-end transition hover:border-brand/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand/50"
+                    >
+                        <span class="min-w-0">
+                            <span class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('aldawy.nav_next_product') }}</span>
+                            <span class="block truncate font-semibold text-slate-800 dark:text-white">{{ $nextProduct->getTranslation('name', $locale) }}</span>
+                        </span>
+                        <span class="shrink-0 text-lg text-brand" aria-hidden="true">→</span>
+                    </a>
+                @endif
+            </nav>
+        @endif
     </div>
 @endsection

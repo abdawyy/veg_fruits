@@ -318,4 +318,9 @@ return [
 
     'invoice_not_ready' => 'Invoice is not ready yet. Check your email in a few minutes.',
     'invoice_generating' => 'Your invoice PDF is being generated — refresh this page shortly or use the link in your email.',
+
+    'nav_previous' => 'Previous',
+    'nav_next' => 'Next',
+    'nav_previous_product' => 'Previous product',
+    'nav_next_product' => 'Next product',
 ];

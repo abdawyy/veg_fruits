@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Users\UserResource;
-use Filament\Resources\Pages\ViewRecord;
 
 class ViewUser extends ViewRecord
 {

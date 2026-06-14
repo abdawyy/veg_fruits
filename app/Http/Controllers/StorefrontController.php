@@ -74,7 +74,38 @@ final class StorefrontController extends Controller
 
         app(RecordProductViewAction::class)->execute($product);
 
-        return view('store.product', compact('product'));
+        [$previousProduct, $nextProduct] = $this->adjacentProductsInCategory($product);
+
+        return view('store.product', compact('product', 'previousProduct', 'nextProduct'));
+    }
+
+    /**
+     * @return array{0: Product|null, 1: Product|null}
+     */
+    private function adjacentProductsInCategory(Product $product): array
+    {
+        $ids = Product::query()
+            ->active()
+            ->where('category_id', $product->category_id)
+            ->orderBy('name->en')
+            ->pluck('id')
+            ->values();
+
+        $index = $ids->search($product->id, strict: false);
+
+        if ($index === false) {
+            return [null, null];
+        }
+
+        $previous = $index > 0
+            ? Product::query()->active()->with('category')->find($ids[$index - 1])
+            : null;
+
+        $next = $index < ($ids->count() - 1)
+            ? Product::query()->active()->with('category')->find($ids[$index + 1])
+            : null;
+
+        return [$previous, $next];
     }
 
     public function services(): View

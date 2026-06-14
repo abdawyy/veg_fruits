@@ -31,6 +31,7 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping
         }
 
         return $query
+            ->select('products.*')
             ->selectSub(
                 ProductView::query()
                     ->selectRaw('count(distinct session_id)')

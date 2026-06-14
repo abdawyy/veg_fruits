@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\HomeBanners\Schemas;
 
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
@@ -35,7 +36,7 @@ class HomeBannerForm
     /**
      * Fields for the “create multiple” repeater (one banner per item).
      *
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
     public static function repeaterItemSchema(): array
     {
@@ -48,7 +49,7 @@ class HomeBannerForm
     }
 
     /**
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
     private static function visibilitySchema(bool $includeSortOrder = true): array
     {
@@ -66,7 +67,7 @@ class HomeBannerForm
     }
 
     /**
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
     private static function copySchema(): array
     {
@@ -83,7 +84,7 @@ class HomeBannerForm
     }
 
     /**
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
     private static function mediaSchema(): array
     {
@@ -94,9 +95,9 @@ class HomeBannerForm
                 ->image()
                 ->disk('public')
                 ->directory('home-banners')
+                ->visibility('public')
                 ->maxSize(5120)
                 ->nullable()
-                ->imageEditor()
                 ->helperText(__('Uploaded image is shown before the external URL below.')),
             TextInput::make('image_url')->url()->maxLength(2048)->label(__('Banner image URL (optional)')),
             Textarea::make('hot_product_skus')
@@ -107,7 +108,7 @@ class HomeBannerForm
     }
 
     /**
-     * @return list<\Filament\Forms\Components\Component>
+     * @return list<Component>
      */
     private static function gradientSchema(): array
     {

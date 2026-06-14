@@ -17,7 +17,9 @@ use App\Support\StoreSeo;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->configureLocalAssetUrls();
+        $this->ensureUploadDirectoriesExist();
+
         Order::observe(OrderObserver::class);
 
         Event::listen(OrderCreated::class, OnOrderCreatedGenerateInvoiceAndNotify::class);
@@ -100,5 +105,36 @@ class AppServiceProvider extends ServiceProvider
             'store.boxes.index',
             'store.boxes.show',
         ], $storefrontComposer);
+    }
+
+    /**
+     * Signed Livewire upload URLs must match the browser origin (scheme + host + port).
+     * Without this, APP_URL=http://localhost sends uploads to port 80 while `artisan serve`
+     * runs on :8000 — the UI stays stuck on "Uploading".
+     */
+    private function configureLocalAssetUrls(): void
+    {
+        if (! $this->app->environment('local') || $this->app->runningInConsole()) {
+            return;
+        }
+
+        $rootUrl = request()->getSchemeAndHttpHost();
+
+        if ($rootUrl !== '') {
+            URL::forceRootUrl($rootUrl);
+        }
+    }
+
+    private function ensureUploadDirectoriesExist(): void
+    {
+        foreach ([
+            storage_path('app/public/livewire-tmp'),
+            storage_path('app/public/products'),
+            storage_path('app/public/home-banners'),
+        ] as $directory) {
+            if (! File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+        }
     }
 }
