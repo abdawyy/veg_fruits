@@ -3,7 +3,9 @@
 namespace App\Filament\Account\Resources\MyOrders\Pages;
 
 use App\Filament\Account\Resources\MyOrders\MyOrderResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class ListMyOrders extends ListRecords
@@ -11,8 +13,6 @@ class ListMyOrders extends ListRecords
     protected static string $resource = MyOrderResource::class;
 
     /**
-     * Default rows per page for the My orders table.
-     *
      * @var int|string|null
      */
     public $tableRecordsPerPage = 10;
@@ -20,7 +20,7 @@ class ListMyOrders extends ListRecords
     public function table(Table $table): Table
     {
         return parent::table($table)
-            ->paginated([10, 25, 50, 100])
+            ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(10)
             ->extremePaginationLinks();
     }
@@ -28,7 +28,11 @@ class ListMyOrders extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            //
+            Action::make('shop')
+                ->label(__('aldawy.cta_shop'))
+                ->icon(Heroicon::OutlinedShoppingBag)
+                ->url(route('store.shop'))
+                ->color('primary'),
         ];
     }
 }

@@ -14,6 +14,13 @@ class ViewMyOrder extends ViewRecord
 {
     protected static string $resource = MyOrderResource::class;
 
+    public function getTitle(): string
+    {
+        $record = $this->getRecord();
+
+        return __('aldawy.account_order_detail', ['ref' => $record->reference ?? '']);
+    }
+
     /**
      * @return array{0: string, 1: 'asc'|'desc'}
      */

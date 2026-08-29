@@ -21,25 +21,27 @@ class MyOrderResource extends Resource
 {
     protected static ?string $model = Order::class;
 
+    protected static ?string $slug = 'orders';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingBag;
 
-    protected static string|UnitEnum|null $navigationGroup = 'My account';
+    protected static string|UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;
 
     public static function getNavigationLabel(): string
     {
-        return __('My orders');
+        return __('aldawy.account_tile_orders');
     }
 
     public static function getModelLabel(): string
     {
-        return __('Order');
+        return __('aldawy.account_order_singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('Orders');
+        return __('aldawy.account_tile_orders');
     }
 
     public static function getEloquentQuery(): Builder
