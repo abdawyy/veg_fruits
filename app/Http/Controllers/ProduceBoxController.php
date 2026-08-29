@@ -6,6 +6,7 @@ use App\Enums\SubscriptionInterval;
 use App\Models\City;
 use App\Models\ProduceBox;
 use App\Payments\PaymentGatewayResolver;
+use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ final class ProduceBoxController extends Controller
     {
         $boxes = ProduceBox::query()
             ->active()
+            ->with(['items.product'])
             ->withCount('items')
             ->orderBy('id')
             ->get();
@@ -55,12 +57,10 @@ final class ProduceBoxController extends Controller
             return back()->withErrors(['box' => __('aldawy.box_has_no_items')]);
         }
 
-        \App\Support\StoreCart::addBox(
+        StoreCart::addBox(
             $produceBox->id,
             (string) $produceBox->price,
         );
-
-        \Livewire\Livewire::dispatch('cart-updated');
 
         return redirect()
             ->route('store.cart')

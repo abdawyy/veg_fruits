@@ -49,7 +49,7 @@ new class extends Component
 
 <div class="relative w-full min-w-[12rem] sm:min-w-[16rem]">
     <form wire:submit.prevent="search" class="flex w-full min-w-0 items-stretch gap-2 sm:gap-3" role="search">
-        <label class="sr-only" for="store-search-q">{{ __('aldawy.search_label') }}</label>
+        <label class="sr-only" for="store-search-q-{{ $this->getId() }}">{{ __('aldawy.search_label') }}</label>
         <div class="relative min-w-0 flex-1">
             <span class="pointer-events-none absolute start-3 top-1/2 z-10 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">
                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -57,7 +57,7 @@ new class extends Component
                 </svg>
             </span>
             <input
-                id="store-search-q"
+                id="store-search-q-{{ $this->getId() }}"
                 type="text"
                 role="searchbox"
                 inputmode="search"

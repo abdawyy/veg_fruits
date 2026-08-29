@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Product;
+use App\Payments\PaymentGatewayResolver;
 use App\Services\Coupons\ApplyCouponService;
 use App\Support\Money\MoneyCents;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
-use Livewire\Livewire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +25,7 @@ final class CartController extends Controller
         $cities = City::query()->forStorefront()->get();
         $priceChangedLines = StoreCart::priceChangedLines();
         $user = $request->user();
-        $paymentOptions = app(\App\Payments\PaymentGatewayResolver::class)->optionsForCheckout();
+        $paymentOptions = app(PaymentGatewayResolver::class)->optionsForCheckout();
 
         if ($rows->isNotEmpty()) {
             $request->session()->put('checkout_nonce', Str::random(40));
@@ -116,8 +116,6 @@ final class CartController extends Controller
             $unitPrice,
         );
 
-        $this->dispatchCartUpdated();
-
         if ($request->expectsJson()) {
             return response()->json([
                 'ok' => true,
@@ -140,7 +138,6 @@ final class CartController extends Controller
         $this->assertLineStock((int) $data['line'], (string) $data['quantity']);
 
         StoreCart::update((int) $data['line'], $data['unit'], (string) $data['quantity']);
-        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_updated'));
     }
@@ -165,7 +162,6 @@ final class CartController extends Controller
             $data['preparation_service_ids'] ?? [],
             isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null,
         );
-        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_options_updated'));
     }
@@ -177,7 +173,6 @@ final class CartController extends Controller
         ]);
 
         StoreCart::remove((int) $data['line']);
-        $this->dispatchCartUpdated();
 
         return back()->with('status', __('aldawy.cart_removed'));
     }
@@ -185,7 +180,6 @@ final class CartController extends Controller
     public function clear(): RedirectResponse
     {
         StoreCart::clear();
-        $this->dispatchCartUpdated();
 
         return redirect()->route('store.cart')->with('status', __('aldawy.cart_cleared'));
     }
@@ -229,11 +223,6 @@ final class CartController extends Controller
                 'quantity' => [__('aldawy.stock_insufficient')],
             ]);
         }
-    }
-
-    private function dispatchCartUpdated(): void
-    {
-        Livewire::dispatch('cart-updated');
     }
 
     /** @param  array<string, mixed>  $data */

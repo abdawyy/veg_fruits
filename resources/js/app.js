@@ -15,19 +15,73 @@ function aldawyCsrfToken() {
     return m ? m.getAttribute('content') : '';
 }
 
-function aldawyToast(message) {
-    const root = document.getElementById('aldawy-toast');
-    if (!root) {
+const TOAST_ICONS = {
+    success: '✓',
+    error: '!',
+    info: 'i',
+};
+
+function aldawyToast(message, options = {}) {
+    const root = document.getElementById('aldawy-toast-root');
+    if (!root || !message) {
         return;
     }
-    const inner = root.querySelector('div');
-    if (!inner) {
-        return;
+
+    const body = document.body;
+    const type = options.type || 'success';
+    const duration = typeof options.duration === 'number' ? options.duration : 4800;
+    const action = options.action || null;
+    const dismissLabel = body.dataset.toastDismiss || 'Dismiss';
+
+    const toast = document.createElement('div');
+    toast.className = `aldawy-toast aldawy-toast--${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    const icon = document.createElement('span');
+    icon.className = 'aldawy-toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = TOAST_ICONS[type] || TOAST_ICONS.info;
+
+    const content = document.createElement('div');
+    content.className = 'aldawy-toast-content';
+
+    const text = document.createElement('p');
+    text.className = 'aldawy-toast-message';
+    text.textContent = message;
+    content.appendChild(text);
+
+    if (action?.href && action?.label) {
+        const link = document.createElement('a');
+        link.href = action.href;
+        link.className = 'aldawy-toast-action';
+        link.textContent = action.label;
+        content.appendChild(link);
     }
-    inner.textContent = message;
-    root.classList.remove('hidden');
-    clearTimeout(root._aldawyT);
-    root._aldawyT = setTimeout(() => root.classList.add('hidden'), 3200);
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'aldawy-toast-close';
+    close.setAttribute('aria-label', dismissLabel);
+    close.innerHTML = '<svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>';
+
+    const bar = document.createElement('span');
+    bar.className = 'aldawy-toast-progress';
+    bar.style.animationDuration = `${duration}ms`;
+
+    toast.append(icon, content, close, bar);
+    root.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+    const dismiss = () => {
+        toast.classList.remove('is-visible');
+        toast.classList.add('is-leaving');
+        setTimeout(() => toast.remove(), 280);
+    };
+
+    close.addEventListener('click', dismiss);
+    const timer = setTimeout(dismiss, duration);
+    toast._aldawyTimer = timer;
 }
 
 function aldawySetCartCount(n) {
@@ -70,16 +124,24 @@ document.addEventListener('submit', async (e) => {
                 data.message ||
                 (data.errors && Object.values(data.errors).flat().join(' ')) ||
                 'Could not add to cart.';
-            aldawyToast(msg);
+            aldawyToast(msg, { type: 'error' });
 
             return;
         }
         if (typeof data.cart_line_count === 'number') {
             aldawySetCartCount(data.cart_line_count);
         }
-        aldawyToast(data.message || 'Added to cart.');
+        if (typeof Livewire !== 'undefined') {
+            Livewire.dispatch('cart-updated');
+        }
+        const cartUrl = document.body.dataset.cartUrl || '/cart';
+        const viewCartLabel = document.body.dataset.toastViewCart || 'View cart';
+        aldawyToast(data.message || 'Added to cart.', {
+            type: 'success',
+            action: { href: cartUrl, label: viewCartLabel },
+        });
     } catch {
-        aldawyToast('Network error — try again.');
+        aldawyToast('Network error — try again.', { type: 'error' });
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -131,7 +193,20 @@ function aldawyBindProductEstimates() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', aldawyBindProductEstimates);
+function aldawyInitFlashToasts() {
+    document.querySelectorAll('[data-flash-message]').forEach((el) => {
+        const msg = el.getAttribute('data-flash-message');
+        const type = el.getAttribute('data-flash-type') || 'success';
+        if (msg) {
+            aldawyToast(msg, { type, duration: 6000 });
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    aldawyBindProductEstimates();
+    aldawyInitFlashToasts();
+});
 
 window.aldawyToast = aldawyToast;
 window.aldawySetCartCount = aldawySetCartCount;

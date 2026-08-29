@@ -3,7 +3,7 @@
 > **Purpose:** Market **fresh fruits and vegetables** and the **shopping experience** — not the software.  
 > **Audience:** Marketers, copywriters, social media, ads, and AI assistants drafting campaigns.  
 > **Languages:** English and Arabic (Egypt). **Currency:** EGP.  
-> **Last updated:** 2026-05-20
+> **Last updated:** 2026-08-29 (storefront UX refresh)
 
 ---
 
@@ -172,17 +172,20 @@ Optional at checkout **per product** (when enabled for that item):
 
 ```
 Discover (social, search, word of mouth)
-    → Land on homepage (hero, seasonal banners, categories)
-    → Browse / search product (EN or AR)
-    → Add to cart (kg or piece, optional prep & packaging)
-    → Optional: apply promo code
+    → Land on homepage (hero collage, trust bar, category tiles, seasonal banners)
+    → Browse full catalog / fruits / vegetables — or search (EN or AR) with live suggestions
+    → Product page (price per kg/piece, prep & packaging options, add to cart)
+    → Toast confirmation + optional “View cart” link; cart icon always goes to /cart
+    → Cart (line items, coupons, prep/pack summary, sticky checkout sidebar)
     → Checkout (city, address, phone, COD)
     → Thank you page + email + optional account
     → Delivery + pay cash
-    → Reorder / subscribe to box
+    → Reorder / subscribe to produce box
 ```
 
-**Touchpoints to mention in ads:** search, cart preview, bilingual names, COD, subscription boxes, prep services.
+**Touchpoints to mention in ads:** bilingual search with suggestions, trust bar (COD, EN/AR, 115+ products), category tiles, produce boxes, prep services, redesigned mobile menu, cash on delivery.
+
+**Do not say:** “Cart preview drawer only” — the cart icon opens the **full cart page**; a preview drawer may still exist but is not the primary path.
 
 ---
 
@@ -202,13 +205,17 @@ Discover (social, search, word of mouth)
 
 ## 10. Trust & quality signals (use in copy)
 
-- **Farm-fresh daily** (brand badge)
-- **115+ products** (update count from live catalog when campaigning)
+- **Farm-fresh daily** (brand badge on nav, hero, product cards)
+- **115+ products** — live count shown in trust bar and shop hero (update from catalog when campaigning)
 - **From Egypt — farm to fork**
+- **Cash on delivery** — visible in nav trust strip, footer badges, cart checkout
+- **English & Arabic** — search, catalog, and UI; mention in Arabic-first ads
+- **Wash, peel & pack** — prep services callout in trust bar and services page
 - Order **reference number** on confirmation
 - **Invoice PDF** for records
 - **Order status updates** (pending → confirmed → shipped → delivered)
 - Honest note: **prices updated regularly** — builds trust vs hidden changes
+- **Clean, modern storefront** — green brand (`#16a34a`), mobile-friendly menu, category shortcuts
 
 ---
 
@@ -293,11 +300,25 @@ Shop now → [LINK]
 
 | Asset | Source |
 |-------|--------|
-| Product photos | Shop catalog (illustrative stock imagery noted on site) |
-| Banners / promos | Homepage seasonal banners (admin-managed) |
-| Logo / colors | Green brand (`#16a34a` family), clean white/surface UI |
+| Product photos | External stock URLs (Unsplash / Wikimedia) per product via `ProduceStockPhoto`; footer note: *“Product photos are illustrative stock images.”* |
+| Banners / promos | Homepage seasonal banners (admin-managed via Filament) |
+| Logo / colors | Green brand (`#16a34a`, dark `#14532d`), accent orange `#f97316`, Instrument Sans + Noto Sans Arabic |
+| Storefront UI | Redesigned navbar (trust strip, search, cart CTA), footer CTA band, category tiles, shop sidebar |
 | Languages | Duplicate all hero ads in EN + AR where possible |
 | Legal / sender | Invoices show configured sender name (business identity) |
+| Social proof hooks | Trust bar pills, footer badges (COD, bilingual, prep), hero stat “115+ products” |
+
+### Storefront pages (for campaign deep links)
+
+| Page | URL path | Best for |
+|------|----------|----------|
+| Home | `/` | Brand story, seasonal hero, category discovery |
+| Full catalog | `/shop` | “Shop everything”, category jump links |
+| Fruits | `/fruits` | Fruit season campaigns |
+| Vegetables | `/vegetables` | Daily staples, Ramadan cooking |
+| Services | `/special-services` | Wash/peel/chop messaging |
+| Produce boxes | `/boxes` | Subscription / gift campaigns |
+| Cart | `/cart` | Retargeting “complete your order” (logged session) |
 
 ---
 
@@ -326,12 +347,31 @@ Yes possible — we update prices regularly; always check the shop for today’s
 
 ---
 
-## 17. Related internal docs (not for public ads)
+## 17. Storefront experience reference (2026 refresh)
+
+Use this when writing landing-page copy, screenshots, or ad creative that must match the live site.
+
+| Area | What customers see |
+|------|-------------------|
+| **Header** | AL-DAWY logo, bilingual trust strip (desktop), search with live suggestions, cart button with item count, mobile menu grid |
+| **Homepage** | Hero headline *“Fresh produce. Priced for every table.”*, photo collage, category tiles (Fruits / Vegetables / Boxes / Services), featured catalog sections, marketing value blocks |
+| **Shop** | Full catalog by category, sticky category sidebar (desktop), product cards with “Fresh” badge, AJAX add-to-cart with toast |
+| **Product page** | Large photo, kg/piece pricing, prep & packaging lists, prev/next in category |
+| **Cart** | Card-based line items, coupon field, sticky order summary + checkout form, COD reminder |
+| **Footer** | Green CTA band (“Fresh produce delivered to your door”), shop/support/account links, trust badges |
+
+**Add-to-cart feedback:** Success toast with dismiss + “View cart” link (localized EN/AR).
+
+**Search examples for demos:** `mango`, `مانجو`, `tomato`, `dates`, `okra`.
+
+---
+
+## 18. Related internal docs (not for public ads)
 
 Technical and backlog docs for staff/dev only:
 
 - [PROJECT_ANALYSIS.md](./PROJECT_ANALYSIS.md) — how the shop works technically  
-- [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — resolved product/ops audit  
+- [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — product/ops audit + storefront UX status  
 - [TODO.md](./TODO.md) — internal backlog  
 - [README.md](./README.md) — developer setup  
 
@@ -339,4 +379,4 @@ Technical and backlog docs for staff/dev only:
 
 ---
 
-*When catalog, cities, or services change, update this guide and refresh hero stats (e.g. “115+ products”) from the live shop.*
+*When catalog, cities, services, or storefront UX change, update this guide and refresh hero stats (e.g. “115+ products”) from the live shop or `activeProductCount` in the admin catalog.*

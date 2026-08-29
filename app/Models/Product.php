@@ -54,14 +54,18 @@ class Product extends Model
         });
     }
 
-    /** Public URL for storefront / admin preview: uploaded file wins over external URL. */
+    /** Public URL: external link when set, otherwise uploaded file on disk. */
     public function getDisplayImageUrlAttribute(): ?string
     {
-        if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
-            return Storage::disk('public')->url($this->image_path);
+        if (filled($this->image_url)) {
+            return (string) $this->image_url;
         }
 
-        return $this->image_url ?: null;
+        if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
+            return '/storage/'.ltrim(str_replace('\\', '/', $this->image_path), '/');
+        }
+
+        return null;
     }
 
     public function scopeActive(Builder $query): Builder

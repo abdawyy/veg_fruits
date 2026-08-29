@@ -14,7 +14,7 @@ class GenerateProductImagesCommand extends Command
                             {--force : Re-download even when a local image already exists}
                             {--sku= : Only process a single SKU}';
 
-    protected $description = 'Download product photos by name and store them locally (replaces external image URLs).';
+    protected $description = 'Download product photos by name, store locally, and link them in the catalog (restores missing images).';
 
     public function handle(): int
     {
@@ -43,12 +43,29 @@ class GenerateProductImagesCommand extends Command
         foreach ($products as $product) {
             $englishName = $product->getTranslation('name', 'en');
 
+            if ($product->image_path && ! Storage::disk('public')->exists($product->image_path)) {
+                $product->forceFill(['image_path' => null])->saveQuietly();
+            }
+
             if (
                 ! $force
                 && $product->image_path
                 && Storage::disk('public')->exists($product->image_path)
             ) {
                 $skipped++;
+                $bar->advance();
+
+                continue;
+            }
+
+            $existingPath = ProductImageFetcher::resolveExistingPath($product);
+
+            if (! $force && $existingPath !== null) {
+                $product->forceFill([
+                    'image_path' => $existingPath,
+                    'image_url' => null,
+                ])->saveQuietly();
+                $ok++;
                 $bar->advance();
 
                 continue;
@@ -94,7 +111,7 @@ class GenerateProductImagesCommand extends Command
 
         $bar->finish();
         $this->newLine(2);
-        $this->info("Downloaded: {$ok} | Skipped (already local): {$skipped} | Failed: {$failed}");
+        $this->info("Linked/downloaded: {$ok} | Skipped (already in DB): {$skipped} | Failed: {$failed}");
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }

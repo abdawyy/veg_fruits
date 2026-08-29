@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\ProduceStockPhoto;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
@@ -43,5 +43,21 @@ class ProduceBox extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /** Cover photo from the first box item that has a product image. */
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        $this->loadMissing('items.product');
+
+        foreach ($this->items as $item) {
+            $url = $item->product?->display_image_url;
+
+            if ($url) {
+                return $url;
+            }
+        }
+
+        return ProduceStockPhoto::urlFor('Spring mix salad', 'BOX-FALLBACK');
     }
 }

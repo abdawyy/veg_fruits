@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\ProduceStockPhoto;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -34,6 +35,10 @@ class ProduceCatalogSeeder extends Seeder
 
         $this->seedGroup($fruits->id, 'FRU', $catalog['fruits']);
         $this->seedGroup($vegetables->id, 'VEG', $catalog['vegetables']);
+
+        if ($this->command !== null) {
+            $this->command->call('aldawy:restore-product-image-urls');
+        }
     }
 
     /**
@@ -56,7 +61,8 @@ class ProduceCatalogSeeder extends Seeder
                         'en' => 'Premium fresh '.$en.' — hand-selected for quality.',
                         'ar' => 'طازج ومختار بعناية — '.$ar,
                     ],
-                    'image_url' => null,
+                    'image_url' => ProduceStockPhoto::urlFor($en, $sku),
+                    'image_path' => null,
                     'price_per_kg' => $priceKg,
                     'price_per_piece' => $pricePiece,
                     'sell_by_piece' => $byPiece,

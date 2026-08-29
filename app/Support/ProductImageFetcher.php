@@ -13,6 +13,27 @@ final class ProductImageFetcher
 {
     private const DIRECTORY = 'products';
 
+    /** @var list<string> */
+    private const EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+    /**
+     * Relative path when a slug-named file already exists on the public disk.
+     */
+    public static function resolveExistingPath(Product $product): ?string
+    {
+        $slug = Str::slug($product->getTranslation('name', 'en'));
+
+        foreach (self::EXTENSIONS as $extension) {
+            $path = self::DIRECTORY.'/'.$slug.'.'.$extension;
+
+            if (Storage::disk('public')->exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Download a stock photo for the product and store it on the public disk.
      * Returns the relative storage path (e.g. products/apple.jpg) or null on failure.
@@ -21,6 +42,12 @@ final class ProductImageFetcher
      */
     public static function fetchForProduct(Product $product, ?array $sourceUrls = null): ?string
     {
+        $existing = self::resolveExistingPath($product);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
         $englishName = $product->getTranslation('name', 'en');
         $urls = $sourceUrls ?? ProduceStockPhoto::candidateUrlsFor($englishName, $product->sku);
 

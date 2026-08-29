@@ -5,7 +5,7 @@
 > **Composer package:** `aldawy/storefront`  
 > **Related:** [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — historical audit + what shipped (Phases A–E)  
 > **Backlog:** [TODO.md](./TODO.md) · **Verification:** [docs/VERIFICATION.md](./docs/VERIFICATION.md)  
-> **Last updated:** 2026-05-20 (post Phases A–E)
+> **Last updated:** 2026-08-29 (storefront UX refresh + product image pipeline)
 
 ---
 
@@ -72,7 +72,7 @@ fruits&veg/
 │   ├── Providers/         # AppServiceProvider + Filament panels
 │   ├── Services/          # Cart totals, pricing, money math, product price updates
 │   ├── Sms/               # LogSmsSender, HttpSmsSender
-│   └── Support/           # StoreCart, MoneyCents, Cms, StoreSeo, SpreadsheetImportRunner
+│   └── Support/           # StoreCart, MoneyCents, Cms, StoreSeo, ProduceStockPhoto, ProductImageFetcher
 ├── bootstrap/app.php      # Middleware registration, routing
 ├── config/
 │   ├── aldawy.php         # Currency, decimal scale, invoice sender name
@@ -346,7 +346,7 @@ CheckoutController
 
 ### 9.3 Cart controller
 
-`CartController` — add/update/remove/clear/options, **coupons**, stock checks; AJAX add; dispatches `cart-updated` for Livewire drawer.
+`CartController` — add/update/remove/clear/options, **coupons**, stock checks; JSON responses for AJAX add (`data-ajax-cart` forms). Cart count updates via `aldawySetCartCount()` in `resources/js/app.js`. **Do not** call `Livewire::dispatch()` from controllers (Livewire 4); client-side `Livewire.dispatch('cart-updated')` runs after successful AJAX add.
 
 ### 9.4 Subscriptions
 
@@ -363,24 +363,67 @@ CheckoutController
 
 ## 10. Views & frontend
 
-| Layout | Used by |
-|--------|---------|
-| `layouts/store.blade.php` | All storefront pages |
-| `layouts/guest.blade.php` | Login/register |
-| `partials/aldawy-theme.blade.php` | Tailwind theme tokens (brand green) |
+### 10.1 Layout & global chrome
+
+| File | Role |
+|------|------|
+| `layouts/store.blade.php` | Store shell: navbar, toast root, flash → toast, footer, Livewire scripts |
+| `store/partials/navbar.blade.php` | Sticky header: trust strip, logo, **single** Livewire search bar, cart CTA, desktop nav + browse dropdown, mobile drawer |
+| `store/partials/footer.blade.php` | CTA band + 4-column links + trust badges |
+| `store/partials/trust-bar.blade.php` | COD / bilingual / product count / prep pills (included on key pages) |
+| `store/partials/flash-status.blade.php` | Session `status` → client toast on load |
+| `partials/aldawy-theme.blade.php` | Theme toggle (light/dark) |
 | `partials/storefront-analytics.blade.php` | GA4 + Meta Pixel (env-gated) |
 
-**Livewire/Volt-style components** (⚡ prefix):
+**View composer** (`AppServiceProvider`): `cartLineCount`, `activeProductCount`, SEO meta (`htmlTitle`, `pageMetaDescription`, `ogImageUrl`), `cms()` helper on storefront views.
 
-- `components/store/⚡product-search-bar.blade.php`
-- `components/store/⚡price-notice-banner.blade.php`
-- `components/store/⚡cart-preview-drawer.blade.php`
+### 10.2 Storefront pages & partials
 
-**JS:** `resources/js/money.js` — integer cents for checkout total display (avoids float drift).
+| Page / partial | Notes |
+|----------------|-------|
+| `store/home.blade.php` | Hero collage, category tiles, featured categories, `home-marketing`, banners |
+| `store/shop.blade.php` | Full catalog; `shop-sidebar`, category sections, search results mode |
+| `store/category-shop.blade.php` | Fruits / vegetables paginated grids |
+| `store/product.blade.php` | Two-column PDP, prep/pack lists, prev/next nav |
+| `store/cart.blade.php` | Card line items, sticky checkout sidebar, coupon |
+| `store/partials/product-card.blade.php` | AJAX add form, hover overlay, category chip |
+| `store/partials/cart-line-item.blade.php` | Cart row card layout |
+| `store/services.blade.php`, `store/boxes/*` | Category heroes, aldawy-card layouts |
+
+### 10.3 Design system (`resources/css/app.css`)
+
+Tailwind v4 + custom tokens: `.aldawy-btn-primary`, `.aldawy-card`, `.aldawy-kicker`, `.aldawy-hero-bg`, `.aldawy-product-grid`, `.aldawy-shop-sidebar`, `.aldawy-nav-*`, `.aldawy-footer-*`, `.aldawy-toast-*`, category hero modifiers (`--fruits`, `--vegetables`).
+
+Fonts: **Instrument Sans** + **Noto Sans Arabic** (Bunny Fonts CDN).
+
+### 10.4 Livewire components (⚡ prefix)
+
+| Component | Role |
+|-----------|------|
+| `⚡product-search-bar` | Live search suggestions (≥2 chars), redirects to `/shop?q=` |
+| `⚡price-notice-banner` | Monthly price notice |
+| `⚡cart-preview-drawer` | Optional drawer (cart icon links to `/cart` as primary UX) |
+
+**Important:** Only **one** `product-search-bar` instance per page (navbar); duplicate instances break Livewire/DOM ids.
+
+### 10.5 JavaScript (`resources/js/app.js`)
+
+- `aldawyToast(message, { type, action, duration })` — success/error toasts with progress bar, dismiss, optional “View cart”
+- `data-ajax-cart` form handler — POST add-to-cart, updates badge, dispatches `cart-updated`
+- `money.js` — integer cents for checkout total display
+- `aldawyBindProductEstimates()` — product page line estimate AJAX
+
+### 10.6 Product images
+
+| Mechanism | Details |
+|-----------|---------|
+| `ProduceStockPhoto` | Curated Unsplash + Wikimedia URLs per English product name |
+| `Product::display_image_url` | Prefers `image_url` (external), else local `image_path` under `/storage/` |
+| `aldawy:restore-product-image-urls` | Sets `image_url` from `ProduceStockPhoto`, clears `image_path` (default after seed) |
+| `aldawy:generate-product-images` | Downloads to `storage/app/public/products/{slug}.jpg`, sets `image_path` (optional local workflow) |
+| Seeder | `ProduceCatalogSeeder` sets `image_url` + calls restore command |
 
 **PDF templates:** `resources/views/pdf/invoice.blade.php`, `catalog.blade.php`, `orders-summary.blade.php`
-
-**View composer** (`AppServiceProvider`): injects `cartLineCount`, SEO meta, `cms()` helper into store views.
 
 ---
 
@@ -521,6 +564,12 @@ composer dev
 # Process subscription cron manually
 php artisan aldawy:process-subscriptions
 
+# Product images — external URLs (default for seeded catalog)
+php artisan aldawy:restore-product-image-urls
+
+# Product images — download local copies to storage/app/public/products/
+php artisan aldawy:generate-product-images [--force] [--sku=FRU-001]
+
 # Code style
 ./vendor/bin/pint
 ```
@@ -536,8 +585,10 @@ php artisan aldawy:process-subscriptions
 | **API cart session** | v1 quote/orders use request body lines, not server session cart |
 | **Import audit UI** | `import_audit_logs` table exists; no Filament resource yet |
 | **Other Excel imports** | Dry-run runner wired on products; cities/orders can adopt same pattern |
+| **Cart preview drawer** | Still mounted in layout; primary nav uses `/cart` link — drawer optional |
+| **Product images** | Two workflows (URL vs local file); marketing/default seed uses external URLs |
 
-Phases A–E are **shipped** — see [TODO.md](./TODO.md) and [docs/VERIFICATION.md](./docs/VERIFICATION.md).
+Phases A–E and **2026 storefront UX refresh** are **shipped** — see [TODO.md](./TODO.md) and [docs/VERIFICATION.md](./docs/VERIFICATION.md).
 
 ---
 
@@ -553,7 +604,9 @@ When modifying this codebase:
 6. **Cart changes** — update `StoreCart`, `CartController`, and checkout draft mapping in `CheckoutController`.
 7. **Order side effects** — hook into `OrderCreated` event, not inline in controller after create.
 8. **Tests** — run `php artisan test` after cart/checkout/pricing changes.
-9. **Minimal scope** — this is a focused commerce app; avoid introducing unrelated packages or patterns.
+9. **Storefront UI** — reuse `.aldawy-*` CSS classes and partials; add strings to both `lang/en/aldawy.php` and `lang/ar/aldawy.php`.
+10. **Livewire in layout** — never mount duplicate `product-search-bar` components on one page.
+11. **Minimal scope** — this is a focused commerce app; avoid introducing unrelated packages or patterns.
 
 ---
 
@@ -562,6 +615,11 @@ When modifying this codebase:
 | Need to change… | Start here |
 |-----------------|------------|
 | Store homepage | `StorefrontController@home`, `resources/views/store/home.blade.php` |
+| Navbar / footer | `store/partials/navbar.blade.php`, `store/partials/footer.blade.php`, `resources/css/app.css` |
+| Shop / catalog UI | `store/shop.blade.php`, `store/partials/product-card.blade.php`, `shop-sidebar.blade.php` |
+| Toasts / AJAX cart | `resources/js/app.js`, `layouts/store.blade.php` |
+| Product images (URLs) | `ProduceStockPhoto.php`, `RestoreProductImageUrlsCommand.php` |
+| Product images (local) | `ProductImageFetcher.php`, `GenerateProductImagesCommand.php` |
 | Product pricing rules | `SurchargeOnBase`, `StoreCart::resolved()` |
 | Checkout validation | `CheckoutController@store` |
 | Order persistence | `CreateOrderAction` |
@@ -574,4 +632,4 @@ When modifying this codebase:
 
 ---
 
-*Document maintained with codebase. Major commerce features (Phases A–E) documented as of 2026-05-20.*
+*Document maintained with codebase. Phases A–E + 2026 storefront UX refresh documented as of 2026-08-29.*

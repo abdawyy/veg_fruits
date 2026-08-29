@@ -6,6 +6,7 @@ use App\Contracts\Sms\SmsSenderInterface;
 use App\Events\OrderCreated;
 use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\SeoSetting;
 use App\Observers\OrderObserver;
 use App\Sms\HttpSmsSender;
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
 
         $storefrontComposer = function (\Illuminate\View\View $view): void {
             $view->with('cartLineCount', StoreCart::lineCount());
+            $view->with('activeProductCount', Product::query()->active()->count());
 
             $route = request()->route()?->getName();
             $meta = StoreSeo::pageMeta($route);
