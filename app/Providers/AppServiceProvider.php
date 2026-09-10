@@ -134,9 +134,11 @@ class AppServiceProvider extends ServiceProvider
             storage_path('app/public/products'),
             storage_path('app/public/home-banners'),
             storage_path('app/private/livewire-tmp'),
+            storage_path('app/private/imports'),
         ] as $directory) {
-            // Shared hosts sometimes create a FILE named livewire-tmp; Flysystem then
-            // fails with UnableToRetrieveMetadata on livewire-tmp/livewire-tmp.
+            // Hosting panels sometimes create a FILE named livewire-tmp instead of a folder.
+            // That breaks Filament image save with:
+            // UnableToRetrieveMetadata … livewire-tmp/livewire-tmp
             if (File::exists($directory) && ! File::isDirectory($directory)) {
                 File::delete($directory);
             }
@@ -146,11 +148,15 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        $nestedBadPath = storage_path('app/public/livewire-tmp/livewire-tmp');
-        if (File::isDirectory($nestedBadPath)) {
-            File::deleteDirectory($nestedBadPath);
-        } elseif (File::isFile($nestedBadPath)) {
-            File::delete($nestedBadPath);
+        foreach ([
+            storage_path('app/public/livewire-tmp/livewire-tmp'),
+            storage_path('app/private/livewire-tmp/livewire-tmp'),
+        ] as $nested) {
+            if (File::isDirectory($nested)) {
+                File::deleteDirectory($nested);
+            } elseif (File::isFile($nested)) {
+                File::delete($nested);
+            }
         }
     }
 }
