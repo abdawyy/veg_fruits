@@ -59,7 +59,9 @@ return [
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
         'max_upload_time' => 30,
-        'cleanup' => true,
+        // Cleanup can crash shared hosts when livewire-tmp is missing/unwritable
+        // (UnableToRetrieveMetadata on livewire-tmp/livewire-tmp) and break Filament login.
+        'cleanup' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_CLEANUP', true),
     ],
 
     'render_on_redirect' => false,

@@ -133,10 +133,24 @@ class AppServiceProvider extends ServiceProvider
             storage_path('app/public/livewire-tmp'),
             storage_path('app/public/products'),
             storage_path('app/public/home-banners'),
+            storage_path('app/private/livewire-tmp'),
         ] as $directory) {
+            // Shared hosts sometimes create a FILE named livewire-tmp; Flysystem then
+            // fails with UnableToRetrieveMetadata on livewire-tmp/livewire-tmp.
+            if (File::exists($directory) && ! File::isDirectory($directory)) {
+                File::delete($directory);
+            }
+
             if (! File::isDirectory($directory)) {
                 File::makeDirectory($directory, 0755, true);
             }
+        }
+
+        $nestedBadPath = storage_path('app/public/livewire-tmp/livewire-tmp');
+        if (File::isDirectory($nestedBadPath)) {
+            File::deleteDirectory($nestedBadPath);
+        } elseif (File::isFile($nestedBadPath)) {
+            File::delete($nestedBadPath);
         }
     }
 }
