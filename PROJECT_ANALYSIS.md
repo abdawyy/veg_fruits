@@ -291,16 +291,31 @@ Cart (session) → POST /checkout (validate city, address, phone)
 | `HomeBannerResource` | HomeBanner | Carousel |
 | `SiteVisitorResource` | SiteVisitor | Read-only analytics; country/city columns, country & device filters |
 
-### 7.2 Widgets (dashboard)
+### 7.2 Dashboards & widgets
 
-- `SalesOverviewStats`, `CommerceSnapshotWidget`
-- `OrdersOverTimeChart`, `TopProductsByViewsChart`, `TopStorePathsChart`, `TrafficReferrersChart`
-- `ActiveVisitorsWidget`
-- `VisitorLocationsChart` — sessions by city / region / country (30 days)
+Two pages, each with a shared **Period** filter (`HasFiltersForm`, ToggleButtons: today / 7 / 30 / 90 / 365 days, kept in session). Widgets read it via `Concerns\HasDashboardPeriod`; KPI cards use `Concerns\BuildsKpiStats` (change vs previous period — vs yesterday-to-now for Today — trend arrow, colour, sparkline). Grid: 1 column on mobile, 2 on `lg`.
+
+**Sales overview** — `App\Filament\Pages\Dashboard` (`/admin`)
+
+- `SalesKpiStats` — revenue, orders, average order value, pending orders (links to orders)
+- `SalesTrendChart` — revenue (bars) + orders (line), hourly / daily / monthly by period
+- `OrderStatusChart` — doughnut by status
+- `OrdersByCityChart` — orders + revenue per delivery area (top 10)
+- `TopSellingProductsChart` — top 8 by `order_items.line_total`
+- `TopProductsByViewsChart` — top 8 by `product_views` in the period
+- `LatestOrdersTable` — newest 8 orders, row opens the order
+
+**Customers & traffic** — `App\Filament\Pages\TrafficDashboard` (`/admin/traffic`)
+
+- `TrafficKpiStats` — visitors in the last 5 min, sessions, page views, conversion (orders ÷ sessions), mobile share
 - `ActivityByHourChart`, `ActivityByWeekdayChart` — page views, product views, orders per hour / weekday in `ANALYTICS_TIMEZONE` (extend `ActivityPatternChart`)
-- `OrdersByCityChart` — orders + revenue per delivery city
+- `VisitorLocationsChart` — sessions by city / region / country (own sub-filter)
+- `TrafficReferrersChart` — doughnut: direct vs referrer hosts
+- `TopStorePathsChart` — top 10 storefront paths
 
-Helpers: `App\Support\Analytics\TimeBuckets` (SQL hour buckets → reporting timezone), `App\Support\Analytics\CustomerInsights` (per-customer summary).
+Cancelled orders are excluded from all sales figures.
+
+Helpers: `App\Support\Analytics\DashboardPeriod` (window, previous window, granularity), `App\Support\Analytics\TimeBuckets` (SQL hour buckets → reporting timezone; `series()` builds continuous trend buckets), `App\Support\Analytics\CustomerInsights` (per-customer summary).
 
 ### 7.3 Excel import/export
 

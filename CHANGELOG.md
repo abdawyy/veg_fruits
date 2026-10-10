@@ -4,6 +4,44 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
+## 2026-10-10 — Admin dashboard redesign (UI/UX)
+
+### What to run after pulling
+
+```powershell
+php artisan optimize:clear
+php artisan shield:generate --all --panel=admin   # registers permissions for the new pages/widgets
+php artisan db:seed --class=AdminRolesSeeder      # refreshes role → permission mapping
+```
+
+No migrations.
+
+### What changed
+
+The single long dashboard (duplicate KPI cards, each chart with its own date range) is replaced by **two focused pages** that share one **Period** switch (Today · 7 days · 30 days · 90 days · 12 months). Every card and chart on the page follows it, and the choice is remembered for the session.
+
+- **Sales overview** (`/admin`, first in the menu)
+  - KPI cards: revenue, orders, average order value — each with % change vs the previous period (vs yesterday-to-now for Today), green/red trend arrow and sparkline; pending orders card turns amber and links to the orders list.
+  - Revenue & orders trend (hourly for Today, daily, monthly for 12 months).
+  - Orders by status (doughnut), orders by delivery area, best sellers by revenue, most viewed products (now per period from `product_views`, not the all-time counter).
+  - Latest orders table — click a row to open the order.
+- **Customers & traffic** (`/admin/traffic`)
+  - KPI cards: visitors right now (refreshes every 30s), sessions, page views, conversion rate, mobile share.
+  - When customers visit & buy (by hour, Cairo time), busiest days, visitor locations (city / region / country), traffic sources (doughnut incl. direct), top shop pages.
+- Layout: 1 column on phones, 2-column chart grid on desktop, consistent chart heights, legends at the bottom, combined tooltips.
+- Removed: Filament account/welcome card and the old `SalesOverviewStats`, `CommerceSnapshotWidget`, `ActiveVisitorsWidget`, `OrdersOverTimeChart` widgets (their numbers live in the new KPI cards).
+
+### Files
+
+- New: `app/Filament/Pages/Dashboard.php`, `app/Filament/Pages/TrafficDashboard.php`, `app/Filament/Widgets/{SalesKpiStats,TrafficKpiStats,SalesTrendChart,OrderStatusChart,TopSellingProductsChart,LatestOrdersTable}.php`, `app/Filament/Widgets/Concerns/{HasDashboardPeriod,BuildsKpiStats}.php`, `app/Support/Analytics/DashboardPeriod.php`, `tests/Feature/AdminDashboardTest.php`
+- Updated to the shared period + half-width layout: `ActivityPatternChart`, `ActivityByHourChart`, `ActivityByWeekdayChart`, `OrdersByCityChart`, `TopProductsByViewsChart`, `VisitorLocationsChart`, `TrafficReferrersChart`, `TopStorePathsChart`
+- `app/Support/Analytics/TimeBuckets.php` — `series()` for continuous trend buckets in the reporting timezone
+- `app/Providers/Filament/AdminPanelProvider.php` — custom dashboards discovered; default dashboard and account widget removed
+- `database/seeders/AdminRolesSeeder.php`, `app/Support/AdminRolePermissions.php` — permission names for the new widgets/pages
+- `resources/views/filament/pages/admin-guide.blade.php`, `PROJECT_ANALYSIS.md` — docs
+
+---
+
 ## 2026-10-10 — Customer analytics + admin product image fix
 
 ### What to run after pulling

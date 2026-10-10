@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\HasDashboardPeriod;
 use App\Models\SiteVisitor;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
@@ -9,15 +10,21 @@ use Illuminate\Support\Facades\Schema;
 
 class VisitorLocationsChart extends ChartWidget
 {
-    protected ?string $heading = 'Where visitors open the shop from';
+    use HasDashboardPeriod;
 
-    protected ?string $description = 'Visitor sessions by location (last 30 days). Located once per session from the IP or Cloudflare headers — raw IPs are not stored.';
-
-    protected int|string|array $columnSpan = 'full';
-
-    protected ?string $maxHeight = '360px';
+    protected ?string $maxHeight = '300px';
 
     public ?string $filter = 'city';
+
+    public function getHeading(): string
+    {
+        return __('Where visitors are');
+    }
+
+    public function getDescription(): string
+    {
+        return $this->period()->label().' · '.__('located per session, raw IPs are not stored');
+    }
 
     protected function getType(): string
     {
@@ -42,16 +49,17 @@ class VisitorLocationsChart extends ChartWidget
             return ['labels' => [], 'datasets' => [['label' => __('Sessions'), 'data' => []]]];
         }
 
+        $period = $this->period();
         $field = in_array($this->filter, ['city', 'region', 'country'], true) ? $this->filter : 'city';
         $groupColumns = array_values(array_unique([$field, 'country']));
 
         $rows = SiteVisitor::query()
-            ->where('last_seen_at', '>=', now()->subDays(30))
+            ->whereBetween('last_seen_at', [$period->start(), $period->end()])
             ->whereNotNull('geo_resolved_at')
             ->select([...$groupColumns, DB::raw('COUNT(*) as sessions')])
             ->groupBy($groupColumns)
             ->orderByDesc('sessions')
-            ->limit(15)
+            ->limit(10)
             ->get();
 
         $labels = $rows->map(function (SiteVisitor $row) use ($field): string {
@@ -69,9 +77,10 @@ class VisitorLocationsChart extends ChartWidget
                 [
                     'label' => __('Sessions'),
                     'data' => $rows->pluck('sessions')->map(fn ($v) => (int) $v)->all(),
-                    'backgroundColor' => 'rgba(20, 184, 166, 0.5)',
+                    'backgroundColor' => 'rgba(20, 184, 166, 0.6)',
                     'borderColor' => '#0f766e',
                     'borderWidth' => 1,
+                    'borderRadius' => 4,
                 ],
             ],
         ];
@@ -84,8 +93,10 @@ class VisitorLocationsChart extends ChartWidget
     {
         return [
             'indexAxis' => 'y',
+            'plugins' => ['legend' => ['display' => false]],
             'scales' => [
                 'x' => ['beginAtZero' => true, 'ticks' => ['precision' => 0]],
+                'y' => ['grid' => ['display' => false]],
             ],
         ];
     }

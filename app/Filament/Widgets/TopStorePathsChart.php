@@ -2,17 +2,26 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\HasDashboardPeriod;
 use App\Models\SitePageView;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\Schema;
 
 class TopStorePathsChart extends ChartWidget
 {
-    protected ?string $heading = 'Top storefront paths (14 days)';
+    use HasDashboardPeriod;
 
-    protected ?string $description = 'Counted when visitors move to a new page in the shop (GET).';
+    protected ?string $maxHeight = '300px';
 
-    protected int|string|array $columnSpan = 'full';
+    public function getHeading(): string
+    {
+        return __('Top shop pages');
+    }
+
+    public function getDescription(): string
+    {
+        return $this->period()->label().' · '.__('page views per path');
+    }
 
     protected function getType(): string
     {
@@ -25,23 +34,20 @@ class TopStorePathsChart extends ChartWidget
     protected function getData(): array
     {
         if (! Schema::hasTable('site_page_views')) {
-            return [
-                'labels' => [],
-                'datasets' => [
-                    ['label' => __('Views'), 'data' => []],
-                ],
-            ];
+            return ['labels' => [], 'datasets' => [['label' => __('Views'), 'data' => []]]];
         }
+
+        $period = $this->period();
 
         $rows = SitePageView::query()
             ->selectRaw('path, count(*) as c')
-            ->where('visited_at', '>=', now()->subDays(14))
+            ->whereBetween('visited_at', [$period->start(), $period->end()])
             ->groupBy('path')
             ->orderByDesc('c')
-            ->limit(12)
+            ->limit(10)
             ->get();
 
-        $labels = $rows->pluck('path')->map(fn (string $p): string => strlen($p) > 36 ? substr($p, 0, 33).'…' : $p)->all();
+        $labels = $rows->pluck('path')->map(fn (string $p): string => mb_strlen($p) > 36 ? mb_substr($p, 0, 33).'…' : $p)->all();
 
         return [
             'labels' => $labels,
@@ -49,10 +55,26 @@ class TopStorePathsChart extends ChartWidget
                 [
                     'label' => __('Views'),
                     'data' => $rows->pluck('c')->map(fn ($n) => (int) $n)->all(),
-                    'backgroundColor' => 'rgba(22, 163, 74, 0.55)',
+                    'backgroundColor' => 'rgba(22, 163, 74, 0.6)',
                     'borderColor' => '#15803d',
                     'borderWidth' => 1,
+                    'borderRadius' => 4,
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getOptions(): array
+    {
+        return [
+            'indexAxis' => 'y',
+            'plugins' => ['legend' => ['display' => false]],
+            'scales' => [
+                'x' => ['beginAtZero' => true, 'ticks' => ['precision' => 0]],
+                'y' => ['grid' => ['display' => false]],
             ],
         ];
     }

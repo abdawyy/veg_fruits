@@ -28,9 +28,13 @@ class AdminRolesSeeder extends Seeder
             AdminRolePermissions::only([
                 'ViewAny:User',
                 'View:User',
-                'View:SalesOverviewStats',
-                'View:OrdersOverTimeChart',
-                'View:TopStorePathsChart',
+                'View:Dashboard',
+                'View:SalesKpiStats',
+                'View:SalesTrendChart',
+                'View:OrderStatusChart',
+                'View:OrdersByCityChart',
+                'View:TopSellingProductsChart',
+                'View:LatestOrdersTable',
             ]),
         ));
 

@@ -33,11 +33,10 @@
 
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Analytics &amp; insights (built in)</h2>
-        <p class="mt-2">Open <strong>Dashboard</strong>. You get:</p>
+        <p class="mt-2">Two dashboards, each with one <strong>Period</strong> switch at the top (Today, 7 / 30 / 90 days, 12 months) that drives every card and chart on the page. Cards show the change vs the previous period (vs yesterday for Today).</p>
         <ul class="mt-3 list-disc space-y-2 ps-5">
-            <li><strong>Traffic</strong> — active sessions, today’s sessions, totals, page views (7d), referrer &amp; UTM counts, mobile today.</li>
-            <li><strong>Commerce snapshot (7d)</strong> — orders, new sessions, page views, cart URL hits, rough order÷session %.</li>
-            <li><strong>Charts</strong> — orders over time, top storefront paths, traffic sources (referrer host), most viewed products (product page counter).</li>
+            <li><strong>Sales overview</strong> (<code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin</code>) — revenue, orders, average order value, pending orders (click to open them); revenue &amp; orders trend; orders by status; orders by delivery area; best sellers by revenue; most viewed products; latest orders (click a row to open it).</li>
+            <li><strong>Customers &amp; traffic</strong> (<code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin/traffic</code>) — visitors right now, sessions, page views, conversion rate, mobile share; visits &amp; orders by hour and weekday (Cairo time); visitor locations; traffic sources; top shop pages.</li>
             <li><strong>Site visitors</strong> — menu entry lists sessions with entry path, last path, referrer, UTM, device. Export visitors or <strong>page views (Excel)</strong> from that screen.</li>
         </ul>
         <p class="mt-4 font-medium text-gray-950 dark:text-white">Optional: Google Analytics 4 &amp; Meta Pixel on the public shop</p>
@@ -46,7 +45,7 @@
         <p class="mt-4 font-medium text-gray-950 dark:text-white">Not included (would need extra services or dev)</p>
         <ul class="mt-2 list-disc space-y-1 ps-5 text-gray-600 dark:text-gray-400">
             <li>Heatmaps / session replay (e.g. Hotjar, Microsoft Clarity).</li>
-            <li>Geo map by city/country (we only store hashed IP for privacy).</li>
+            <li>Interactive map view — locations are shown as ranked city / region / country lists (raw IPs are not stored).</li>
             <li>Per-step funnel beyond “cart URL” (e.g. add-to-cart events as rows).</li>
             <li>Google Ads / Search Console integration.</li>
             <li>Real-time push to Slack/Email on traffic spikes.</li>

@@ -49,7 +49,11 @@ final class AdminRolePermissions
                 $query
                     ->where('name', 'like', '%Widget')
                     ->orWhere('name', 'like', '%Chart')
+                    ->orWhere('name', 'like', '%Stats')
                     ->orWhereIn('name', [
+                        'View:LatestOrdersTable',
+                        'View:Dashboard',
+                        'View:TrafficDashboard',
                         'View:SiteVisitor',
                         'View:AdminGuide',
                     ]);

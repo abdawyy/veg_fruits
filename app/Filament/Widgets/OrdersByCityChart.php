@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\OrderStatus;
+use App\Filament\Widgets\Concerns\HasDashboardPeriod;
 use App\Models\City;
 use App\Models\Order;
 use Filament\Widgets\ChartWidget;
@@ -10,29 +11,23 @@ use Illuminate\Support\Facades\DB;
 
 class OrdersByCityChart extends ChartWidget
 {
-    protected ?string $heading = 'Orders & revenue by delivery area';
+    use HasDashboardPeriod;
 
-    protected ?string $description = 'Where orders are delivered (cancelled orders excluded).';
+    protected ?string $maxHeight = '300px';
 
-    protected int|string|array $columnSpan = 'full';
+    public function getHeading(): string
+    {
+        return __('Orders by delivery area');
+    }
 
-    protected ?string $maxHeight = '320px';
-
-    public ?string $filter = '30';
+    public function getDescription(): string
+    {
+        return $this->period()->label().' · '.__('cancelled orders excluded');
+    }
 
     protected function getType(): string
     {
         return 'bar';
-    }
-
-    protected function getFilters(): ?array
-    {
-        return [
-            '7' => __('Last 7 days'),
-            '30' => __('Last 30 days'),
-            '90' => __('Last 90 days'),
-            '365' => __('Last 12 months'),
-        ];
     }
 
     /**
@@ -40,14 +35,15 @@ class OrdersByCityChart extends ChartWidget
      */
     protected function getData(): array
     {
-        $days = in_array($this->filter, ['7', '30', '90', '365'], true) ? (int) $this->filter : 30;
+        $period = $this->period();
 
         $rows = Order::query()
-            ->where('created_at', '>=', now()->subDays($days))
+            ->whereBetween('created_at', [$period->start(), $period->end()])
             ->where('status', '!=', OrderStatus::Cancelled)
             ->select(['city_id', DB::raw('COUNT(*) as orders_count'), DB::raw('SUM(total) as revenue')])
             ->groupBy('city_id')
             ->orderByDesc('orders_count')
+            ->limit(10)
             ->get();
 
         $cities = City::query()->whereIn('id', $rows->pluck('city_id')->filter())->get()->keyBy('id');
@@ -65,10 +61,11 @@ class OrdersByCityChart extends ChartWidget
                 [
                     'label' => __('Orders'),
                     'data' => $rows->pluck('orders_count')->map(fn ($v) => (int) $v)->all(),
-                    'backgroundColor' => 'rgba(22, 163, 74, 0.5)',
+                    'backgroundColor' => 'rgba(22, 163, 74, 0.6)',
                     'borderColor' => '#15803d',
                     'borderWidth' => 1,
-                    'yAxisID' => 'y',
+                    'borderRadius' => 4,
+                    'xAxisID' => 'x',
                 ],
                 [
                     'label' => __('Revenue (EGP)'),
@@ -76,7 +73,8 @@ class OrdersByCityChart extends ChartWidget
                     'backgroundColor' => 'rgba(168, 85, 247, 0.45)',
                     'borderColor' => '#7e22ce',
                     'borderWidth' => 1,
-                    'yAxisID' => 'y1',
+                    'borderRadius' => 4,
+                    'xAxisID' => 'x1',
                 ],
             ],
         ];
@@ -88,9 +86,13 @@ class OrdersByCityChart extends ChartWidget
     protected function getOptions(): array
     {
         return [
+            'indexAxis' => 'y',
+            'interaction' => ['mode' => 'index', 'intersect' => false],
+            'plugins' => ['legend' => ['position' => 'bottom']],
             'scales' => [
-                'y' => ['beginAtZero' => true, 'position' => 'left', 'ticks' => ['precision' => 0]],
-                'y1' => ['beginAtZero' => true, 'position' => 'right', 'grid' => ['drawOnChartArea' => false]],
+                'x' => ['beginAtZero' => true, 'position' => 'bottom', 'ticks' => ['precision' => 0]],
+                'x1' => ['beginAtZero' => true, 'position' => 'top', 'grid' => ['drawOnChartArea' => false]],
+                'y' => ['grid' => ['display' => false]],
             ],
         ];
     }

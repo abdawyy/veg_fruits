@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ActivityByHourChart extends ActivityPatternChart
 {
-    protected ?string $heading = 'When customers visit & buy (hour of day)';
-
-    public function getDescription(): ?string
+    public function getHeading(): string
     {
-        return __('Page views, product views and orders per hour, in :tz time. Use it to time ads, SMS and promos.', [
-            'tz' => TimeBuckets::timezone(),
-        ]);
+        return __('When customers visit & buy');
+    }
+
+    public function getDescription(): string
+    {
+        return $this->period()->label().' · '.__('by hour of day').' · '.TimeBuckets::timezone().' · '.__('use it to time ads, SMS and promos');
     }
 
     protected function bucket(Builder $query, string $column): array

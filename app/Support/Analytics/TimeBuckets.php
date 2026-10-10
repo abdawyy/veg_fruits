@@ -87,9 +87,68 @@ final class TimeBuckets
     }
 
     /**
+     * Continuous time series (empty buckets included) in the reporting timezone.
+     *
+     * @param  'hour'|'day'|'month'  $granularity
+     * @return array<string, array{label: string, count: int, sum: float}>
+     */
+    public static function series(
+        EloquentBuilder|QueryBuilder $query,
+        string $column,
+        Carbon $from,
+        Carbon $to,
+        string $granularity,
+        ?string $sumColumn = null,
+    ): array {
+        [$keyFormat, $labelFormat, $step] = match ($granularity) {
+            'hour' => ['Y-m-d H', 'H:00', 'addHour'],
+            'month' => ['Y-m', 'M Y', 'addMonth'],
+            default => ['Y-m-d', 'M j', 'addDay'],
+        };
+
+        $series = [];
+        $cursor = $from->copy()->setTimezone(self::timezone());
+        $end = $to->copy()->setTimezone(self::timezone());
+        $cursor = match ($granularity) {
+            'hour' => $cursor->startOfHour(),
+            'month' => $cursor->startOfMonth(),
+            default => $cursor->startOfDay(),
+        };
+
+        while ($cursor <= $end) {
+            $series[$cursor->format($keyFormat)] = [
+                'label' => $cursor->locale(app()->getLocale())->translatedFormat($labelFormat),
+                'count' => 0,
+                'sum' => 0.0,
+            ];
+            $cursor->{$step}();
+        }
+
+        $scoped = (clone $query)->whereBetween($column, [$from, $to]);
+
+        foreach (self::hourAggregates($scoped, $column, $sumColumn) as $moment => $row) {
+            $key = self::toReportingTime($moment)->format($keyFormat);
+            if (isset($series[$key])) {
+                $series[$key]['count'] += $row['count'];
+                $series[$key]['sum'] += $row['sum'];
+            }
+        }
+
+        return $series;
+    }
+
+    /**
      * @return array<string, int> "Y-m-d H:00:00" (app timezone) => count
      */
     private static function hourBuckets(EloquentBuilder|QueryBuilder $query, string $column): array
+    {
+        return array_map(fn (array $row): int => $row['count'], self::hourAggregates($query, $column));
+    }
+
+    /**
+     * @return array<string, array{count: int, sum: float}> "Y-m-d H:00:00" (app timezone) => aggregates
+     */
+    private static function hourAggregates(EloquentBuilder|QueryBuilder $query, string $column, ?string $sumColumn = null): array
     {
         $driver = $query->getConnection()->getDriverName();
         $expression = match ($driver) {
@@ -98,14 +157,17 @@ final class TimeBuckets
             'sqlsrv' => "FORMAT({$column}, 'yyyy-MM-dd HH:00:00')",
             default => "DATE_FORMAT({$column}, '%Y-%m-%d %H:00:00')",
         };
+        $sum = $sumColumn !== null ? "COALESCE(SUM({$sumColumn}), 0)" : '0';
 
         return (clone $query)
             ->reorder()
             ->whereNotNull($column)
-            ->selectRaw("{$expression} as hour_bucket, COUNT(*) as aggregate")
+            ->selectRaw("{$expression} as hour_bucket, COUNT(*) as aggregate, {$sum} as aggregate_sum")
             ->groupBy('hour_bucket')
-            ->pluck('aggregate', 'hour_bucket')
-            ->map(fn ($count) => (int) $count)
+            ->get()
+            ->mapWithKeys(fn ($row): array => [
+                (string) $row->hour_bucket => ['count' => (int) $row->aggregate, 'sum' => (float) $row->aggregate_sum],
+            ])
             ->all();
     }
 

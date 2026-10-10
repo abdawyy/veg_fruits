@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ActivityByWeekdayChart extends ActivityPatternChart
 {
-    protected ?string $heading = 'Busiest days of the week';
+    protected int|string|array $columnSpan = 1;
 
-    protected ?string $description = 'Page views, product views and orders per weekday (Saturday first).';
+    public function getHeading(): string
+    {
+        return __('Busiest days');
+    }
+
+    public function getDescription(): string
+    {
+        return $this->period()->label().' · '.__('Saturday first');
+    }
 
     protected function bucket(Builder $query, string $column): array
     {
