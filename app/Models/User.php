@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -80,5 +81,23 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    /** @return HasMany<SiteVisitor, $this> */
+    public function siteVisitors(): HasMany
+    {
+        return $this->hasMany(SiteVisitor::class);
+    }
+
+    /** @return HasOne<SiteVisitor, $this> */
+    public function latestSiteVisitor(): HasOne
+    {
+        return $this->hasOne(SiteVisitor::class)->latestOfMany('last_seen_at');
+    }
+
+    /** @return HasMany<ProductView, $this> */
+    public function productViews(): HasMany
+    {
+        return $this->hasMany(ProductView::class);
     }
 }

@@ -42,6 +42,7 @@
         </ul>
         <p class="mt-4 font-medium text-gray-950 dark:text-white">Optional: Google Analytics 4 &amp; Meta Pixel on the public shop</p>
         <p class="mt-2">Set in <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code>: <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">ANALYTICS_GA4_MEASUREMENT_ID=G-…</code> and/or <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">ANALYTICS_META_PIXEL_ID=</code> (numeric). Scripts load on the storefront and login/register layout only — not inside <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">/admin</code>.</p>
+        <p class="mt-2">Built-in analytics: the Dashboard shows where visitors open the shop from, busiest hours and weekdays (Cairo time), and orders by delivery area. Open any user under <strong>Customers → Users</strong> to see their locations, usual browsing and ordering times, most viewed and most purchased products, and total spend.</p>
         <p class="mt-4 font-medium text-gray-950 dark:text-white">Not included (would need extra services or dev)</p>
         <ul class="mt-2 list-disc space-y-1 ps-5 text-gray-600 dark:text-gray-400">
             <li>Heatmaps / session replay (e.g. Hotjar, Microsoft Clarity).</li>

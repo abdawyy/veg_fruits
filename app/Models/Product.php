@@ -54,15 +54,18 @@ class Product extends Model
         });
     }
 
-    /** Public URL: external link when set, otherwise uploaded file on disk. */
+    /**
+     * Absolute public URL: uploaded file first, otherwise the external image URL.
+     * Must stay absolute — Filament's ImageColumn re-resolves relative paths against the default (private) disk.
+     */
     public function getDisplayImageUrlAttribute(): ?string
     {
-        if (filled($this->image_url)) {
-            return (string) $this->image_url;
+        if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
+            return url(Storage::disk('public')->url(str_replace('\\', '/', $this->image_path)));
         }
 
-        if ($this->image_path && Storage::disk('public')->exists($this->image_path)) {
-            return '/storage/'.ltrim(str_replace('\\', '/', $this->image_path), '/');
+        if (filled($this->image_url)) {
+            return (string) $this->image_url;
         }
 
         return null;

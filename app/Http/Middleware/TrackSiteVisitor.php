@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\SitePageView;
 use App\Models\SiteVisitor;
+use App\Services\Analytics\VisitorGeoLocator;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class TrackSiteVisitor
 {
+    private static ?bool $geoColumnsReady = null;
+
+    public function __construct(private readonly VisitorGeoLocator $geo) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         if (! Schema::hasTable('site_visitors')) {
@@ -49,6 +54,8 @@ final class TrackSiteVisitor
         $visitor->last_seen_at = $now;
         $visitor->save();
 
+        $this->resolveLocation($visitor, $request);
+
         if (Schema::hasTable('site_page_views') && ($isNew || $previousPath !== $path)) {
             $pvRef = (string) $request->headers->get('Referer', '');
             SitePageView::query()->create([
@@ -60,6 +67,38 @@ final class TrackSiteVisitor
         }
 
         return $next($request);
+    }
+
+    private function resolveLocation(SiteVisitor $visitor, Request $request): void
+    {
+        self::$geoColumnsReady ??= Schema::hasColumn('site_visitors', 'geo_resolved_at');
+
+        if (! self::$geoColumnsReady || $visitor->geo_resolved_at !== null) {
+            return;
+        }
+
+        $fromHeaders = $this->geo->fromHeaders($request);
+        if ($fromHeaders !== null) {
+            $visitor->forceFill($fromHeaders + ['geo_resolved_at' => now()])->save();
+
+            return;
+        }
+
+        $visitorId = $visitor->getKey();
+        $ip = (string) $request->ip();
+
+        // Runs after the response is sent so the HTTP lookup never slows the page.
+        app()->terminating(function () use ($visitorId, $ip): void {
+            $location = $this->geo->locate($ip);
+            if ($location === null) {
+                return;
+            }
+
+            SiteVisitor::query()
+                ->whereKey($visitorId)
+                ->whereNull('geo_resolved_at')
+                ->update($location + ['geo_resolved_at' => now()]);
+        });
     }
 
     private function queryTrim(Request $request, string $key, int $max): ?string

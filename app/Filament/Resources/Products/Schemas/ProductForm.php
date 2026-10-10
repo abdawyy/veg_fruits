@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class ProductForm
 {
@@ -74,6 +75,20 @@ class ProductForm
                 Section::make(__('Media'))
                     ->description(__('Upload a file or paste an image URL (upload is shown first on the shop).'))
                     ->schema([
+                        Placeholder::make('current_image_preview')
+                            ->label(__('Current image (as shown on the shop)'))
+                            ->visible(fn (string $operation): bool => $operation === 'edit')
+                            ->content(function (?Product $record): HtmlString|string {
+                                $url = $record?->display_image_url;
+                                if (! $url) {
+                                    return '—';
+                                }
+
+                                return new HtmlString(
+                                    '<img src="'.e($url).'" alt="" style="max-height:12rem;border-radius:0.5rem;object-fit:cover">'
+                                );
+                            })
+                            ->columnSpanFull(),
                         FileUpload::make('image_path')
                             ->label(__('Product image (upload)'))
                             ->image()
@@ -81,6 +96,9 @@ class ProductForm
                             ->directory('products')
                             ->visibility('public')
                             ->maxSize(5120)
+                            ->imagePreviewHeight('200')
+                            ->openable()
+                            ->downloadable()
                             ->nullable()
                             ->columnSpanFull(),
                         TextInput::make('image_url')

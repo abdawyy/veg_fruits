@@ -5,7 +5,7 @@
 > **Composer package:** `aldawy/storefront`  
 > **Related:** [PROJECT_GAPS_AND_ISSUES.md](./PROJECT_GAPS_AND_ISSUES.md) — historical audit + what shipped (Phases A–E)  
 > **Backlog:** [TODO.md](./TODO.md) · **Verification:** [docs/VERIFICATION.md](./docs/VERIFICATION.md)  
-> **Last updated:** 2026-08-29 (storefront UX refresh + product image pipeline)
+> **Last updated:** 2026-10-10 (customer analytics, visitor location, admin image fix — see [CHANGELOG.md](./CHANGELOG.md))
 
 ---
 
@@ -183,8 +183,9 @@ erDiagram
 | `content_strings` | CMS key → en/ar values (cached forever) |
 | `seo_settings` | Global + per-route meta, OG image |
 | `home_banners` | Carousel slides |
-| `site_visitors` | Session-based analytics (hashed IP/UA) |
+| `site_visitors` | Session-based analytics (hashed IP/UA, device, UTM, approximate location: `country_code`, `country`, `region`, `city`, `geo_resolved_at`) |
 | `site_page_views` | Per-path view log |
+| `product_views` | Per product-detail view (`session_id`, `user_id`, `visited_at`) |
 | `phone_verifications` | OTP for `/login/phone` storefront auth |
 
 ### 5.3 Order status lifecycle
@@ -263,7 +264,7 @@ Cart (session) → POST /checkout (validate city, address, phone)
 | Middleware | Purpose |
 |------------|---------|
 | `SetLocaleFromQuery` | `?locale=en|ar` sets `app()->setLocale()` |
-| `TrackSiteVisitor` | Upserts `site_visitors`, logs `site_page_views` (skips admin/api/assets) |
+| `TrackSiteVisitor` | Upserts `site_visitors`, logs `site_page_views` (skips admin/api/assets); locates new sessions via `VisitorGeoLocator` (Cloudflare headers, else HTTP lookup after the response) |
 
 ---
 
@@ -284,17 +285,22 @@ Cart (session) → POST /checkout (validate city, address, phone)
 | `CityResource` | City | Shipping fees |
 | `PreparationServiceResource` | PreparationService | Surcharge rules |
 | `PackagingTypeResource` | PackagingType | Surcharge rules |
-| `UserResource` | User | Admin flag, order relation manager |
+| `UserResource` | User | Admin flag, order relation manager; view page has **Customer insights** (locations, devices, usual browsing/purchase times, most viewed & purchased products, spend) + `CustomerActivityChart`; list shows total spent, last order, location, last visit |
 | `ContentStringResource` | ContentString | CMS overrides |
 | `SeoSettingResource` | SeoSetting | Meta + OG image |
 | `HomeBannerResource` | HomeBanner | Carousel |
-| `SiteVisitorResource` | SiteVisitor | Read-only analytics |
+| `SiteVisitorResource` | SiteVisitor | Read-only analytics; country/city columns, country & device filters |
 
 ### 7.2 Widgets (dashboard)
 
 - `SalesOverviewStats`, `CommerceSnapshotWidget`
 - `OrdersOverTimeChart`, `TopProductsByViewsChart`, `TopStorePathsChart`, `TrafficReferrersChart`
 - `ActiveVisitorsWidget`
+- `VisitorLocationsChart` — sessions by city / region / country (30 days)
+- `ActivityByHourChart`, `ActivityByWeekdayChart` — page views, product views, orders per hour / weekday in `ANALYTICS_TIMEZONE` (extend `ActivityPatternChart`)
+- `OrdersByCityChart` — orders + revenue per delivery city
+
+Helpers: `App\Support\Analytics\TimeBuckets` (SQL hour buckets → reporting timezone), `App\Support\Analytics\CustomerInsights` (per-customer summary).
 
 ### 7.3 Excel import/export
 
@@ -418,7 +424,7 @@ Fonts: **Instrument Sans** + **Noto Sans Arabic** (Bunny Fonts CDN).
 | Mechanism | Details |
 |-----------|---------|
 | `ProduceStockPhoto` | Curated Unsplash + Wikimedia URLs per English product name |
-| `Product::display_image_url` | Prefers `image_url` (external), else local `image_path` under `/storage/` |
+| `Product::display_image_url` | Prefers uploaded `image_path` (absolute URL for the current host), else external `image_url`. Must stay absolute for Filament `ImageColumn`. Requires `php artisan storage:link`. Public disk URL is host-relative (`FILESYSTEM_PUBLIC_URL`, default `/storage`) |
 | `aldawy:restore-product-image-urls` | Sets `image_url` from `ProduceStockPhoto`, clears `image_path` (default after seed) |
 | `aldawy:generate-product-images` | Downloads to `storage/app/public/products/{slug}.jpg`, sets `image_path` (optional local workflow) |
 | Seeder | `ProduceCatalogSeeder` sets `image_url` + calls restore command |
@@ -475,6 +481,9 @@ MAIL_* (log driver in dev)
 ALDAWY_* 
 ANALYTICS_GA4_MEASUREMENT_ID
 ANALYTICS_META_PIXEL_ID
+ANALYTICS_TIMEZONE (Africa/Cairo)
+ANALYTICS_GEOIP_ENABLED, ANALYTICS_GEOIP_URL, ANALYTICS_GEOIP_TIMEOUT
+FILESYSTEM_PUBLIC_URL (optional, default /storage)
 ```
 
 ---

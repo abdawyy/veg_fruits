@@ -7,7 +7,10 @@ use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Users\RelationManagers\UserOrdersRelationManager;
 use App\Filament\Resources\Users\Tables\UsersTable;
+use App\Filament\Resources\Users\Widgets\CustomerActivityChart;
 use App\Models\User;
+use App\Support\Analytics\CustomerInsights;
+use App\Support\Analytics\TimeBuckets;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
@@ -63,6 +66,83 @@ class UserResource extends Resource
                         TextEntry::make('phone_verified_at')->dateTime()->placeholder('—'),
                         TextEntry::make('created_at')->dateTime(),
                     ]),
+                Section::make(__('Customer insights — visits'))
+                    ->description(__('Where and when this customer opens the shop (sessions while logged in). Times in :tz.', ['tz' => TimeBuckets::timezone()]))
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('insights_locations')
+                            ->label(__('Opens the shop from'))
+                            ->state(fn (User $record): array => CustomerInsights::for($record)->locations())
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->placeholder(__('Not located yet')),
+                        TextEntry::make('insights_devices')
+                            ->label(__('Devices'))
+                            ->state(fn (User $record): array => CustomerInsights::for($record)->devices())
+                            ->badge()
+                            ->placeholder('—'),
+                        TextEntry::make('insights_sessions')
+                            ->label(__('Sessions'))
+                            ->state(fn (User $record): int => CustomerInsights::for($record)->sessionsCount()),
+                        TextEntry::make('insights_usual_browsing')
+                            ->label(__('Usually browses'))
+                            ->state(fn (User $record): ?string => CustomerInsights::for($record)->usualBrowsingTime())
+                            ->placeholder('—'),
+                        TextEntry::make('insights_first_seen')
+                            ->label(__('First visit'))
+                            ->state(fn (User $record): string => CustomerInsights::formatTime(CustomerInsights::for($record)->firstSeen())),
+                        TextEntry::make('insights_last_seen')
+                            ->label(__('Last visit'))
+                            ->state(fn (User $record): string => CustomerInsights::formatTime(CustomerInsights::for($record)->lastSeen())),
+                        TextEntry::make('insights_top_viewed')
+                            ->label(__('Most viewed products'))
+                            ->state(fn (User $record): array => CustomerInsights::for($record)->mostViewedProducts())
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+                    ]),
+                Section::make(__('Customer insights — purchases'))
+                    ->description(__('Cancelled orders are excluded from totals and purchase times.'))
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('insights_orders')
+                            ->label(__('Orders'))
+                            ->state(fn (User $record): int => CustomerInsights::for($record)->purchaseSummary()['orders']),
+                        TextEntry::make('insights_spent')
+                            ->label(__('Total spent'))
+                            ->state(fn (User $record): string => CustomerInsights::for($record)->purchaseSummary()['spent']),
+                        TextEntry::make('insights_average')
+                            ->label(__('Average order'))
+                            ->state(fn (User $record): string => CustomerInsights::for($record)->purchaseSummary()['average']),
+                        TextEntry::make('insights_first_order')
+                            ->label(__('First order'))
+                            ->state(fn (User $record): string => CustomerInsights::formatTime(CustomerInsights::for($record)->purchaseSummary()['first'])),
+                        TextEntry::make('insights_last_order')
+                            ->label(__('Last order'))
+                            ->state(fn (User $record): string => CustomerInsights::formatTime(CustomerInsights::for($record)->purchaseSummary()['last'])),
+                        TextEntry::make('insights_cancelled')
+                            ->label(__('Cancelled orders'))
+                            ->state(fn (User $record): int => CustomerInsights::for($record)->purchaseSummary()['cancelled']),
+                        TextEntry::make('insights_usual_purchase')
+                            ->label(__('Usually orders'))
+                            ->state(fn (User $record): ?string => CustomerInsights::for($record)->usualPurchaseTime())
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+                        TextEntry::make('insights_top_bought')
+                            ->label(__('Most purchased products'))
+                            ->state(fn (User $record): array => CustomerInsights::for($record)->mostPurchasedProducts())
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->placeholder('—')
+                            ->columnSpan(2),
+                        TextEntry::make('insights_recent')
+                            ->label(__('Recent purchases'))
+                            ->state(fn (User $record): array => CustomerInsights::for($record)->recentPurchases())
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->placeholder('—'),
+                    ]),
             ]);
     }
 
@@ -92,6 +172,13 @@ class UserResource extends Resource
     {
         return [
             UserOrdersRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            CustomerActivityChart::class,
         ];
     }
 
