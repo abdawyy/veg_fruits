@@ -68,7 +68,9 @@
 
                         x-show="active === {{ $loop->index }}"
 
-                        x-cloak
+                        @unless ($loop->first)
+                            x-cloak
+                        @endunless
 
                         @if ($slideCount > 1)
 
@@ -98,7 +100,7 @@
 
                             <div class="relative md:col-span-5">
 
-                                <div class="absolute inset-0 bg-brand-dark/10" aria-hidden="true"></div>
+                                <div class="pointer-events-none absolute inset-0 z-0 bg-brand-dark/10" aria-hidden="true"></div>
 
                                 @if ($banner->displayImageUrl())
 
@@ -108,9 +110,9 @@
 
                                         alt=""
 
-                                        class="h-56 w-full object-cover md:h-full md:min-h-[280px]"
+                                        class="relative z-10 h-56 w-full object-cover md:min-h-[280px]"
 
-                                        loading="lazy"
+                                        loading="{{ $loop->first ? 'eager' : 'lazy' }}"
 
                                     >
 

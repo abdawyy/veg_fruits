@@ -69,12 +69,12 @@ class HomeBanner extends Model
     /** Public URL for uploaded banner image, or null. */
     public function uploadedImagePublicUrl(): ?string
     {
-        $p = $this->image_path;
-        if (! is_string($p) || $p === '') {
+        $p = is_string($this->image_path) ? str_replace('\\', '/', $this->image_path) : '';
+        if ($p === '' || ! Storage::disk('public')->exists($p)) {
             return null;
         }
 
-        return Storage::disk('public')->url($p);
+        return url(Storage::disk('public')->url($p));
     }
 
     /** Prefer uploaded file over external URL. */

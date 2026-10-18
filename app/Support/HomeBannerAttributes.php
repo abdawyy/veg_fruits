@@ -3,6 +3,10 @@
 namespace App\Support;
 
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 final class HomeBannerAttributes
 {
@@ -86,14 +90,72 @@ final class HomeBannerAttributes
     private static function normalizeUploadedPath(mixed $path): ?string
     {
         if (is_array($path)) {
-            $path = $path[0] ?? null;
+            $path = collect($path)->first(fn (mixed $file): bool => filled($file));
+        }
+
+        if ($path instanceof TemporaryUploadedFile || $path instanceof UploadedFile) {
+            return self::storeUploadedFile($path);
         }
 
         if (! is_string($path) || $path === '') {
             return null;
         }
 
+        $path = str_replace('\\', '/', $path);
+
+        if (str_starts_with($path, 'livewire-file:')) {
+            return self::storeUploadedFile(
+                TemporaryUploadedFile::createFromLivewire(substr($path, strlen('livewire-file:'))),
+            );
+        }
+
+        if (str_starts_with($path, 'livewire-tmp/')) {
+            return self::promoteTemporaryPath($path);
+        }
+
         return $path;
+    }
+
+    private static function storeUploadedFile(TemporaryUploadedFile | UploadedFile $file): ?string
+    {
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?: 'jpg';
+        $target = 'home-banners/'.Str::ulid().'.'.$extension;
+
+        $stream = $file instanceof TemporaryUploadedFile ? $file->readStream() : fopen($file->getRealPath(), 'r');
+        if ($stream === false || $stream === null) {
+            return null;
+        }
+
+        $stored = Storage::disk('public')->put($target, $stream);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+
+        return $stored ? $target : null;
+    }
+
+    private static function promoteTemporaryPath(string $path): ?string
+    {
+        $disk = Storage::disk('public');
+        if (! $disk->exists($path)) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg');
+        $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?: 'jpg';
+        $target = 'home-banners/'.Str::ulid().'.'.$extension;
+        $stream = $disk->readStream($path);
+        if ($stream === null) {
+            return null;
+        }
+
+        $stored = $disk->put($target, $stream);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+
+        return $stored ? $target : null;
     }
 
     private static function parseDate(mixed $value): ?Carbon

@@ -11,6 +11,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HomeBannerForm
 {
@@ -98,6 +101,26 @@ class HomeBannerForm
                 ->visibility('public')
                 ->maxSize(5120)
                 ->nullable()
+                ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): ?string {
+                    if (! $file->exists()) {
+                        return null;
+                    }
+
+                    $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+                    $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?: 'jpg';
+                    $target = 'home-banners/'.Str::ulid().'.'.$extension;
+                    $stream = $file->readStream();
+                    if ($stream === false || $stream === null) {
+                        return null;
+                    }
+
+                    $stored = Storage::disk('public')->put($target, $stream);
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+
+                    return ($stored && Storage::disk('public')->exists($target)) ? $target : null;
+                })
                 ->helperText(__('Uploaded image is shown before the external URL below.')),
             TextInput::make('image_url')->url()->maxLength(2048)->label(__('Banner image URL (optional)')),
             Textarea::make('hot_product_skus')
