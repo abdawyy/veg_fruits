@@ -92,12 +92,18 @@
                 <div class="home-banner__track" :style="trackStyle()" dir="ltr">
                     @foreach ($banners as $banner)
                         @php
-                            $cta = $banner->cta_url ?: route('store.shop');
-                            $ctaHref = \Illuminate\Support\Str::startsWith($cta, ['http://', 'https://']) ? $cta : url($cta);
                             $hots = $banner->hotProducts();
                             $loc = app()->getLocale();
                             $badge = (string) (data_get($banner->badge_text, $loc) ?: data_get($banner->badge_text, 'en', ''));
                             $title = (string) (data_get($banner->title, $loc) ?: data_get($banner->title, 'en', ''));
+                            $ctaButtons = $banner->resolvedCtaButtons();
+                            if ($ctaButtons === []) {
+                                $ctaButtons = [[
+                                    'label' => ['en' => '', 'ar' => ''],
+                                    'url' => route('store.shop', absolute: false),
+                                    'product_id' => null,
+                                ]];
+                            }
                         @endphp
                         <article
                             class="home-banner__slide"
@@ -128,13 +134,24 @@
                                 <p class="mt-3 max-w-xl text-sm leading-relaxed text-white/90 sm:text-base">
                                     {{ data_get($banner->subtitle, $loc) ?: data_get($banner->subtitle, 'en', '') }}
                                 </p>
-                                <div class="mt-6 flex flex-wrap items-center gap-4">
-                                    <a
-                                        href="{{ $ctaHref }}"
-                                        class="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-dark"
-                                    >
-                                        {{ (string) (data_get($banner->cta_label, $loc) ?: data_get($banner->cta_label, 'en', '')) ?: __('aldawy.cta_shop') }}
-                                    </a>
+                                <div class="mt-6 flex flex-wrap items-center gap-3">
+                                    @foreach ($ctaButtons as $buttonIndex => $ctaButton)
+                                        @php
+                                            $cta = $ctaButton['url'] ?: route('store.shop', absolute: false);
+                                            $ctaHref = \Illuminate\Support\Str::startsWith($cta, ['http://', 'https://']) ? $cta : url($cta);
+                                            $ctaText = (string) (data_get($ctaButton, "label.{$loc}") ?: data_get($ctaButton, 'label.en', ''));
+                                            if ($ctaText === '') {
+                                                $ctaText = __('aldawy.cta_shop');
+                                            }
+                                            $isPrimary = $buttonIndex === 0;
+                                        @endphp
+                                        <a
+                                            href="{{ $ctaHref }}"
+                                            class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold shadow-md transition {{ $isPrimary ? 'bg-brand text-white hover:bg-brand-dark' : 'border border-white/40 bg-white/15 text-white hover:bg-white/25' }}"
+                                        >
+                                            {{ $ctaText }}
+                                        </a>
+                                    @endforeach
                                 </div>
                                 @if ($hots->isNotEmpty())
                                     <div class="mt-8">

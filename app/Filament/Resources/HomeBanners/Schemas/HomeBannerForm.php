@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\HomeBanners\Schemas;
 
+use App\Models\HomeBanner;
 use App\Models\Product;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -14,10 +16,11 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Throwable;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Throwable;
 
 class HomeBannerForm
 {
@@ -85,8 +88,6 @@ class HomeBannerForm
             TextInput::make('subtitle.ar')->label(__('Subtitle (Arabic)'))->maxLength(500),
             TextInput::make('badge_text.en')->label(__('Badge (English)'))->maxLength(120),
             TextInput::make('badge_text.ar')->label(__('Badge (Arabic)'))->maxLength(120),
-            TextInput::make('cta_label.en')->label(__('Button (English)'))->maxLength(120),
-            TextInput::make('cta_label.ar')->label(__('Button (Arabic)'))->maxLength(120),
         ];
     }
 
@@ -96,43 +97,74 @@ class HomeBannerForm
     private static function mediaSchema(): array
     {
         return [
-            Select::make('cta_product_id')
-                ->label(__('Button product'))
-                ->placeholder(__('Search banana, apple…'))
-                ->searchable()
-                ->live()
-                ->dehydrated(false)
-                ->options(fn (): array => self::productChoices())
-                ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
-                ->getOptionLabelUsing(function ($value): ?string {
-                    $product = Product::query()->find($value);
+            Repeater::make('cta_buttons')
+                ->label(__('Buttons'))
+                ->helperText(__('Add several buttons. Each can open a different product from any category, or any custom link.'))
+                ->schema([
+                    TextInput::make('label.en')->label(__('Button (English)'))->maxLength(120),
+                    TextInput::make('label.ar')->label(__('Button (Arabic)'))->maxLength(120),
+                    Select::make('product_id')
+                        ->label(__('Product'))
+                        ->placeholder(__('Search banana, apple…'))
+                        ->searchable()
+                        ->live()
+                        ->options(fn (): array => self::productChoices())
+                        ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            $product = Product::query()->with('category')->find($value);
 
-                    return $product ? self::productLabel($product) : null;
+                            return $product ? self::productLabel($product) : null;
+                        })
+                        ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                            if (blank($state)) {
+                                return;
+                            }
+
+                            $product = Product::query()->find($state);
+                            if ($product === null) {
+                                return;
+                            }
+
+                            $set('url', route('store.product', $product, absolute: false));
+
+                            if (blank($get('label.en'))) {
+                                $set('label.en', (string) $product->getTranslation('name', 'en'));
+                            }
+                            if (blank($get('label.ar'))) {
+                                $set('label.ar', (string) $product->getTranslation('name', 'ar'));
+                            }
+                        }),
+                    TextInput::make('url')
+                        ->label(__('Link'))
+                        ->maxLength(2048)
+                        ->placeholder('/products/12')
+                        ->helperText(__('Filled when you pick a product. You can still paste another link (shop, category, external…).')),
+                ])
+                ->columns(2)
+                ->defaultItems(1)
+                ->minItems(0)
+                ->maxItems(6)
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(function (array $state): ?string {
+                    $en = trim((string) data_get($state, 'label.en', ''));
+                    $ar = trim((string) data_get($state, 'label.ar', ''));
+                    $label = $en !== '' ? $en : $ar;
+
+                    return $label !== '' ? $label : __('New button');
                 })
-                ->afterStateHydrated(function (Select $component, Get $get): void {
-                    $url = (string) $get('cta_url');
-                    if (preg_match('#/products/(\d+)(?:$|[/?])#', $url, $match) === 1) {
-                        $component->state((int) $match[1]);
-                    }
-                })
-                ->afterStateUpdated(function ($state, Set $set): void {
-                    if (blank($state)) {
+                ->afterStateHydrated(function (Repeater $component, mixed $state): void {
+                    if (filled($state)) {
                         return;
                     }
 
-                    $product = Product::query()->find($state);
-                    if ($product === null) {
-                        return;
+                    $record = $component->getRecord();
+                    if ($record instanceof HomeBanner) {
+                        $component->state($record->resolvedCtaButtons());
                     }
-
-                    $set('cta_url', route('store.product', $product, absolute: false));
                 })
-                ->helperText(__('Search a product by name. The button below opens that product.')),
-            TextInput::make('cta_url')
-                ->label(__('Button link'))
-                ->maxLength(2048)
-                ->placeholder('/products/12')
-                ->helperText(__('Filled when you pick a product. You can still paste another link.')),
+                ->dehydrateStateUsing(fn ($state): array => HomeBanner::normalizeCtaButtons($state))
+                ->columnSpanFull(),
             FileUpload::make('image_path')
                 ->label(__('Banner image (upload)'))
                 ->image()
@@ -254,11 +286,11 @@ class HomeBannerForm
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Product>
+     * @return Collection<int, Product>
      */
     private static function matchingProducts(?string $search)
     {
-        $query = Product::query()->active()->orderBy('sku');
+        $query = Product::query()->active()->with('category')->orderBy('sku');
 
         if (filled($search)) {
             $query->search($search);
@@ -275,6 +307,13 @@ class HomeBannerForm
             ? $english.' / '.$arabic
             : ($english !== '' ? $english : $arabic);
 
-        return trim($name.' ('.$product->sku.')');
+        $category = $product->category;
+        $categoryName = $category
+            ? (string) ($category->getTranslation('name', 'en') ?: $category->getTranslation('name', 'ar') ?: '')
+            : '';
+
+        $label = trim($name.' ('.$product->sku.')');
+
+        return $categoryName !== '' ? $label.' · '.$categoryName : $label;
     }
 }

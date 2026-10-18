@@ -19,6 +19,7 @@ class HomeBanner extends Model
         'badge_text',
         'cta_label',
         'cta_url',
+        'cta_buttons',
         'image_url',
         'image_path',
         'gradient_from',
@@ -37,11 +38,16 @@ class HomeBanner extends Model
             'subtitle' => 'array',
             'badge_text' => 'array',
             'cta_label' => 'array',
+            'cta_buttons' => 'array',
         ];
     }
 
     protected static function booted(): void
     {
+        static::saving(function (HomeBanner $banner): void {
+            $banner->syncPrimaryCtaFromButtons();
+        });
+
         static::creating(function (HomeBanner $banner): void {
             $banner->badge_text ??= ['en' => '', 'ar' => ''];
             $banner->cta_label ??= ['en' => '', 'ar' => ''];
@@ -142,5 +148,105 @@ class HomeBanner extends Model
                 return $i === false ? 9999 : $i;
             })
             ->values();
+    }
+
+    /**
+     * Buttons shown on the storefront. Falls back to the legacy single CTA.
+     *
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     */
+    public function resolvedCtaButtons(): array
+    {
+        $buttons = self::normalizeCtaButtons($this->cta_buttons);
+        if ($buttons !== []) {
+            return $buttons;
+        }
+
+        $label = is_array($this->cta_label) ? $this->cta_label : [];
+        $url = is_string($this->cta_url) ? trim($this->cta_url) : '';
+        $labelEn = trim((string) ($label['en'] ?? ''));
+        $labelAr = trim((string) ($label['ar'] ?? ''));
+
+        if ($url === '' && $labelEn === '' && $labelAr === '') {
+            return [];
+        }
+
+        return [[
+            'label' => ['en' => $labelEn, 'ar' => $labelAr],
+            'url' => $url !== '' ? $url : null,
+            'product_id' => self::productIdFromCtaUrl($url),
+        ]];
+    }
+
+    /**
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     */
+    public static function normalizeCtaButtons(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $buttons = [];
+        foreach ($value as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $label = is_array($row['label'] ?? null) ? $row['label'] : [];
+            $labelEn = trim((string) ($label['en'] ?? $row['label_en'] ?? ''));
+            $labelAr = trim((string) ($label['ar'] ?? $row['label_ar'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            $productId = isset($row['product_id']) && filled($row['product_id']) ? (int) $row['product_id'] : null;
+
+            if ($productId === null && $url !== '') {
+                $productId = self::productIdFromCtaUrl($url);
+            }
+
+            if ($url === '' && $productId === null && $labelEn === '' && $labelAr === '') {
+                continue;
+            }
+
+            $buttons[] = [
+                'label' => ['en' => $labelEn, 'ar' => $labelAr],
+                'url' => $url !== '' ? $url : null,
+                'product_id' => $productId,
+            ];
+        }
+
+        return array_values($buttons);
+    }
+
+    public static function productIdFromCtaUrl(?string $url): ?int
+    {
+        if (! is_string($url) || $url === '') {
+            return null;
+        }
+
+        if (preg_match('#/products/(\d+)(?:$|[/?])#', $url, $match) === 1) {
+            return (int) $match[1];
+        }
+
+        return null;
+    }
+
+    /** Keep legacy cta_label / cta_url in sync with the first button (Excel + older code). */
+    public function syncPrimaryCtaFromButtons(): void
+    {
+        $buttons = self::normalizeCtaButtons($this->cta_buttons);
+
+        if ($buttons === []) {
+            $legacy = $this->resolvedCtaButtons();
+            if ($legacy !== []) {
+                $this->cta_buttons = $legacy;
+                $buttons = $legacy;
+            }
+        } else {
+            $this->cta_buttons = $buttons;
+        }
+
+        $first = $buttons[0] ?? null;
+        $this->cta_label = $first['label'] ?? ['en' => '', 'ar' => ''];
+        $this->cta_url = $first['url'] ?? null;
     }
 }
