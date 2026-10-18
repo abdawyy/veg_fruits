@@ -7,6 +7,72 @@ window.aldawyFormatCents = aldawyFormatCents;
 window.aldawySumCents = aldawySumCents;
 
 window.Alpine = Alpine;
+
+Alpine.data('homeBannerCarousel', (total) => ({
+    active: 0,
+    total: Number(total) || 1,
+    interval: 6800,
+    timer: null,
+    dragging: false,
+    startX: 0,
+    init() {
+        this.start();
+    },
+    go(index) {
+        if (this.total < 1) {
+            return;
+        }
+        const next = ((index % this.total) + this.total) % this.total;
+        if (next === this.active) {
+            return;
+        }
+        this.active = next;
+        this.start();
+    },
+    next() {
+        this.go(this.active + 1);
+    },
+    prev() {
+        this.go(this.active - 1);
+    },
+    start() {
+        this.stop();
+        if (this.total < 2) {
+            return;
+        }
+        this.timer = setInterval(() => this.next(), this.interval);
+    },
+    stop() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+    },
+    trackStyle() {
+        return `transform: translate3d(${this.active * -100}%, 0, 0)`;
+    },
+    pointerDown(event) {
+        this.dragging = true;
+        this.startX = event.clientX ?? event.touches?.[0]?.clientX ?? 0;
+        this.stop();
+    },
+    pointerUp(event) {
+        if (! this.dragging) {
+            return;
+        }
+        const x = event.clientX ?? event.changedTouches?.[0]?.clientX ?? this.startX;
+        const delta = x - this.startX;
+        this.dragging = false;
+        if (delta > 56) {
+            this.prev();
+        } else if (delta < -56) {
+            this.next();
+        } else {
+            this.start();
+        }
+    },
+}));
+
 Alpine.start();
 
 function aldawyCsrfToken() {

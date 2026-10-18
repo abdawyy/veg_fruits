@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\HomeBanners\Schemas;
 
+use App\Models\Product;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -93,7 +96,43 @@ class HomeBannerForm
     private static function mediaSchema(): array
     {
         return [
-            TextInput::make('cta_url')->url()->maxLength(2048)->placeholder('/shop?q=mango'),
+            Select::make('cta_product_id')
+                ->label(__('Button product'))
+                ->placeholder(__('Search banana, apple…'))
+                ->searchable()
+                ->live()
+                ->dehydrated(false)
+                ->options(fn (): array => self::productChoices())
+                ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
+                ->getOptionLabelUsing(function ($value): ?string {
+                    $product = Product::query()->find($value);
+
+                    return $product ? self::productLabel($product) : null;
+                })
+                ->afterStateHydrated(function (Select $component, Get $get): void {
+                    $url = (string) $get('cta_url');
+                    if (preg_match('#/products/(\d+)(?:$|[/?])#', $url, $match) === 1) {
+                        $component->state((int) $match[1]);
+                    }
+                })
+                ->afterStateUpdated(function ($state, Set $set): void {
+                    if (blank($state)) {
+                        return;
+                    }
+
+                    $product = Product::query()->find($state);
+                    if ($product === null) {
+                        return;
+                    }
+
+                    $set('cta_url', route('store.product', $product, absolute: false));
+                })
+                ->helperText(__('Search a product by name. The button below opens that product.')),
+            TextInput::make('cta_url')
+                ->label(__('Button link'))
+                ->maxLength(2048)
+                ->placeholder('/products/12')
+                ->helperText(__('Filled when you pick a product. You can still paste another link.')),
             FileUpload::make('image_path')
                 ->label(__('Banner image (upload)'))
                 ->image()
@@ -126,10 +165,42 @@ class HomeBannerForm
                 })
                 ->helperText(__('Uploaded image is shown before the external URL below.')),
             TextInput::make('image_url')->url()->maxLength(2048)->label(__('Banner image URL (optional)')),
-            Textarea::make('hot_product_skus')
-                ->label(__('Hot product SKUs (comma-separated)'))
-                ->helperText(__('Example: FRU-022, VEG-153, FRU-024'))
-                ->rows(2),
+            Select::make('hot_product_skus')
+                ->label(__('Hot products'))
+                ->placeholder(__('Search banana, apple…'))
+                ->multiple()
+                ->searchable()
+                ->options(fn (): array => self::productSkuChoices())
+                ->getSearchResultsUsing(fn (string $search): array => self::productSkuChoices($search))
+                ->getOptionLabelsUsing(function (mixed $values): array {
+                    if (is_string($values)) {
+                        $values = array_values(array_filter(array_map('trim', explode(',', $values))));
+                    }
+
+                    if (! is_array($values)) {
+                        return [];
+                    }
+
+                    return self::productSkuChoices(selected: array_map('strval', $values));
+                })
+                ->formatStateUsing(function ($state): array {
+                    if (is_array($state)) {
+                        return array_values(array_filter($state, fn ($sku) => filled($sku)));
+                    }
+
+                    if (! is_string($state) || trim($state) === '') {
+                        return [];
+                    }
+
+                    return array_values(array_filter(array_map('trim', explode(',', $state))));
+                })
+                ->dehydrateStateUsing(function ($state): ?string {
+                    $skus = is_array($state) ? $state : (filled($state) ? explode(',', (string) $state) : []);
+                    $skus = array_values(array_filter(array_map(fn ($sku) => trim((string) $sku), $skus)));
+
+                    return $skus === [] ? null : implode(',', $skus);
+                })
+                ->helperText(__('These products appear on the banner. Search by name.')),
         ];
     }
 
@@ -143,5 +214,67 @@ class HomeBannerForm
             ColorPicker::make('gradient_mid')->default('#eab308'),
             ColorPicker::make('gradient_to')->default('#22c55e'),
         ];
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    private static function productChoices(?string $search = null): array
+    {
+        return self::matchingProducts($search)
+            ->mapWithKeys(fn (Product $product): array => [
+                $product->getKey() => self::productLabel($product),
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $selected
+     * @return array<string, string>
+     */
+    private static function productSkuChoices(?string $search = null, array $selected = []): array
+    {
+        $products = self::matchingProducts($search);
+
+        if ($selected !== []) {
+            $products = Product::query()
+                ->active()
+                ->whereIn('sku', $selected)
+                ->get()
+                ->merge($products)
+                ->unique('sku')
+                ->values();
+        }
+
+        return $products
+            ->mapWithKeys(fn (Product $product): array => [
+                $product->sku => self::productLabel($product),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Product>
+     */
+    private static function matchingProducts(?string $search)
+    {
+        $query = Product::query()->active()->orderBy('sku');
+
+        if (filled($search)) {
+            $query->search($search);
+        }
+
+        return $query->limit(20)->get();
+    }
+
+    private static function productLabel(Product $product): string
+    {
+        $english = (string) $product->getTranslation('name', 'en');
+        $arabic = (string) $product->getTranslation('name', 'ar');
+        $name = $english !== '' && $arabic !== '' && $english !== $arabic
+            ? $english.' / '.$arabic
+            : ($english !== '' ? $english : $arabic);
+
+        return trim($name.' ('.$product->sku.')');
     }
 }

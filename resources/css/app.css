@@ -1099,3 +1099,124 @@ details.group[open] summary svg {
     color: var(--color-brand-light);
 }
 
+.home-banner__viewport {
+    overflow: hidden;
+    border-radius: 1.5rem;
+    touch-action: pan-y;
+}
+
+.home-banner__track {
+    display: flex;
+    width: 100%;
+    transition: transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+
+.home-banner__slide {
+    display: grid;
+    flex: 0 0 100%;
+    grid-template-columns: 1fr;
+    min-width: 100%;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240);
+    background: var(--banner-gradient, #14532d);
+    box-shadow: 0 12px 30px rgb(15 23 42 / 0.08);
+}
+
+.dark .home-banner__slide {
+    border-color: rgb(51 65 85);
+}
+
+@media (min-width: 768px) {
+    .home-banner__slide {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+}
+
+.home-banner__media {
+    position: relative;
+    min-height: 16rem;
+    background: rgb(20 83 45 / 0.35);
+}
+
+@media (min-width: 768px) {
+    .home-banner__media {
+        min-height: 22rem;
+        align-self: stretch;
+    }
+}
+
+.home-banner__media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.04);
+}
+
+.home-banner__slide.is-active .home-banner__media img {
+    animation: home-banner-ken 7.2s ease-out forwards;
+}
+
+@keyframes home-banner-ken {
+    from {
+        transform: scale(1.06);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.home-banner__copy {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgb(20 83 45 / 0.92);
+    backdrop-filter: blur(6px);
+}
+
+@media (min-width: 768px) {
+    .home-banner__copy {
+        padding: 2.5rem;
+    }
+}
+
+.home-banner__progress {
+    position: relative;
+    height: 3px;
+    margin-top: 1rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(203 213 225);
+}
+
+.dark .home-banner__progress {
+    background: rgb(71 85 105);
+}
+
+.home-banner__progress-bar {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left;
+    background: var(--color-brand);
+    animation: home-banner-progress var(--banner-ms, 6800ms) linear forwards;
+}
+
+[dir='rtl'] .home-banner__progress-bar {
+    transform-origin: right;
+}
+
+@keyframes home-banner-progress {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+

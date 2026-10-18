@@ -40,7 +40,7 @@ final class HomeBannerAttributes
             'cta_url' => filled($row['cta_url'] ?? null) ? (string) $row['cta_url'] : null,
             'image_url' => filled($row['image_url'] ?? null) ? (string) $row['image_url'] : null,
             'image_path' => self::normalizeUploadedPath($row['image_path'] ?? null),
-            'hot_product_skus' => filled($row['hot_product_skus'] ?? null) ? (string) $row['hot_product_skus'] : null,
+            'hot_product_skus' => self::hotProductSkus($row['hot_product_skus'] ?? null),
             'gradient_from' => (string) ($row['gradient_from'] ?? '#f97316'),
             'gradient_mid' => (string) ($row['gradient_mid'] ?? '#eab308'),
             'gradient_to' => (string) ($row['gradient_to'] ?? '#22c55e'),
@@ -80,7 +80,7 @@ final class HomeBannerAttributes
             ],
             'cta_url' => filled($row['cta_url'] ?? null) ? (string) $row['cta_url'] : null,
             'image_url' => filled($row['image_url'] ?? null) ? (string) $row['image_url'] : null,
-            'hot_product_skus' => filled($row['hot_product_skus'] ?? null) ? (string) $row['hot_product_skus'] : null,
+            'hot_product_skus' => self::hotProductSkus($row['hot_product_skus'] ?? null),
             'gradient_from' => filled($row['gradient_from'] ?? null) ? (string) $row['gradient_from'] : '#f97316',
             'gradient_mid' => filled($row['gradient_mid'] ?? null) ? (string) $row['gradient_mid'] : '#eab308',
             'gradient_to' => filled($row['gradient_to'] ?? null) ? (string) $row['gradient_to'] : '#22c55e',
@@ -156,6 +156,22 @@ final class HomeBannerAttributes
         }
 
         return $stored ? $target : null;
+    }
+
+    private static function hotProductSkus(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            $skus = array_values(array_filter(array_map(
+                fn ($sku) => trim((string) $sku),
+                $value,
+            )));
+
+            return $skus === [] ? null : implode(',', $skus);
+        }
+
+        $skus = trim((string) $value);
+
+        return $skus === '' ? null : $skus;
     }
 
     private static function parseDate(mixed $value): ?Carbon
