@@ -116,15 +116,21 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureLocalAssetUrls(): void
     {
-        if (! $this->app->environment('local') || $this->app->runningInConsole()) {
+        if ($this->app->runningInConsole() || ! $this->app->bound('request')) {
             return;
         }
 
         $rootUrl = request()->getSchemeAndHttpHost();
 
-        if ($rootUrl !== '') {
-            URL::forceRootUrl($rootUrl);
+        if ($rootUrl === '') {
+            return;
         }
+
+        // Signed Livewire upload URLs must use the host the browser is on.
+        // A mismatch (APP_URL localhost vs 127.0.0.1, or the wrong port)
+        // makes the upload request fail with "failed to upload".
+        URL::forceRootUrl($rootUrl);
+        URL::forceScheme(request()->getScheme());
     }
 
     private function ensureUploadDirectoriesExist(): void
@@ -152,9 +158,9 @@ class AppServiceProvider extends ServiceProvider
             storage_path('app/public/livewire-tmp/livewire-tmp'),
             storage_path('app/private/livewire-tmp/livewire-tmp'),
         ] as $nested) {
-            if (File::isDirectory($nested)) {
-                File::deleteDirectory($nested);
-            } elseif (File::isFile($nested)) {
+            // A file at this path breaks Livewire metadata lookups. A directory
+            // here can be an in-progress upload, so leave directories alone.
+            if (File::isFile($nested)) {
                 File::delete($nested);
             }
         }

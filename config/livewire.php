@@ -50,7 +50,9 @@ return [
 
     'temporary_file_upload' => [
         'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'public'),
-        'rules' => ['file', 'image', 'max:5120'],
+        // Do not use the "image" rule here. It rejects some real JPEG/WebP
+        // banner files and Livewire reports that as "failed to upload".
+        'rules' => ['file', 'max:10240'],
         'directory' => 'livewire-tmp',
         'middleware' => 'web',
         'preview_mimes' => [

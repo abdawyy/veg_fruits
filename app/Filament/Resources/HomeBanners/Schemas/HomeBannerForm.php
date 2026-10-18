@@ -12,6 +12,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -96,30 +97,32 @@ class HomeBannerForm
             FileUpload::make('image_path')
                 ->label(__('Banner image (upload)'))
                 ->image()
+                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                 ->disk('public')
                 ->directory('home-banners')
                 ->visibility('public')
-                ->maxSize(5120)
+                ->maxSize(10240)
                 ->nullable()
+                ->fetchFileInformation(false)
                 ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): ?string {
-                    if (! $file->exists()) {
+                    try {
+                        if (! $file->exists()) {
+                            return null;
+                        }
+
+                        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+                        $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?: 'jpg';
+                        $name = Str::ulid().'.'.$extension;
+                        $stored = $file->storeAs('home-banners', $name, 'public');
+
+                        if (! is_string($stored) || $stored === '') {
+                            return null;
+                        }
+
+                        return Storage::disk('public')->exists($stored) ? $stored : null;
+                    } catch (Throwable) {
                         return null;
                     }
-
-                    $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-                    $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?: 'jpg';
-                    $target = 'home-banners/'.Str::ulid().'.'.$extension;
-                    $stream = $file->readStream();
-                    if ($stream === false || $stream === null) {
-                        return null;
-                    }
-
-                    $stored = Storage::disk('public')->put($target, $stream);
-                    if (is_resource($stream)) {
-                        fclose($stream);
-                    }
-
-                    return ($stored && Storage::disk('public')->exists($target)) ? $target : null;
                 })
                 ->helperText(__('Uploaded image is shown before the external URL below.')),
             TextInput::make('image_url')->url()->maxLength(2048)->label(__('Banner image URL (optional)')),
