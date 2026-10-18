@@ -8,7 +8,6 @@ use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -88,6 +87,8 @@ class HomeBannerForm
             TextInput::make('subtitle.ar')->label(__('Subtitle (Arabic)'))->maxLength(500),
             TextInput::make('badge_text.en')->label(__('Badge (English)'))->maxLength(120),
             TextInput::make('badge_text.ar')->label(__('Badge (Arabic)'))->maxLength(120),
+            TextInput::make('cta_label.en')->label(__('Button (English)'))->maxLength(120),
+            TextInput::make('cta_label.ar')->label(__('Button (Arabic)'))->maxLength(120),
         ];
     }
 
@@ -97,74 +98,89 @@ class HomeBannerForm
     private static function mediaSchema(): array
     {
         return [
-            Repeater::make('cta_buttons')
-                ->label(__('Buttons'))
-                ->helperText(__('Add several buttons. Each can open a different product from any category, or any custom link.'))
-                ->schema([
-                    TextInput::make('label.en')->label(__('Button (English)'))->maxLength(120),
-                    TextInput::make('label.ar')->label(__('Button (Arabic)'))->maxLength(120),
-                    Select::make('product_id')
-                        ->label(__('Product'))
-                        ->placeholder(__('Search banana, apple…'))
-                        ->searchable()
-                        ->live()
-                        ->options(fn (): array => self::productChoices())
-                        ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
-                        ->getOptionLabelUsing(function ($value): ?string {
-                            $product = Product::query()->with('category')->find($value);
+            Select::make('cta_product_ids')
+                ->label(__('Button products'))
+                ->placeholder(__('Search banana, apple…'))
+                ->multiple()
+                ->searchable()
+                ->live()
+                ->dehydrated(false)
+                ->options(fn (): array => self::productChoices())
+                ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
+                ->getOptionLabelsUsing(function (mixed $values): array {
+                    $ids = is_array($values) ? $values : [$values];
+                    $ids = array_values(array_filter(array_map('intval', $ids)));
 
-                            return $product ? self::productLabel($product) : null;
-                        })
-                        ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                            if (blank($state)) {
-                                return;
-                            }
-
-                            $product = Product::query()->find($state);
-                            if ($product === null) {
-                                return;
-                            }
-
-                            $set('url', route('store.product', $product, absolute: false));
-
-                            if (blank($get('label.en'))) {
-                                $set('label.en', (string) $product->getTranslation('name', 'en'));
-                            }
-                            if (blank($get('label.ar'))) {
-                                $set('label.ar', (string) $product->getTranslation('name', 'ar'));
-                            }
-                        }),
-                    TextInput::make('url')
-                        ->label(__('Link'))
-                        ->maxLength(2048)
-                        ->placeholder('/products/12')
-                        ->helperText(__('Filled when you pick a product. You can still paste another link (shop, category, external…).')),
-                ])
-                ->columns(2)
-                ->defaultItems(1)
-                ->minItems(0)
-                ->maxItems(6)
-                ->reorderable()
-                ->collapsible()
-                ->itemLabel(function (array $state): ?string {
-                    $en = trim((string) data_get($state, 'label.en', ''));
-                    $ar = trim((string) data_get($state, 'label.ar', ''));
-                    $label = $en !== '' ? $en : $ar;
-
-                    return $label !== '' ? $label : __('New button');
+                    return Product::query()
+                        ->with('category')
+                        ->whereIn('id', $ids)
+                        ->get()
+                        ->mapWithKeys(fn (Product $product): array => [
+                            $product->getKey() => self::productLabel($product),
+                        ])
+                        ->all();
                 })
-                ->afterStateHydrated(function (Repeater $component, mixed $state): void {
-                    if (filled($state)) {
-                        return;
+                ->afterStateHydrated(function (Select $component): void {
+                    $record = $component->getRecord();
+                    if ($record instanceof HomeBanner) {
+                        $component->state($record->resolvedCtaProductIds());
+                    }
+                })
+                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                    $ids = is_array($state) ? $state : [];
+                    $url = HomeBanner::ctaUrlForProductIds($ids);
+                    if ($url !== null) {
+                        $set('cta_url', $url);
                     }
 
+                    $set('cta_buttons', HomeBanner::packCtaButtons(
+                        is_array($get('cta_label')) ? $get('cta_label') : [],
+                        $get('cta_url'),
+                        $ids,
+                    ));
+                })
+                ->helperText(__('Same button text above. Pick one or many products from any category — the link below is filled for you.')),
+            TextInput::make('cta_url')
+                ->label(__('Button link'))
+                ->maxLength(2048)
+                ->placeholder('/shop?products=12,37')
+                ->live(onBlur: true)
+                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                    $set('cta_buttons', HomeBanner::packCtaButtons(
+                        is_array($get('cta_label')) ? $get('cta_label') : [],
+                        $state,
+                        is_array($get('cta_product_ids')) ? $get('cta_product_ids') : [],
+                    ));
+                })
+                ->helperText(__('1 product → product page. Many products → shop list of those products. You can still paste another link.')),
+            TextInput::make('cta_label.en')
+                ->hidden()
+                ->dehydrated(false)
+                ->live(onBlur: true)
+                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                    // Labels are also in copySchema; keep cta_buttons in sync when they change via that field path.
+                }),
+            // Hidden pack field so Filament persists cta_buttons on create/edit
+            Select::make('cta_buttons')
+                ->hidden()
+                ->dehydrated()
+                ->default([])
+                ->afterStateHydrated(function (Select $component): void {
                     $record = $component->getRecord();
                     if ($record instanceof HomeBanner) {
                         $component->state($record->resolvedCtaButtons());
                     }
                 })
-                ->dehydrateStateUsing(fn ($state): array => HomeBanner::normalizeCtaButtons($state))
-                ->columnSpanFull(),
+                ->dehydrateStateUsing(function ($state, Get $get): array {
+                    return HomeBanner::packCtaButtons(
+                        [
+                            'en' => (string) $get('cta_label.en'),
+                            'ar' => (string) $get('cta_label.ar'),
+                        ],
+                        $get('cta_url'),
+                        is_array($get('cta_product_ids')) ? $get('cta_product_ids') : [],
+                    );
+                }),
             FileUpload::make('image_path')
                 ->label(__('Banner image (upload)'))
                 ->image()
@@ -271,6 +287,7 @@ class HomeBannerForm
         if ($selected !== []) {
             $products = Product::query()
                 ->active()
+                ->with('category')
                 ->whereIn('sku', $selected)
                 ->get()
                 ->merge($products)
