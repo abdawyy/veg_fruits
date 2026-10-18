@@ -13,7 +13,7 @@ final class HomeBannerMultipleCtaButtonsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_banner_stores_and_renders_multiple_product_buttons(): void
+    public function test_one_button_can_target_many_products_from_different_categories(): void
     {
         $fruit = Category::query()->create([
             'name' => ['en' => 'Fruits', 'ar' => 'فواكه'],
@@ -46,34 +46,58 @@ final class HomeBannerMultipleCtaButtonsTest extends TestCase
         $banner = HomeBanner::query()->create(HomeBannerAttributes::fromFormRow([
             'title' => ['en' => 'Fresh picks', 'ar' => 'اختيارات طازجة'],
             'subtitle' => ['en' => 'From every aisle', 'ar' => 'من كل قسم'],
-            'cta_buttons' => [
-                [
-                    'label' => ['en' => 'Buy Tangerine', 'ar' => 'اشتري يوسفي'],
-                    'product_id' => $tangerine->id,
-                    'url' => route('store.product', $tangerine, absolute: false),
-                ],
-                [
-                    'label' => ['en' => 'Buy Tomato', 'ar' => 'اشتري طماطم'],
-                    'product_id' => $tomato->id,
-                    'url' => route('store.product', $tomato, absolute: false),
-                ],
-            ],
+            'cta_label' => ['en' => 'Shop Citrus', 'ar' => 'تسوق الحمضيات'],
+            'cta_product_ids' => [$tangerine->id, $tomato->id],
         ]));
 
         $banner->refresh();
 
-        $this->assertCount(2, $banner->resolvedCtaButtons());
-        $this->assertSame('Buy Tangerine', $banner->cta_label['en']);
-        $this->assertSame(route('store.product', $tangerine, absolute: false), $banner->cta_url);
-        $this->assertSame($tangerine->id, $banner->cta_buttons[0]['product_id']);
-        $this->assertSame($tomato->id, $banner->cta_buttons[1]['product_id']);
+        $this->assertSame(['en' => 'Shop Citrus', 'ar' => 'تسوق الحمضيات'], $banner->cta_label);
+        $this->assertSame([$tangerine->id, $tomato->id], $banner->resolvedCtaProductIds());
+        $this->assertSame(
+            route('store.shop', ['products' => $tangerine->id.','.$tomato->id], absolute: false),
+            $banner->cta_url,
+        );
+        $this->assertCount(1, $banner->resolvedCtaButtons());
+        $this->assertCount(2, $banner->ctaProducts());
 
         $html = view('store.partials.banners', ['banners' => collect([$banner])])->render();
 
-        $this->assertStringContainsString('Buy Tangerine', $html);
-        $this->assertStringContainsString('Buy Tomato', $html);
+        $this->assertStringContainsString('Shop Citrus', $html);
+        $this->assertEquals(1, substr_count($html, 'Shop Citrus'));
+        $this->assertStringContainsString('products='.$tangerine->id.'%2C'.$tomato->id, $html);
         $this->assertStringContainsString(route('store.product', $tangerine), $html);
         $this->assertStringContainsString(route('store.product', $tomato), $html);
+
+        $this->get($banner->cta_url)
+            ->assertOk()
+            ->assertSee('Tangerine')
+            ->assertSee('Tomato');
+    }
+
+    public function test_single_product_button_links_to_the_product_page(): void
+    {
+        $category = Category::query()->create([
+            'name' => ['en' => 'Fruits', 'ar' => 'فواكه'],
+            'slug' => ['en' => 'fruits', 'ar' => 'fruits'],
+            'is_active' => true,
+        ]);
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'name' => ['en' => 'Tangerine', 'ar' => 'يوسفي'],
+            'slug' => ['en' => 'tangerine', 'ar' => 'tangerine'],
+            'sku' => 'FRU-037',
+            'price_per_kg' => 40,
+            'is_active' => true,
+        ]);
+
+        $banner = HomeBanner::query()->create(HomeBannerAttributes::fromFormRow([
+            'title' => ['en' => 'Citrus', 'ar' => 'حمضيات'],
+            'cta_label' => ['en' => 'Buy now', 'ar' => 'اشتري'],
+            'cta_product_ids' => [$product->id],
+        ]));
+
+        $this->assertSame(route('store.product', $product, absolute: false), $banner->cta_url);
     }
 
     public function test_legacy_single_cta_still_resolves_as_one_button(): void
@@ -86,10 +110,10 @@ final class HomeBannerMultipleCtaButtonsTest extends TestCase
             'cta_buttons' => null,
         ]);
 
-        $buttons = $banner->resolvedCtaButtons();
+        $button = $banner->resolvedCtaButton();
 
-        $this->assertCount(1, $buttons);
-        $this->assertSame('Shop now', $buttons[0]['label']['en']);
-        $this->assertSame('/shop', $buttons[0]['url']);
+        $this->assertNotNull($button);
+        $this->assertSame('Shop now', $button['label']['en']);
+        $this->assertSame('/shop', $button['url']);
     }
 }

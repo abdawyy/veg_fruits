@@ -37,6 +37,7 @@ return [
     'search_clear_input' => 'Clear search',
     'search_button' => 'Search',
     'search_results_for' => 'Results for “:q”',
+    'banner_products_list' => 'Products from this offer',
     'search_no_results' => 'No products match “:q”. Try another word in English or Arabic.',
     'search_clear' => 'Clear search & show full catalog',
     'promo_banners' => 'Seasonal offers',

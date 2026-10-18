@@ -30,6 +30,11 @@
                         <p class="text-sm font-semibold text-accent">{{ __('aldawy.search_results_for', ['q' => $q]) }}</p>
                         <a href="{{ route('store.shop') }}" class="mt-2 inline-flex text-sm font-semibold text-brand underline-offset-2 hover:underline">{{ __('aldawy.search_clear') }}</a>
                     </div>
+                @elseif (! empty($productIds ?? []))
+                    <div class="mt-8 rounded-2xl border border-brand/30 bg-brand/5 px-5 py-4 dark:bg-brand/10">
+                        <p class="text-sm font-semibold text-brand">{{ __('aldawy.banner_products_list') }}</p>
+                        <a href="{{ route('store.shop') }}" class="mt-2 inline-flex text-sm font-semibold text-brand underline-offset-2 hover:underline">{{ __('aldawy.search_clear') }}</a>
+                    </div>
                 @else
                     <nav class="mt-8 flex flex-wrap items-center justify-center gap-2 lg:justify-start" aria-label="{{ __('aldawy.shop_browse_categories') }}">
                         @foreach ($categories as $category)
@@ -57,8 +62,8 @@
 
     {{-- Catalog --}}
     <div class="mx-auto max-w-6xl px-4 py-12 lg:py-16">
-        @if (trim((string) ($q ?? '')) !== '')
-            {{-- Search results --}}
+        @if (trim((string) ($q ?? '')) !== '' || ! empty($productIds ?? []))
+            {{-- Search / banner product list --}}
             @if (($results ?? collect())->isEmpty())
                 @include('store.partials.shop-empty', ['type' => 'search', 'q' => $q])
             @else

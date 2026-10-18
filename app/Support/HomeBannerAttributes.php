@@ -35,8 +35,11 @@ final class HomeBannerAttributes
                 'ar' => (string) data_get($row, 'badge_text.ar', ''),
             ],
             'cta_buttons' => self::ctaButtons($row),
-            'cta_label' => self::primaryCtaLabel($row),
-            'cta_url' => self::primaryCtaUrl($row),
+            'cta_label' => [
+                'en' => (string) data_get($row, 'cta_label.en', ''),
+                'ar' => (string) data_get($row, 'cta_label.ar', ''),
+            ],
+            'cta_url' => filled($row['cta_url'] ?? null) ? (string) $row['cta_url'] : null,
             'image_url' => filled($row['image_url'] ?? null) ? (string) $row['image_url'] : null,
             'image_path' => self::normalizeUploadedPath($row['image_path'] ?? null),
             'hot_product_skus' => self::hotProductSkus($row['hot_product_skus'] ?? null),
@@ -176,79 +179,36 @@ final class HomeBannerAttributes
 
     /**
      * @param  array<string, mixed>  $row
-     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}>
      */
     private static function ctaButtons(array $row): array
     {
-        $buttons = HomeBanner::normalizeCtaButtons($row['cta_buttons'] ?? null);
-        if ($buttons !== []) {
-            return $buttons;
-        }
+        $productIds = is_array($row['cta_product_ids'] ?? null) ? $row['cta_product_ids'] : [];
 
-        $labelEn = trim((string) data_get($row, 'cta_label.en', ''));
-        $labelAr = trim((string) data_get($row, 'cta_label.ar', ''));
-        $url = filled($row['cta_url'] ?? null) ? trim((string) $row['cta_url']) : '';
-
-        if ($url === '' && $labelEn === '' && $labelAr === '') {
-            return [];
-        }
-
-        return [[
-            'label' => ['en' => $labelEn, 'ar' => $labelAr],
-            'url' => $url !== '' ? $url : null,
-            'product_id' => HomeBanner::productIdFromCtaUrl($url),
-        ]];
+        return HomeBanner::packCtaButtons(
+            [
+                'en' => (string) data_get($row, 'cta_label.en', ''),
+                'ar' => (string) data_get($row, 'cta_label.ar', ''),
+            ],
+            $row['cta_url'] ?? null,
+            $productIds,
+        );
     }
 
     /**
      * @param  array<string, mixed>  $row
-     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}>
      */
     private static function ctaButtonsFromImport(array $row): array
     {
-        $labelEn = trim((string) ($row['cta_label_en'] ?? ''));
-        $labelAr = trim((string) ($row['cta_label_ar'] ?? ''));
-        $url = filled($row['cta_url'] ?? null) ? trim((string) $row['cta_url']) : '';
-
-        if ($url === '' && $labelEn === '' && $labelAr === '') {
-            return [];
-        }
-
-        return [[
-            'label' => ['en' => $labelEn, 'ar' => $labelAr],
-            'url' => $url !== '' ? $url : null,
-            'product_id' => HomeBanner::productIdFromCtaUrl($url),
-        ]];
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     * @return array{en: string, ar: string}
-     */
-    private static function primaryCtaLabel(array $row): array
-    {
-        $buttons = self::ctaButtons($row);
-        $first = $buttons[0]['label'] ?? null;
-
-        return [
-            'en' => (string) ($first['en'] ?? data_get($row, 'cta_label.en', '')),
-            'ar' => (string) ($first['ar'] ?? data_get($row, 'cta_label.ar', '')),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     */
-    private static function primaryCtaUrl(array $row): ?string
-    {
-        $buttons = self::ctaButtons($row);
-        $url = $buttons[0]['url'] ?? null;
-
-        if (is_string($url) && $url !== '') {
-            return $url;
-        }
-
-        return filled($row['cta_url'] ?? null) ? (string) $row['cta_url'] : null;
+        return HomeBanner::packCtaButtons(
+            [
+                'en' => trim((string) ($row['cta_label_en'] ?? '')),
+                'ar' => trim((string) ($row['cta_label_ar'] ?? '')),
+            ],
+            $row['cta_url'] ?? null,
+            [],
+        );
     }
 
     private static function parseDate(mixed $value): ?Carbon

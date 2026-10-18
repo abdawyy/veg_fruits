@@ -12,7 +12,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
@@ -104,7 +103,6 @@ class HomeBannerForm
                 ->multiple()
                 ->searchable()
                 ->live()
-                ->dehydrated(false)
                 ->options(fn (): array => self::productChoices())
                 ->getSearchResultsUsing(fn (string $search): array => self::productChoices($search))
                 ->getOptionLabelsUsing(function (mixed $values): array {
@@ -126,61 +124,18 @@ class HomeBannerForm
                         $component->state($record->resolvedCtaProductIds());
                     }
                 })
-                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                    $ids = is_array($state) ? $state : [];
-                    $url = HomeBanner::ctaUrlForProductIds($ids);
+                ->afterStateUpdated(function ($state, Set $set): void {
+                    $url = HomeBanner::ctaUrlForProductIds(is_array($state) ? $state : []);
                     if ($url !== null) {
                         $set('cta_url', $url);
                     }
-
-                    $set('cta_buttons', HomeBanner::packCtaButtons(
-                        is_array($get('cta_label')) ? $get('cta_label') : [],
-                        $get('cta_url'),
-                        $ids,
-                    ));
                 })
-                ->helperText(__('Same button text above. Pick one or many products from any category — the link below is filled for you.')),
+                ->helperText(__('One button (labels above). Select many products from any category — the link is filled automatically.')),
             TextInput::make('cta_url')
                 ->label(__('Button link'))
                 ->maxLength(2048)
                 ->placeholder('/shop?products=12,37')
-                ->live(onBlur: true)
-                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                    $set('cta_buttons', HomeBanner::packCtaButtons(
-                        is_array($get('cta_label')) ? $get('cta_label') : [],
-                        $state,
-                        is_array($get('cta_product_ids')) ? $get('cta_product_ids') : [],
-                    ));
-                })
                 ->helperText(__('1 product → product page. Many products → shop list of those products. You can still paste another link.')),
-            TextInput::make('cta_label.en')
-                ->hidden()
-                ->dehydrated(false)
-                ->live(onBlur: true)
-                ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                    // Labels are also in copySchema; keep cta_buttons in sync when they change via that field path.
-                }),
-            // Hidden pack field so Filament persists cta_buttons on create/edit
-            Select::make('cta_buttons')
-                ->hidden()
-                ->dehydrated()
-                ->default([])
-                ->afterStateHydrated(function (Select $component): void {
-                    $record = $component->getRecord();
-                    if ($record instanceof HomeBanner) {
-                        $component->state($record->resolvedCtaButtons());
-                    }
-                })
-                ->dehydrateStateUsing(function ($state, Get $get): array {
-                    return HomeBanner::packCtaButtons(
-                        [
-                            'en' => (string) $get('cta_label.en'),
-                            'ar' => (string) $get('cta_label.ar'),
-                        ],
-                        $get('cta_url'),
-                        is_array($get('cta_product_ids')) ? $get('cta_product_ids') : [],
-                    );
-                }),
             FileUpload::make('image_path')
                 ->label(__('Banner image (upload)'))
                 ->image()
@@ -248,7 +203,7 @@ class HomeBannerForm
 
                     return $skus === [] ? null : implode(',', $skus);
                 })
-                ->helperText(__('These products appear on the banner. Search by name.')),
+                ->helperText(__('These products appear as cards on the banner. Search by name.')),
         ];
     }
 

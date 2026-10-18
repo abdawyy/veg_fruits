@@ -4,7 +4,7 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
-## 2026-10-19 — Home banner: multiple product buttons
+## 2026-10-19 — Home banner: one button, many products
 
 ### What to run after pulling
 
@@ -15,14 +15,16 @@ php artisan view:clear
 
 ### What changed
 
-A home banner can now have **several CTA buttons** (up to 6). Each button picks its own product from any category (search shows `Name (SKU) · Category`), or a custom link. The storefront shows the first button as primary and the rest as secondary. Old single-button banners keep working; the first button still fills `cta_label` / `cta_url` for Excel import/export.
+A home banner still has **one** button (English + Arabic labels). That button can target **many products** from any category via a multi-select. One product → product page. Many products → `/shop?products=12,37` (filtered list). Those products also appear as the banner product cards. Old single-link banners keep working.
 
 ### Files
 
 - New: `database/migrations/2026_10_19_000001_add_cta_buttons_to_home_banners_table.php`, `tests/Feature/HomeBannerMultipleCtaButtonsTest.php`
 - `app/Models/HomeBanner.php`, `app/Support/HomeBannerAttributes.php`
 - `app/Filament/Resources/HomeBanners/Schemas/HomeBannerForm.php`
-- `resources/views/store/partials/banners.blade.php`
+- `app/Filament/Resources/HomeBanners/Pages/{Create,Edit}HomeBanner.php`
+- `app/Http/Controllers/StorefrontController.php`, `resources/views/store/{partials/banners,shop}.blade.php`
+- `lang/{en,ar}/aldawy.php`
 
 ---
 

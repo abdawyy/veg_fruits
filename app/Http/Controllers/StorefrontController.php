@@ -32,6 +32,12 @@ final class StorefrontController extends Controller
     public function shop(Request $request): View
     {
         $q = trim((string) $request->query('q', ''));
+        $productIds = collect(explode(',', (string) $request->query('products', '')))
+            ->map(fn ($id) => (int) trim((string) $id))
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
 
         $categories = Category::query()
             ->where('is_active', true)
@@ -40,7 +46,7 @@ final class StorefrontController extends Controller
 
         /** @var array<int, LengthAwarePaginator> */
         $categoryProductPages = [];
-        if ($q === '') {
+        if ($q === '' && $productIds === []) {
             foreach ($categories as $category) {
                 $categoryProductPages[$category->id] = Product::query()
                     ->where('category_id', $category->id)
@@ -61,9 +67,17 @@ final class StorefrontController extends Controller
                 ->orderBy('name->en')
                 ->paginate(perPage: 24)
                 ->withQueryString();
+        } elseif ($productIds !== []) {
+            $results = Product::query()
+                ->active()
+                ->whereIn('id', $productIds)
+                ->with(['category', 'preparationServices', 'packagingTypes'])
+                ->orderBy('name->en')
+                ->paginate(perPage: 24)
+                ->withQueryString();
         }
 
-        return view('store.shop', compact('categories', 'results', 'q', 'categoryProductPages'));
+        return view('store.shop', compact('categories', 'results', 'q', 'categoryProductPages', 'productIds'));
     }
 
     public function product(Product $product): View

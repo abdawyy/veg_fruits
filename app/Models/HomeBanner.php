@@ -151,9 +151,19 @@ class HomeBanner extends Model
     }
 
     /**
-     * Buttons shown on the storefront. Falls back to the legacy single CTA.
+     * One storefront button (shared label) that can target many products.
      *
-     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     * @return array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>}|null
+     */
+    public function resolvedCtaButton(): ?array
+    {
+        $buttons = $this->resolvedCtaButtons();
+
+        return $buttons[0] ?? null;
+    }
+
+    /**
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}>
      */
     public function resolvedCtaButtons(): array
     {
@@ -166,20 +176,94 @@ class HomeBanner extends Model
         $url = is_string($this->cta_url) ? trim($this->cta_url) : '';
         $labelEn = trim((string) ($label['en'] ?? ''));
         $labelAr = trim((string) ($label['ar'] ?? ''));
+        $productIds = self::productIdsFromCtaUrl($url);
 
-        if ($url === '' && $labelEn === '' && $labelAr === '') {
+        if ($url === '' && $labelEn === '' && $labelAr === '' && $productIds === []) {
             return [];
         }
 
-        return [[
-            'label' => ['en' => $labelEn, 'ar' => $labelAr],
-            'url' => $url !== '' ? $url : null,
-            'product_id' => self::productIdFromCtaUrl($url),
-        ]];
+        return [self::buttonPayload(['en' => $labelEn, 'ar' => $labelAr], $url !== '' ? $url : null, $productIds)];
+    }
+
+    /** @return list<int> */
+    public function resolvedCtaProductIds(): array
+    {
+        $ids = [];
+        foreach ($this->resolvedCtaButtons() as $button) {
+            foreach ($button['product_ids'] as $id) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /** @return Collection<int, Product> */
+    public function ctaProducts(): Collection
+    {
+        $ids = $this->resolvedCtaProductIds();
+        if ($ids === []) {
+            return collect();
+        }
+
+        return Product::query()
+            ->where('is_active', true)
+            ->whereIn('id', $ids)
+            ->get()
+            ->sortBy(function (Product $product) use ($ids) {
+                $index = array_search($product->id, $ids, true);
+
+                return $index === false ? 9999 : $index;
+            })
+            ->values();
     }
 
     /**
-     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_id: ?int}>
+     * @param  array{en?: string, ar?: string}|null  $label
+     * @param  list<int|string>  $productIds
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}>
+     */
+    public static function packCtaButtons(?array $label, mixed $url, array $productIds = []): array
+    {
+        $labelEn = trim((string) ($label['en'] ?? ''));
+        $labelAr = trim((string) ($label['ar'] ?? ''));
+        $url = is_string($url) ? trim($url) : '';
+        $ids = self::normalizeProductIds($productIds);
+
+        if ($url === '' && $ids !== []) {
+            $url = (string) self::ctaUrlForProductIds($ids);
+        }
+
+        if ($url === '' && $labelEn === '' && $labelAr === '' && $ids === []) {
+            return [];
+        }
+
+        if ($ids === [] && $url !== '') {
+            $ids = self::productIdsFromCtaUrl($url);
+        }
+
+        return [self::buttonPayload(['en' => $labelEn, 'ar' => $labelAr], $url !== '' ? $url : null, $ids)];
+    }
+
+    /**
+     * @param  list<int|string>  $productIds
+     */
+    public static function ctaUrlForProductIds(array $productIds): ?string
+    {
+        $ids = self::normalizeProductIds($productIds);
+        if ($ids === []) {
+            return null;
+        }
+
+        if (count($ids) === 1) {
+            return route('store.product', $ids[0], absolute: false);
+        }
+
+        return route('store.shop', ['products' => implode(',', $ids)], absolute: false);
+    }
+
+    /**
+     * @return list<array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}>
      */
     public static function normalizeCtaButtons(mixed $value): array
     {
@@ -187,66 +271,144 @@ class HomeBanner extends Model
             return [];
         }
 
-        $buttons = [];
+        $labelEn = '';
+        $labelAr = '';
+        $url = '';
+        $productIds = [];
+
         foreach ($value as $row) {
             if (! is_array($row)) {
                 continue;
             }
 
             $label = is_array($row['label'] ?? null) ? $row['label'] : [];
-            $labelEn = trim((string) ($label['en'] ?? $row['label_en'] ?? ''));
-            $labelAr = trim((string) ($label['ar'] ?? $row['label_ar'] ?? ''));
-            $url = trim((string) ($row['url'] ?? ''));
-            $productId = isset($row['product_id']) && filled($row['product_id']) ? (int) $row['product_id'] : null;
-
-            if ($productId === null && $url !== '') {
-                $productId = self::productIdFromCtaUrl($url);
+            if ($labelEn === '') {
+                $labelEn = trim((string) ($label['en'] ?? $row['label_en'] ?? ''));
+            }
+            if ($labelAr === '') {
+                $labelAr = trim((string) ($label['ar'] ?? $row['label_ar'] ?? ''));
             }
 
-            if ($url === '' && $productId === null && $labelEn === '' && $labelAr === '') {
-                continue;
+            $rowUrl = trim((string) ($row['url'] ?? ''));
+            if ($url === '' && $rowUrl !== '') {
+                $url = $rowUrl;
             }
 
-            $buttons[] = [
-                'label' => ['en' => $labelEn, 'ar' => $labelAr],
-                'url' => $url !== '' ? $url : null,
-                'product_id' => $productId,
-            ];
+            foreach (self::normalizeProductIds($row['product_ids'] ?? []) as $id) {
+                $productIds[] = $id;
+            }
+
+            if (isset($row['product_id']) && filled($row['product_id'])) {
+                $productIds[] = (int) $row['product_id'];
+            }
+
+            if ($rowUrl !== '') {
+                foreach (self::productIdsFromCtaUrl($rowUrl) as $id) {
+                    $productIds[] = $id;
+                }
+            }
         }
 
-        return array_values($buttons);
+        $productIds = self::normalizeProductIds($productIds);
+
+        if ($url === '' && $productIds !== []) {
+            $url = (string) self::ctaUrlForProductIds($productIds);
+        }
+
+        if ($url === '' && $labelEn === '' && $labelAr === '' && $productIds === []) {
+            return [];
+        }
+
+        return [self::buttonPayload(['en' => $labelEn, 'ar' => $labelAr], $url !== '' ? $url : null, $productIds)];
     }
 
     public static function productIdFromCtaUrl(?string $url): ?int
     {
+        $ids = self::productIdsFromCtaUrl($url);
+
+        return $ids[0] ?? null;
+    }
+
+    /** @return list<int> */
+    public static function productIdsFromCtaUrl(?string $url): array
+    {
         if (! is_string($url) || $url === '') {
-            return null;
+            return [];
         }
 
         if (preg_match('#/products/(\d+)(?:$|[/?])#', $url, $match) === 1) {
-            return (int) $match[1];
+            return [(int) $match[1]];
         }
 
-        return null;
+        $query = parse_url($url, PHP_URL_QUERY);
+        if (! is_string($query) || $query === '') {
+            return [];
+        }
+
+        parse_str($query, $params);
+        $raw = $params['products'] ?? null;
+        if (! is_string($raw) && ! is_numeric($raw)) {
+            return [];
+        }
+
+        return self::normalizeProductIds(explode(',', (string) $raw));
     }
 
-    /** Keep legacy cta_label / cta_url in sync with the first button (Excel + older code). */
+    /** Keep cta_buttons + legacy cta_label / cta_url aligned (Excel + older code). */
     public function syncPrimaryCtaFromButtons(): void
     {
-        $buttons = self::normalizeCtaButtons($this->cta_buttons);
-
-        if ($buttons === []) {
-            $legacy = $this->resolvedCtaButtons();
-            if ($legacy !== []) {
-                $this->cta_buttons = $legacy;
-                $buttons = $legacy;
-            }
-        } else {
-            $this->cta_buttons = $buttons;
+        $existing = self::normalizeCtaButtons($this->cta_buttons);
+        $productIds = $existing[0]['product_ids'] ?? [];
+        if ($productIds === [] && filled($this->cta_url)) {
+            $productIds = self::productIdsFromCtaUrl((string) $this->cta_url);
         }
 
-        $first = $buttons[0] ?? null;
-        $this->cta_label = $first['label'] ?? ['en' => '', 'ar' => ''];
-        $this->cta_url = $first['url'] ?? null;
+        $label = is_array($this->cta_label) ? $this->cta_label : ($existing[0]['label'] ?? ['en' => '', 'ar' => '']);
+        $url = filled($this->cta_url) ? (string) $this->cta_url : ($existing[0]['url'] ?? null);
+
+        $buttons = self::packCtaButtons($label, $url, $productIds);
+        $this->cta_buttons = $buttons === [] ? null : $buttons;
+
+        if ($buttons === []) {
+            return;
+        }
+
+        $this->cta_label = $buttons[0]['label'];
+        $this->cta_url = $buttons[0]['url'];
+    }
+
+    /**
+     * @param  array{en: string, ar: string}  $label
+     * @param  list<int>  $productIds
+     * @return array{label: array{en: string, ar: string}, url: ?string, product_ids: list<int>, product_id: ?int}
+     */
+    private static function buttonPayload(array $label, ?string $url, array $productIds): array
+    {
+        return [
+            'label' => [
+                'en' => trim((string) ($label['en'] ?? '')),
+                'ar' => trim((string) ($label['ar'] ?? '')),
+            ],
+            'url' => filled($url) ? (string) $url : null,
+            'product_ids' => $productIds,
+            'product_id' => $productIds[0] ?? null,
+        ];
+    }
+
+    /**
+     * @param  list<int|string>  $productIds
+     * @return list<int>
+     */
+    private static function normalizeProductIds(array $productIds): array
+    {
+        $ids = [];
+        foreach ($productIds as $id) {
+            if ($id === null || $id === '') {
+                continue;
+            }
+            $ids[] = (int) $id;
+        }
+
+        return array_values(array_unique(array_filter($ids, fn (int $id): bool => $id > 0)));
     }
 }

@@ -38,6 +38,7 @@ return [
     'search_clear_input' => 'مسح البحث',
     'search_button' => 'بحث',
     'search_results_for' => 'نتائج البحث عن «:q»',
+    'banner_products_list' => 'منتجات هذا العرض',
     'search_no_results' => 'لا توجد نتائج لـ «:q». جرّب كلمة أخرى بالعربي أو الإنجليزي.',
     'search_clear' => 'مسح البحث وعرض الكتالوج كاملاً',
     'promo_banners' => 'عروض الموسم',
