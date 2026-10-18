@@ -17,12 +17,17 @@ use App\Support\StoreCart;
 use App\Support\StoreSeo;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use App\Http\Controllers\LivewireUploadController;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Facades\GenerateSignedUploadUrlFacade;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
+use Livewire\Features\SupportFileUploads\GenerateSignedUploadUrl;
+use Livewire\Mechanisms\HandleRequests\EndpointResolver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureLocalAssetUrls();
         $this->ensureUploadDirectoriesExist();
+        $this->useSameOriginLivewireUploads();
 
         Order::observe(OrderObserver::class);
 
@@ -107,6 +113,47 @@ class AppServiceProvider extends ServiceProvider
             'store.boxes.index',
             'store.boxes.show',
         ], $storefrontComposer);
+    }
+
+    /**
+     * Sign the upload URL without the host, and handle that route ourselves.
+     * An absolute URL signed for APP_URL (or http while the browser is on https)
+     * comes back as 401, which Filament shows as "failed to upload".
+     */
+    private function useSameOriginLivewireUploads(): void
+    {
+        $this->app->booted(function (): void {
+            $target = trim(EndpointResolver::uploadPath(), '/');
+
+            foreach (app('router')->getRoutes() as $route) {
+                if ($route->uri() !== $target || ! in_array('POST', $route->methods(), true)) {
+                    continue;
+                }
+
+                $route->uses(LivewireUploadController::class.'@handle');
+            }
+
+            GenerateSignedUploadUrlFacade::swap(new class extends GenerateSignedUploadUrl
+            {
+                public function forLocal()
+                {
+                    return URL::temporarySignedRoute(
+                        'livewire.upload-file',
+                        now()->addMinutes(FileUploadConfiguration::maxUploadTime()),
+                        absolute: false,
+                    );
+                }
+
+                public function forS3($file, $visibility = 'private')
+                {
+                    if (app()->runningUnitTests()) {
+                        return [];
+                    }
+
+                    return parent::forS3($file, $visibility);
+                }
+            });
+        });
     }
 
     /**
