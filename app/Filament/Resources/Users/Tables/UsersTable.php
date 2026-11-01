@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Enums\OrderStatus;
+use App\Filament\Support\TableSearch;
 use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -16,6 +17,15 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'name',
+                'email',
+                'phone_number',
+                'roles.name',
+                'siteVisitors.country',
+                'siteVisitors.city',
+            ]))
             ->modifyQueryUsing(fn (Builder $query) => $query->with('latestSiteVisitor'))
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),

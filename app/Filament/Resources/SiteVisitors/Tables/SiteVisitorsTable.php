@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\SiteVisitors\Tables;
 
+use App\Filament\Support\TableSearch;
 use App\Models\SiteVisitor;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 
 class SiteVisitorsTable
@@ -14,6 +16,23 @@ class SiteVisitorsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'session_id',
+                'country',
+                'region',
+                'city',
+                'first_path',
+                'last_path',
+                'referrer',
+                'utm_source',
+                'utm_medium',
+                'utm_campaign',
+                'device_type',
+                'user.email',
+                'user.name',
+                'user.phone_number',
+            ]))
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([10, 25, 50, 100])
             ->defaultSort('last_seen_at', 'desc')

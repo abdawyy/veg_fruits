@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\RelationManagers;
 
+use App\Filament\Support\TableSearch;
 use App\Models\OrderItem;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -24,6 +25,15 @@ class OrderItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'product_name_snapshot',
+                'unit',
+                'packaging',
+                'product.name',
+                'product.sku',
+                'produceBox.name',
+            ]))
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['product', 'produceBox']))
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(10)

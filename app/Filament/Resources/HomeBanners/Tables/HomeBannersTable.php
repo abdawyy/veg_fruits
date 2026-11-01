@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HomeBanners\Tables;
 
+use App\Filament\Support\TableSearch;
 use App\Models\HomeBanner;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -10,12 +11,22 @@ use Filament\Actions\ReplicateAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class HomeBannersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'title',
+                'subtitle',
+                'badge_text',
+                'cta_label',
+                'cta_url',
+                'hot_product_skus',
+            ]))
             ->columns([
                 TextColumn::make('sort_order')->sortable(),
                 TextColumn::make('title.en')->label('Title (EN)')->searchable(),

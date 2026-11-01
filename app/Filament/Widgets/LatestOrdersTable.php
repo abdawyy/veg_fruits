@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\OrderStatus;
 use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Support\TableSearch;
 use App\Models\Order;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -17,6 +18,16 @@ class LatestOrdersTable extends TableWidget
     public function table(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'reference',
+                'customer_name',
+                'customer_email',
+                'customer_phone',
+                'user.name',
+                'user.email',
+                'city.name',
+            ]))
             ->heading(__('Latest orders'))
             ->description(__('Newest 8 orders — click a row to open it.'))
             ->query(fn (): Builder => Order::query()->with(['user', 'city'])->latest('created_at'))

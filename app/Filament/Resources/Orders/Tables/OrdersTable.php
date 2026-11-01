@@ -3,22 +3,44 @@
 namespace App\Filament\Resources\Orders\Tables;
 
 use App\Enums\OrderStatus;
+use App\Filament\Support\TableSearch;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrdersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'reference',
+                'customer_name',
+                'customer_email',
+                'customer_phone',
+                'notes',
+                'user.name',
+                'user.email',
+                'user.phone_number',
+                'city.name',
+                'items.product_name_snapshot',
+                'items.product.name',
+                'items.product.sku',
+                'items.produceBox.name',
+            ]))
             ->modifyQueryUsing(fn ($query) => $query->with(['user', 'city']))
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([10, 25, 50, 100])
             ->columns([
                 TextColumn::make('reference')->searchable()->sortable(),
+                TextColumn::make('customer_name')
+                    ->label(__('Customer'))
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('user.email')
                     ->label(__('User email'))
                     ->searchable()

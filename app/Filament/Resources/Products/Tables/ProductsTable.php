@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Tables;
 
 use App\Exports\ProductsExport;
+use App\Filament\Support\TableSearch;
 use App\Models\Product;
 use App\Support\Pdf\PdfRenderer;
 use Filament\Actions\BulkAction;
@@ -13,6 +14,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -21,6 +23,13 @@ class ProductsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'sku',
+                'name',
+                'description',
+                'category.name',
+            ]))
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([10, 25, 50, 100])
             ->columns([

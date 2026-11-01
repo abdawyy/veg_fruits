@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Users\RelationManagers;
 
 use App\Enums\OrderStatus;
 use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Support\TableSearch;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserOrdersRelationManager extends RelationManager
 {
@@ -24,6 +26,14 @@ class UserOrdersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->searchable()
+            ->searchUsing(fn (Builder $query, string $search): Builder => TableSearch::apply($query, $search, [
+                'reference',
+                'customer_name',
+                'customer_email',
+                'customer_phone',
+                'notes',
+            ]))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
