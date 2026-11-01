@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Orders\RelationManagers;
 
+use App\Models\OrderItem;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrderItemsRelationManager extends RelationManager
 {
@@ -22,18 +24,13 @@ class OrderItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['product', 'produceBox']))
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(10)
             ->columns([
                 TextColumn::make('product_name_snapshot')
                     ->label(__('Product'))
-                    ->formatStateUsing(function ($state): string {
-                        if (! is_array($state)) {
-                            return '—';
-                        }
-
-                        return (string) ($state['en'] ?? $state['ar'] ?? '—');
-                    }),
+                    ->getStateUsing(fn (OrderItem $record): string => $record->productLabel()),
                 TextColumn::make('quantity')->alignEnd(),
                 TextColumn::make('unit'),
                 TextColumn::make('unit_price')->numeric(decimalPlaces: 2),
