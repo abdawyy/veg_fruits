@@ -20,14 +20,14 @@ class OrderForm
                 TextInput::make('reference')->disabled(),
                 Select::make('user_id')
                     ->label(__('Linked user account'))
-                    ->relationship('user', null, fn ($q) => $q->orderBy('name'))
+                    ->relationship('user', null, fn ($query) => $query->orderBy('name'))
                     ->getOptionLabelFromRecordUsing(fn (User $u) => $u->name.' — '.($u->email ?? $u->phone_number ?? 'ID '.$u->id))
                     ->searchable()
                     ->preload()
                     ->nullable(),
                 Select::make('city_id')
                     ->label(__('Delivery city'))
-                    ->relationship('city', null, fn ($q) => $q->orderBy('sort_order'))
+                    ->relationship('city', null, fn ($query) => $query->orderBy('sort_order'))
                     ->getOptionLabelFromRecordUsing(fn (City $c) => $c->getTranslation('name', 'en').' — '.number_format((float) $c->shipping_fee, 2).' EGP')
                     ->searchable()
                     ->preload()

@@ -34,7 +34,7 @@ class ProduceBoxForm
                             ->schema([
                                 Select::make('product_id')
                                     ->label(__('Product'))
-                                    ->relationship('product', null, fn ($q) => $q->where('is_active', true)->orderBy('sku'))
+                                    ->relationship('product', null, fn ($query) => $query->where('is_active', true)->orderBy('sku'))
                                     ->getOptionLabelFromRecordUsing(fn (Product $p) => $p->sku.' — '.$p->getTranslation('name', 'en'))
                                     ->searchable()
                                     ->required(),
