@@ -8,7 +8,6 @@ use App\Filament\Resources\Pages\ViewRecord;
 use App\Models\Order;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Storage;
 
 class ViewMyOrder extends ViewRecord
 {
@@ -46,9 +45,7 @@ class ViewMyOrder extends ViewRecord
                 ->label(__('aldawy.download_invoice'))
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->url(fn (Order $record): string => route('account.orders.invoice', $record))
-                ->openUrlInNewTab()
-                ->visible(fn (Order $record): bool => $record->invoice_path !== null
-                    && Storage::disk('local')->exists($record->invoice_path)),
+                ->openUrlInNewTab(),
         ];
     }
 }

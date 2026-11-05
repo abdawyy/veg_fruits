@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Orders\Tables;
 
 use App\Enums\OrderStatus;
+use App\Filament\Resources\Orders\Actions\DownloadOrderInvoiceAction;
 use App\Filament\Support\TableSearch;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -69,6 +70,7 @@ class OrdersTable
                 //
             ])
             ->recordActions([
+                DownloadOrderInvoiceAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([

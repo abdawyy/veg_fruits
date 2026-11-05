@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\RelationManagers;
 
 use App\Enums\OrderStatus;
+use App\Filament\Resources\Orders\Actions\DownloadOrderInvoiceAction;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Support\TableSearch;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -49,7 +50,7 @@ class UserOrdersRelationManager extends RelationManager
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->recordActions([
-                //
+                DownloadOrderInvoiceAction::make(),
             ])
             ->headerActions([
                 //

@@ -3,6 +3,8 @@
 namespace App\Filament\Account\Resources\MyOrders\Tables;
 
 use App\Enums\OrderStatus;
+use App\Models\Order;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -49,6 +51,11 @@ class MyOrdersTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Action::make('downloadInvoice')
+                    ->label(__('aldawy.download_invoice'))
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->url(fn (Order $record): string => route('account.orders.invoice', $record))
+                    ->openUrlInNewTab(),
                 ViewAction::make()->label(__('aldawy.account_view_order')),
             ])
             ->toolbarActions([]);

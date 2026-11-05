@@ -77,11 +77,7 @@
         @endif
 
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-            @if ($invoiceReady ?? false)
-                <a href="{{ route('store.checkout.invoice') }}" class="aldawy-btn-secondary">{{ __('aldawy.download_invoice') }}</a>
-            @else
-                <p class="w-full text-center text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.invoice_generating') }}</p>
-            @endif
+            <a href="{{ route('store.checkout.invoice') }}" class="aldawy-btn-secondary">{{ __('aldawy.download_invoice') }}</a>
             <a href="{{ route('store.shop') }}" class="aldawy-btn-secondary">{{ __('aldawy.cta_shop') }}</a>
             @auth
                 <a href="{{ url('/my') }}" class="aldawy-btn-primary">{{ __('aldawy.account_tile_orders') }}</a>

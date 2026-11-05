@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Pages;
 
+use App\Actions\Invoices\GenerateInvoicePdfAction;
 use App\Exports\OrdersExport;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Imports\OrdersImport;
@@ -53,6 +54,22 @@ class ListOrders extends ListRecords
                     $path = Storage::disk('local')->path($relative);
                     Excel::import(new OrdersImport, $path);
                     Notification::make()->title(__('Import finished'))->success()->send();
+                }),
+            Action::make('generate_invoices')
+                ->label(__('Generate invoice PDFs'))
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalDescription(__('Creates a PDF invoice for every order that does not have one yet.'))
+                ->action(function (): void {
+                    $count = app(GenerateInvoicePdfAction::class)->ensureAll();
+
+                    Notification::make()
+                        ->title($count === 0
+                            ? __('Every order already has an invoice PDF')
+                            : __('Generated :count invoice PDFs', ['count' => $count]))
+                        ->success()
+                        ->send();
                 }),
             Action::make('export_pdf')
                 ->label(__('Export PDF summary'))

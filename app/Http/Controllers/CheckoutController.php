@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Orders\CreateOrderAction;
-use App\Services\Coupons\ApplyCouponService;
 use App\DTO\CreateOrderPayload;
 use App\DTO\OrderLineDraftDto;
 use App\Models\City;
 use App\Models\Order;
+use App\Models\ProduceBox;
+use App\Models\Product;
 use App\Models\User;
 use App\Payments\PaymentGatewayResolver;
+use App\Services\Coupons\ApplyCouponService;
 use App\Services\Money\DecimalMath;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
@@ -82,7 +84,7 @@ final class CheckoutController extends Controller
         $draftLines = [];
         foreach ($rows as $row) {
             if (($row['kind'] ?? StoreCart::KIND_PRODUCT) === StoreCart::KIND_BOX) {
-                /** @var \App\Models\ProduceBox $box */
+                /** @var ProduceBox $box */
                 $box = $row['produce_box'];
                 $unitPrice = DecimalMath::normalizeNumericString((string) $box->price);
                 $draftLines[] = new OrderLineDraftDto(
@@ -100,7 +102,7 @@ final class CheckoutController extends Controller
                 continue;
             }
 
-            /** @var \App\Models\Product $product */
+            /** @var Product $product */
             $product = $row['product'];
             $servicesMap = [];
             foreach ($row['preparation_services'] as $ps) {
@@ -189,13 +191,9 @@ final class CheckoutController extends Controller
 
         $order = Order::query()->with(['items', 'city'])->findOrFail((int) $id);
 
-        $invoiceReady = $order->invoice_path !== null
-            && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->invoice_path);
-
         return view('store.checkout-thanks', [
             'order' => $order,
             'showGuestAccountNudge' => ! $request->user() && $order->user_id === null,
-            'invoiceReady' => $invoiceReady,
         ]);
     }
 

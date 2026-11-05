@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\OrderStatus;
+use App\Filament\Resources\Orders\Actions\DownloadOrderInvoiceAction;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Support\TableSearch;
 use App\Models\Order;
@@ -35,6 +36,9 @@ class LatestOrdersTable extends TableWidget
             ->poll('60s')
             ->modifyQueryUsing(fn (Builder $query) => $query->limit(8))
             ->recordUrl(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record]))
+            ->recordActions([
+                DownloadOrderInvoiceAction::make(),
+            ])
             ->columns([
                 TextColumn::make('reference')
                     ->label(__('Order'))

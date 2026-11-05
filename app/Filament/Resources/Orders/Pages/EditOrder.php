@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Pages;
 
+use App\Filament\Resources\Orders\Actions\DownloadOrderInvoiceAction;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Resources\Pages\EditRecord;
 use Filament\Actions\DeleteAction;
@@ -21,6 +22,7 @@ class EditOrder extends EditRecord
     protected function getResourceHeaderActions(): array
     {
         return [
+            DownloadOrderInvoiceAction::make(),
             DeleteAction::make(),
         ];
     }
