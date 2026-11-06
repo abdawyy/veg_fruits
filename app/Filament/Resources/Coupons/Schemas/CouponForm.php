@@ -19,7 +19,12 @@ class CouponForm
                 Section::make(__('Coupon'))
                     ->columns(2)
                     ->schema([
-                        TextInput::make('code')->required()->maxLength(32)->unique(ignoreRecord: true)->dehydrateStateUsing(fn ($s) => strtoupper(trim((string) $s))),
+                        TextInput::make('code')
+                            ->label(__('Code'))
+                            ->required()
+                            ->maxLength(32)
+                            ->unique(ignoreRecord: true)
+                            ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state))),
                         Select::make('type')
                             ->options([
                                 Coupon::TYPE_PERCENT => __('Percent'),
