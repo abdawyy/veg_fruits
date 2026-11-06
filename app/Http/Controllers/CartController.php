@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Product;
 use App\Payments\PaymentGatewayResolver;
 use App\Services\Coupons\ApplyCouponService;
+use App\Support\MinimumOrder;
 use App\Support\Money\MoneyCents;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
@@ -68,6 +69,8 @@ final class CartController extends Controller
             'defaultPhone' => old('customer_phone', $user?->phone_number),
             'defaultName' => old('customer_name', $user?->name),
             'defaultEmail' => old('customer_email', $user?->email),
+            'minOrderShortfall' => MinimumOrder::shortfall($subtotal),
+            'minOrderAmount' => MinimumOrder::amount(),
         ]);
     }
 

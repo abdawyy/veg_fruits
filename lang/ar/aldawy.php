@@ -121,6 +121,7 @@ return [
     'checkout_summary' => 'إجمالي الطلب',
     'checkout_cod' => 'الدفع: نقداً عند التوصيل.',
     'checkout_cart_empty' => 'السلة فارغة. أضف منتجات قبل إتمام الطلب.',
+    'checkout_min_order' => 'أضف :remaining :currency أخرى. الحد الأدنى للطلب :minimum :currency من المنتجات. رسوم التوصيل لا تُحسب.',
     'checkout_cart_changed' => 'بعض المنتجات في السلة لم تعد متاحة. راجع السلة وحاول مرة أخرى.',
     'checkout_duplicate_or_expired' => 'تم إرسال هذا الطلب مسبقاً أو انتهت الجلسة. حدّث صفحة السلة لطلب جديد.',
     'cart_product_unavailable' => 'هذا المنتج غير متاح حالياً.',

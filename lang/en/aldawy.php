@@ -120,6 +120,7 @@ return [
     'checkout_summary' => 'Order total',
     'checkout_cod' => 'Payment: cash on delivery when your order arrives.',
     'checkout_cart_empty' => 'Your cart is empty. Add products before checkout.',
+    'checkout_min_order' => 'Add :remaining :currency more. Minimum order is :minimum :currency of products. Delivery is extra.',
     'checkout_cart_changed' => 'Some items in your cart are no longer available. Review your cart and try again.',
     'checkout_duplicate_or_expired' => 'This checkout session has already been submitted or expired. Refresh the cart page to place a new order.',
     'cart_product_unavailable' => 'That product is not available right now.',

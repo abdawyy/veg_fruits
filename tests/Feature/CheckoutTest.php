@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
-use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Notifications\AdminNewOrderNotification;
 use App\Notifications\OrderConfirmationNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -62,7 +63,7 @@ final class CheckoutTest extends TestCase
         $this->assertIsString($nonce);
         $this->assertSame(40, strlen($nonce));
 
-        $this->post(route('store.checkout.store'), [
+        $checkout = $this->post(route('store.checkout.store'), [
             'checkout_nonce' => $nonce,
             'payment_method' => 'cod',
             'city_id' => $city->id,
@@ -72,11 +73,12 @@ final class CheckoutTest extends TestCase
             'customer_name' => 'Test Customer',
             'customer_email' => 'buyer@example.test',
             'notes' => 'Ring the bell',
-        ])->assertRedirect(route('store.checkout.thanks'));
+        ]);
 
-        $this->followRedirects()->assertOk();
+        $checkout->assertRedirect(route('store.checkout.thanks'));
+        $this->followRedirects($checkout)->assertOk();
 
-        $order = \App\Models\Order::query()->latest('id')->first();
+        $order = Order::query()->latest('id')->first();
         $this->assertNotNull($order);
         $this->assertSame((string) $city->id, (string) $order->city_id);
         $this->assertSame('12 Nile Street', $order->shipping_address_line1);

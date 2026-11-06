@@ -13,6 +13,7 @@ use App\Payments\PaymentGatewayResolver;
 use App\Services\Coupons\ApplyCouponService;
 use App\Services\Money\DecimalMath;
 use App\Services\Pricing\SurchargeOnBase;
+use App\Support\MinimumOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -101,6 +102,13 @@ final class StoreOrderController extends Controller
                 unitPrice: $unitPrice,
                 servicesSurchargeTotal: $extras,
             );
+        }
+
+        $shortfall = MinimumOrder::shortfall($linesSubtotal);
+        if ($shortfall !== null) {
+            return response()->json([
+                'message' => __('aldawy.checkout_min_order', MinimumOrder::messageReplacements($shortfall)),
+            ], 422);
         }
 
         $couponId = null;

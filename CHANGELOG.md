@@ -4,6 +4,34 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
+## 2026-11-06 — Minimum order (Talabat-style)
+
+### What to run after pulling
+
+```powershell
+php artisan config:clear
+```
+
+Optional `.env` (default `0` = off). The delivery fee does not count:
+
+```env
+ALDAWY_MIN_ORDER_SUBTOTAL=50
+```
+
+### What changed
+
+Checkout is blocked until the **product subtotal** reaches `ALDAWY_MIN_ORDER_SUBTOTAL`. The cart page and cart preview show how much more to add, and the Place order button stays disabled until then. The same rule rejects the order API. `0` leaves checkout unchanged. The checkout rate limiter no longer reads the session on API requests.
+
+### Files
+
+- New: `app/Support/MinimumOrder.php`, `tests/Feature/MinimumOrderTest.php`
+- `config/aldawy.php`, `.env.example`
+- `CheckoutController`, `CartController`, `Api/V1/StoreOrderController`, `AppServiceProvider`
+- `resources/views/store/cart.blade.php`, cart preview drawer, `lang/{en,ar}/aldawy.php`
+- `PROMPT_WHITE_LABEL_ECOMMERCE.md`, admin guide
+
+---
+
 ## 2026-11-06 — Editable customer invoice design
 
 ### What to run after pulling

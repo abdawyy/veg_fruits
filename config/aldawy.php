@@ -11,6 +11,12 @@ return [
 
     'currency' => env('ALDAWY_CURRENCY', 'EGP'),
 
+    /*
+    | Minimum product subtotal required before checkout (Talabat-style).
+    | 0 disables the rule. The delivery fee does not count toward it.
+    */
+    'min_order_subtotal' => env('ALDAWY_MIN_ORDER_SUBTOTAL', '0'),
+
     'decimal_scale' => (int) env('ALDAWY_DECIMAL_SCALE', 4),
 
     'invoice_signed_days' => (int) env('ALDAWY_INVOICE_SIGNED_DAYS', 14),

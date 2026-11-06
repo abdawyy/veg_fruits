@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\Sms\SmsSenderInterface;
 use App\Events\OrderCreated;
+use App\Http\Controllers\LivewireUploadController;
 use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Models\Order;
 use App\Models\Product;
@@ -17,7 +18,6 @@ use App\Support\StoreCart;
 use App\Support\StoreSeo;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use App\Http\Controllers\LivewireUploadController;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\RateLimiter;
@@ -55,7 +55,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('cart', fn (Request $request) => Limit::perMinute(40)->by($request->ip()));
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(8)->by(
-            $request->ip().'|'.($request->session()->getId() ?: 'guest')
+            $request->ip().'|'.($request->hasSession() ? ($request->session()->getId() ?: 'guest') : 'api')
         ));
 
         $storefrontComposer = function (\Illuminate\View\View $view): void {

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Payments\PaymentGatewayResolver;
 use App\Services\Coupons\ApplyCouponService;
 use App\Services\Money\DecimalMath;
+use App\Support\MinimumOrder;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -76,6 +77,14 @@ final class CheckoutController extends Controller
             return redirect()
                 ->route('store.cart')
                 ->withErrors(['cart' => __('aldawy.checkout_price_changed')])
+                ->withInput();
+        }
+
+        $shortfall = MinimumOrder::shortfall(StoreCart::subtotal());
+        if ($shortfall !== null) {
+            return redirect()
+                ->route('store.cart')
+                ->withErrors(['cart' => __('aldawy.checkout_min_order', MinimumOrder::messageReplacements($shortfall))])
                 ->withInput();
         }
 

@@ -167,6 +167,15 @@
                         <div class="aldawy-card p-5">
                             <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ __('aldawy.checkout_title') }}</h2>
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.checkout_sub') }}</p>
+                            @if ($minOrderShortfall ?? null)
+                                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100">
+                                    {{ __('aldawy.checkout_min_order', [
+                                        'remaining' => number_format((float) $minOrderShortfall, 2),
+                                        'minimum' => number_format((float) $minOrderAmount, 2),
+                                        'currency' => config('aldawy.currency', 'EGP'),
+                                    ]) }}
+                                </div>
+                            @endif
                             <form id="aldawy-checkout-form" method="post" action="{{ route('store.checkout.store') }}" class="mt-5 space-y-4">
                                 @csrf
                                 <input type="hidden" name="checkout_nonce" value="{{ session('checkout_nonce') }}">
@@ -228,7 +237,7 @@
                                 @else
                                     <input type="hidden" name="payment_method" value="cod">
                                 @endif
-                                <button id="aldawy-checkout-submit" type="submit" class="aldawy-btn-primary w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-60">
+                                <button id="aldawy-checkout-submit" type="submit" class="aldawy-btn-primary w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-60" @disabled($minOrderShortfall ?? null)>
                                     {{ __('aldawy.checkout_submit') }}
                                 </button>
                             </form>

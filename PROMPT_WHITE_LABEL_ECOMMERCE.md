@@ -91,6 +91,8 @@ Surcharges are either a fixed amount or a percent. Order total:
 subtotal − coupon_discount + order_packaging_fee + city_shipping_fee
 ```
 
+**Minimum order (Talabat-style).** Config `min_order_subtotal` from `ALDAWY_MIN_ORDER_SUBTOTAL`, default `0` (off). Compare the **product subtotal only** with BCMath before an order is created. The delivery fee, packaging fee, and coupon discount do not count toward the minimum. When the cart is short, the cart page and cart preview show “add X more” and the place-order button is disabled; `POST /checkout` and the order API still reject the request. `0` or a negative value means no minimum. The checkout rate limiter is shared with `POST /api/v1/orders`, which has no session, so the limiter key must call `$request->hasSession()` before `$request->session()`.
+
 Snapshot product name, unit price, services, and packaging onto each order item so later catalog edits do not rewrite history.
 
 **Cart**
@@ -459,7 +461,7 @@ Default seeded admin: `admin@example.test` / `password` with `is_admin` and `sup
 
 ## Checkout, invoices, notifications
 
-1. Validate cart, city, phone, address, payment method, stock.
+1. Validate cart, city, phone, address, payment method, stock, and the minimum product subtotal (`ALDAWY_MIN_ORDER_SUBTOTAL`). Reject checkout when the items subtotal is below that amount. Delivery does not count.
 2. Idempotency: one-time checkout nonce plus an in-flight session lock so a double submit cannot create two orders.
 3. `CreateOrderAction` in a transaction: totals, stock decrement when tracked, order + items, coupon usage, gateway identifier.
 4. COD: thank-you page immediately, then queued listener.
@@ -497,6 +499,7 @@ Feature tests, SQLite:
 
 - Cart AJAX add, coupon, stock rejection
 - Checkout COD creates order, queues listener (fake queue)
+- Minimum order: a cart under `min_order_subtotal` cannot check out and the cart shows the remaining amount; `0` allows any non-empty cart; the delivery fee does not close the gap
 - Checkout Visa with `Http::fake()` creates a pending order and redirects to Paymob’s unified checkout URL
 - Webhook HMAC success, failure, mismatch, replay
 - Theme save changes the CSS variables rendered on `/`
@@ -526,7 +529,7 @@ Run `php artisan test` before calling the work done.
 ## Done when
 
 - A non-developer admin can set brand name, logo, favicon, hero, banner images, and the full color palette, reload `/`, and see the new brand without a rebuild.
-- Checkout can place a COD order and a Visa order; Visa becomes `paid` only after a valid Paymob HMAC webhook; the card UI is Paymob hosted checkout using the card integration id.
+- Checkout can place a COD order and a Visa order; Visa becomes `paid` only after a valid Paymob HMAC webhook; the card UI is Paymob hosted checkout using the card integration id. A configured minimum product subtotal blocks smaller baskets on the cart, checkout, and order API.
 - Sales and traffic dashboards filter by period; a customer’s admin page shows location, device, browse/purchase timing, and top products.
 - `super_admin`, `orders_manager`, `catalog_manager`, `content_manager`, `design_manager`, `analytics_viewer`, and `finance_viewer` exist and are enforced by policies.
 - Arabic RTL storefront works for nav, product page, cart, and checkout.

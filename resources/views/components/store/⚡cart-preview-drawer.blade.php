@@ -82,6 +82,12 @@ new class extends Component
                     <span>{{ __('aldawy.cart_subtotal') }}</span>
                     <span>{{ number_format((float) $this->subtotal, 2) }} {{ config('aldawy.currency', 'EGP') }}</span>
                 </p>
+                @php $previewShortfall = \App\Support\MinimumOrder::shortfall($this->subtotal); @endphp
+                @if ($previewShortfall !== null)
+                    <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        {{ __('aldawy.checkout_min_order', \App\Support\MinimumOrder::messageReplacements($previewShortfall)) }}
+                    </p>
+                @endif
                 <a href="{{ route('store.cart') }}" wire:navigate class="mt-4 block w-full rounded-xl bg-brand py-3 text-center text-sm font-bold text-white hover:bg-brand-dark">
                     {{ __('aldawy.cart_preview_full') }}
                 </a>

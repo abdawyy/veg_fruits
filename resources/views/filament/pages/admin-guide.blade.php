@@ -30,6 +30,7 @@
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Shipping cities</h2>
         <p class="mt-2">Group <em>Shipping</em> → <strong>Cities &amp; fees</strong>. Each city has a delivery fee (EGP) used at checkout. Excel import/export is on the cities list page.</p>
+        <p class="mt-2">Optional minimum order: set <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">ALDAWY_MIN_ORDER_SUBTOTAL</code> in <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code> (product subtotal in EGP, <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">0</code> = off). The delivery fee does not count. Customers see how much more to add on the cart, and checkout is blocked until they reach it. Then run <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">php artisan config:clear</code>.</p>
     </section>
 
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
