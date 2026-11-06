@@ -91,7 +91,7 @@ Surcharges are either a fixed amount or a percent. Order total:
 subtotal − coupon_discount + order_packaging_fee + city_shipping_fee
 ```
 
-**Minimum order (Talabat-style).** Config `min_order_subtotal` from `ALDAWY_MIN_ORDER_SUBTOTAL`, default `0` (off). Compare the **product subtotal only** with BCMath before an order is created. The delivery fee, packaging fee, and coupon discount do not count toward the minimum. When the cart is short, the cart page and cart preview show “add X more” and the place-order button is disabled; `POST /checkout` and the order API still reject the request. `0` or a negative value means no minimum. The checkout rate limiter is shared with `POST /api/v1/orders`, which has no session, so the limiter key must call `$request->hasSession()` before `$request->session()`.
+**Minimum order (Talabat-style).** Admins edit it at Shipping → Minimum order (`/admin/minimum-order`). The value is stored on the `shop_settings` row (`min_order_subtotal`). `ALDAWY_MIN_ORDER_SUBTOTAL` is only the starting value when that row does not exist yet, and the fallback before the table is migrated; default `0` (off). Compare the **product subtotal only** with BCMath before an order is created. The delivery fee, packaging fee, and coupon discount do not count toward the minimum. When the cart is short, the cart page and cart preview show “add X more” and the place-order button is disabled; `POST /checkout` and the order API still reject the request. `0` or a negative value means no minimum. The checkout rate limiter is shared with `POST /api/v1/orders`, which has no session, so the limiter key must call `$request->hasSession()` before `$request->session()`.
 
 Snapshot product name, unit price, services, and packaging onto each order item so later catalog edits do not rewrite history.
 
@@ -461,7 +461,7 @@ Default seeded admin: `admin@example.test` / `password` with `is_admin` and `sup
 
 ## Checkout, invoices, notifications
 
-1. Validate cart, city, phone, address, payment method, stock, and the minimum product subtotal (`ALDAWY_MIN_ORDER_SUBTOTAL`). Reject checkout when the items subtotal is below that amount. Delivery does not count.
+1. Validate cart, city, phone, address, payment method, stock, and the minimum product subtotal saved on the admin Minimum order page. Reject checkout when the items subtotal is below that amount. Delivery does not count.
 2. Idempotency: one-time checkout nonce plus an in-flight session lock so a double submit cannot create two orders.
 3. `CreateOrderAction` in a transaction: totals, stock decrement when tracked, order + items, coupon usage, gateway identifier.
 4. COD: thank-you page immediately, then queued listener.
@@ -499,7 +499,7 @@ Feature tests, SQLite:
 
 - Cart AJAX add, coupon, stock rejection
 - Checkout COD creates order, queues listener (fake queue)
-- Minimum order: a cart under `min_order_subtotal` cannot check out and the cart shows the remaining amount; `0` allows any non-empty cart; the delivery fee does not close the gap
+- Minimum order: an admin can save the amount; a cart under it cannot check out and the cart shows the remaining amount; `0` allows any non-empty cart; the delivery fee does not close the gap
 - Checkout Visa with `Http::fake()` creates a pending order and redirects to Paymob’s unified checkout URL
 - Webhook HMAC success, failure, mismatch, replay
 - Theme save changes the CSS variables rendered on `/`

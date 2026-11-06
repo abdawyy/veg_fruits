@@ -2,11 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\MinimumOrderPage;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Product;
+use App\Models\ShopSetting;
+use App\Models\User;
+use App\Support\MinimumOrder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 final class MinimumOrderTest extends TestCase
@@ -75,6 +82,41 @@ final class MinimumOrderTest extends TestCase
 
         $this->post(route('store.checkout.store'), $this->checkoutPayload($city->id))
             ->assertRedirect(route('store.checkout.thanks'));
+    }
+
+    public function test_admin_can_save_the_minimum_order(): void
+    {
+        config(['aldawy.min_order_subtotal' => '0']);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole(Role::findOrCreate('super_admin', 'web'));
+
+        Livewire::actingAs($admin)
+            ->test(MinimumOrderPage::class)
+            ->fillForm(['min_order_subtotal' => 40])
+            ->call('save');
+
+        $this->assertSame(0, bccomp(MinimumOrder::amount(), '40', 4));
+        $this->assertSame(0, bccomp((string) ShopSetting::current()->min_order_subtotal, '40', 4));
+
+        [$product, $city] = $this->catalog();
+
+        $this->post(route('store.cart.add'), [
+            'product_id' => $product->id,
+            'unit' => 'kg',
+            'quantity' => 1,
+        ])->assertRedirect();
+
+        $this->get(route('store.cart'))
+            ->assertOk()
+            ->assertSee('Add 30.00 EGP more');
+
+        $this->post(route('store.checkout.store'), $this->checkoutPayload($city->id))
+            ->assertRedirect(route('store.cart'))
+            ->assertSessionHasErrors('cart');
+
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_order_api_rejects_a_basket_under_the_minimum(): void

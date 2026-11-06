@@ -12,7 +12,8 @@ return [
     'currency' => env('ALDAWY_CURRENCY', 'EGP'),
 
     /*
-    | Minimum product subtotal required before checkout (Talabat-style).
+    | Starting minimum product subtotal (Talabat-style).
+    | After the shop_settings row exists, Admin → Shipping → Minimum order is the value checkout uses.
     | 0 disables the rule. The delivery fee does not count toward it.
     */
     'min_order_subtotal' => env('ALDAWY_MIN_ORDER_SUBTOTAL', '0'),

@@ -4,6 +4,26 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
+## 2026-11-06 — Minimum order in the admin panel
+
+### What to run after pulling
+
+```powershell
+php artisan migrate
+```
+
+### What changed
+
+The minimum product subtotal is edited in the admin under **Shipping → Minimum order** (`/admin/minimum-order`). Saving applies to the cart, checkout, and order API immediately. `0` turns the rule off. `ALDAWY_MIN_ORDER_SUBTOTAL` is only the starting value before that page is saved.
+
+### Files
+
+- New: `database/migrations/2026_11_06_000002_create_shop_settings_table.php`, `app/Models/ShopSetting.php`, `app/Filament/Pages/MinimumOrderPage.php`
+- `app/Support/MinimumOrder.php`, `tests/Feature/MinimumOrderTest.php`
+- `PROMPT_WHITE_LABEL_ECOMMERCE.md`, admin guide, `.env.example`
+
+---
+
 ## 2026-11-06 — Minimum order (Talabat-style)
 
 ### What to run after pulling

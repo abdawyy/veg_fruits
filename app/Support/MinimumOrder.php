@@ -2,14 +2,15 @@
 
 namespace App\Support;
 
+use App\Models\ShopSetting;
 use App\Services\Money\DecimalMath;
+use Illuminate\Support\Facades\Schema;
 
 /** Store-wide minimum product subtotal. Delivery and coupons do not count. */
 final class MinimumOrder
 {
-    public static function amount(): string
+    public static function normalize(mixed $raw): string
     {
-        $raw = config('aldawy.min_order_subtotal');
         if ($raw === null || $raw === '') {
             return DecimalMath::normalizeNumericString('0');
         }
@@ -19,6 +20,15 @@ final class MinimumOrder
         return bccomp($amount, '0', 4) < 0
             ? DecimalMath::normalizeNumericString('0')
             : $amount;
+    }
+
+    public static function amount(): string
+    {
+        if (Schema::hasTable('shop_settings')) {
+            return self::normalize(ShopSetting::current()->min_order_subtotal);
+        }
+
+        return self::normalize(config('aldawy.min_order_subtotal'));
     }
 
     public static function applies(): bool
