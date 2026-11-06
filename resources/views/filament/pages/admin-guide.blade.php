@@ -22,7 +22,8 @@
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Customers &amp; orders</h2>
         <ul class="mt-3 list-disc space-y-2 ps-5">
             <li><strong>Users</strong> — group <em>Customers</em> → list with email, phone, order count. Open a user to see their <strong>Orders</strong> tab.</li>
-            <li><strong>Orders</strong> — group <em>Orders</em> → reference, linked account email, guest email, phone, delivery city, totals. Edit an order for notes/status; open the <strong>Line items</strong> tab for basket contents. Use <strong>Export / Import Excel</strong> on the list page.</li>
+            <li><strong>Orders</strong> — group <em>Orders</em> → reference, linked account email, guest email, phone, delivery city, totals. Edit an order for notes/status; open the <strong>Line items</strong> tab for basket contents. Use <strong>Export / Import Excel</strong> on the list page. Download the customer invoice from the order row.</li>
+            <li><strong>Invoice design</strong> — group <em>Storefront</em> → <strong>Invoice design</strong>. Change the store name, logo, header and accent colors, address, thank-you note, and footer. Saving applies to the next PDF download.</li>
         </ul>
     </section>
 

@@ -4,6 +4,27 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
+## 2026-11-06 — Editable customer invoice design
+
+### What to run after pulling
+
+```powershell
+php artisan migrate
+php artisan view:clear
+```
+
+### What changed
+
+Customer invoices are a designed PDF (colored header, logo, from/deliver-to cards, item table, totals, thank-you note). Admin can edit that design under **Storefront → Invoice design**: store name, logo, tagline, colors, phone, email, address, thank-you note, and footer, in English and Arabic. Saving clears stored PDFs so the next download uses the new design. **Preview latest invoice** downloads a fresh copy of the newest order.
+
+### Files
+
+- New: `database/migrations/2026_11_06_000001_create_invoice_designs_table.php`, `app/Models/InvoiceDesign.php`, `app/Filament/Pages/InvoiceDesignPage.php`, `tests/Feature/InvoiceDesignTest.php`
+- `resources/views/pdf/invoice.blade.php`, `app/Actions/Invoices/GenerateInvoicePdfAction.php`
+- `lang/{en,ar}/aldawy.php`, `resources/views/filament/pages/admin-guide.blade.php`
+
+---
+
 ## 2026-10-19 — Home banner: one button, many products
 
 ### What to run after pulling

@@ -237,6 +237,10 @@ return [
     'analytics_order_rate_7d' => 'طلب ÷ جلسة (٧ أيام)',
 
     'invoice_title' => 'فاتورة',
+    'invoice_from' => 'من',
+    'invoice_bill_to' => 'التوصيل إلى',
+    'invoice_payment' => 'الدفع',
+    'invoice_discount' => 'الخصم',
     'invoice_reference' => 'المرجع',
     'invoice_date' => 'التاريخ',
     'invoice_phone' => 'الهاتف',

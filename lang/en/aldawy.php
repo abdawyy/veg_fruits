@@ -234,6 +234,10 @@ return [
     'analytics_order_rate_7d' => 'Order ÷ session (7d)',
 
     'invoice_title' => 'Invoice',
+    'invoice_from' => 'From',
+    'invoice_bill_to' => 'Deliver to',
+    'invoice_payment' => 'Payment',
+    'invoice_discount' => 'Discount',
     'invoice_reference' => 'Reference',
     'invoice_date' => 'Date',
     'invoice_phone' => 'Phone',
