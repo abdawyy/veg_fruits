@@ -3,6 +3,7 @@
 namespace App\Filament\Concerns;
 
 use Filament\Actions\Action;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
@@ -49,13 +50,23 @@ trait HasAdjacentRecordNavigation
     {
         $resource = static::getResource();
         $pageName = $this->getRecordNavigationPageName();
+        $url = fn (): string => $resource::getUrl($pageName, ['record' => $recordKey]);
 
-        return Action::make($name)
+        $action = Action::make($name)
             ->label($label)
             ->icon($icon)
             ->color('gray')
-            ->visible(fn (): bool => $recordKey !== null && $this->canNavigateToRecord($recordKey))
-            ->url(fn (): string => $resource::getUrl($pageName, ['record' => $recordKey]));
+            ->visible(fn (): bool => $recordKey !== null && $this->canNavigateToRecord($recordKey));
+
+        if ($this instanceof EditRecord) {
+            return $action
+                ->tooltip(__('Saves your changes, then opens this record.'))
+                ->action(function () use ($recordKey): void {
+                    $this->saveAndOpenRecord($recordKey);
+                });
+        }
+
+        return $action->url($url);
     }
 
     /**
