@@ -78,7 +78,10 @@ final class CreateOrderAction
                 if ($line->productId !== null) {
                     $product = \App\Models\Product::query()->lockForUpdate()->find($line->productId);
                     if ($product && $product->track_stock && $product->stock_quantity !== null) {
-                        $remaining = DecimalMath::sub((string) $product->stock_quantity, $line->quantity);
+                        $remaining = DecimalMath::sub(
+                            (string) $product->stock_quantity,
+                            $product->quantityInStockUnit($line->unit, $line->quantity),
+                        );
                         if (bccomp($remaining, '0', 4) < 0) {
                             throw new \RuntimeException(__('aldawy.stock_insufficient'));
                         }

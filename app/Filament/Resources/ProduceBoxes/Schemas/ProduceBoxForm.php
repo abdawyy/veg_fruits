@@ -40,7 +40,11 @@ class ProduceBoxForm
                                     ->required(),
                                 TextInput::make('quantity')->numeric()->required()->default(1),
                                 Select::make('unit')
-                                    ->options(['kg' => 'kg', 'piece' => __('piece')])
+                                    ->options([
+                                        'kg' => __('Kilogram'),
+                                        'gram' => __('Gram'),
+                                        'piece' => __('Piece'),
+                                    ])
                                     ->default('kg')
                                     ->required(),
                             ])

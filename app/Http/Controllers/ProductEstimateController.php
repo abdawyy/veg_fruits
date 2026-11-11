@@ -19,27 +19,37 @@ final class ProductEstimateController extends Controller
         abort_unless($product->is_active, 404);
 
         $data = $request->validate([
-            'unit' => ['sometimes', Rule::in([StoreCart::UNIT_KG, StoreCart::UNIT_PIECE])],
-            'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500'],
+            'unit' => ['sometimes', Rule::in(StoreCart::units())],
+            'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500000'],
             'kg' => ['sometimes', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
 
-        $unit = $data['unit'] ?? StoreCart::UNIT_KG;
+        $unit = $data['unit'] ?? $product->sellingUnit();
         if (isset($data['quantity'])) {
             $quantity = (string) $data['quantity'];
         } elseif (isset($data['kg'])) {
             $unit = StoreCart::UNIT_KG;
             $quantity = (string) $data['kg'];
         } else {
-            $quantity = '1';
+            $quantity = $product->minimumOrderQuantity($unit);
         }
 
-        if ($unit === StoreCart::UNIT_PIECE && (! $product->sell_by_piece || $product->price_per_piece === null)) {
+        if (! $product->allowsUnit($unit)) {
             throw ValidationException::withMessages([
                 'unit' => [__('aldawy.cart_unit_unavailable')],
+            ]);
+        }
+
+        $maximum = StoreCart::maxQuantity($unit);
+        if (bccomp(DecimalMath::normalizeNumericString($quantity), $maximum, 4) > 0) {
+            throw ValidationException::withMessages([
+                'quantity' => [__('aldawy.cart_max_quantity', [
+                    'maximum' => StoreCart::formatQuantity($maximum, $unit),
+                    'unit' => StoreCart::unitLabel($unit),
+                ])],
             ]);
         }
 
@@ -48,9 +58,9 @@ final class ProductEstimateController extends Controller
             'packagingTypes' => fn ($q) => $q->where('packaging_types.is_active', true),
         ]);
 
-        $quantity = $unit === StoreCart::UNIT_PIECE
-            ? (string) max(1, (int) round((float) $quantity))
-            : bcadd($quantity, '0', 4);
+        $quantity = $unit === StoreCart::UNIT_KG
+            ? bcadd($quantity, '0', 4)
+            : (string) max(1, (int) round((float) $quantity));
 
         $prepIds = array_values(array_unique(array_map('intval', $data['preparation_service_ids'] ?? [])));
         $enabledPrep = $product->preparationServices->filter(fn ($p) => (bool) $p->pivot->is_enabled);

@@ -17,7 +17,58 @@ final class StoreCart
 
     public const UNIT_KG = 'kg';
 
+    public const UNIT_GRAM = 'gram';
+
     public const UNIT_PIECE = 'piece';
+
+    /** @return list<string> */
+    public static function units(): array
+    {
+        return [self::UNIT_KG, self::UNIT_GRAM, self::UNIT_PIECE];
+    }
+
+    public static function unitLabel(string $unit): string
+    {
+        return match ($unit) {
+            self::UNIT_PIECE => __('aldawy.per_piece'),
+            self::UNIT_GRAM => __('aldawy.per_gram'),
+            self::UNIT_KG => __('aldawy.per_kg'),
+            'box' => __('aldawy.per_box'),
+            default => $unit,
+        };
+    }
+
+    public static function maxQuantity(string $unit): string
+    {
+        return $unit === self::UNIT_GRAM ? '500000' : '500';
+    }
+
+    public static function formatAmount(string|int|float $amount): string
+    {
+        $normalized = DecimalMath::normalizeNumericString($amount);
+        $trimmed = rtrim(rtrim($normalized, '0'), '.');
+        if ($trimmed === '' || $trimmed === '-') {
+            return '0.00';
+        }
+        if (! str_contains($trimmed, '.')) {
+            return $trimmed.'.00';
+        }
+
+        $decimals = strlen(explode('.', $trimmed, 2)[1]);
+
+        return $decimals === 1 ? $trimmed.'0' : $trimmed;
+    }
+
+    public static function formatQuantity(string $quantity, string $unit): string
+    {
+        if ($unit === self::UNIT_KG) {
+            $formatted = number_format((float) $quantity, 2, '.', '');
+
+            return rtrim(rtrim($formatted, '0'), '.');
+        }
+
+        return (string) max(1, (int) round((float) $quantity));
+    }
 
     public const KIND_PRODUCT = 'product';
 
@@ -314,12 +365,12 @@ final class StoreCart
                     continue;
                 }
 
-                if ($product->isOutOfStock() || ! $product->hasStockFor($row['quantity'])) {
-                    continue;
-                }
-
                 $unit = $row['unit'];
                 $quantity = $row['quantity'];
+
+                if ($product->isOutOfStock() || ! $product->hasStockFor($quantity, $unit)) {
+                    continue;
+                }
                 $unitPrice = self::unitPriceForProduct($product, $unit);
                 if ($unitPrice === null) {
                     continue;
@@ -428,12 +479,28 @@ final class StoreCart
 
     public static function unitPriceForProduct(Product $product, string $unit): ?string
     {
+        if (! $product->allowsUnit($unit)) {
+            return null;
+        }
+
         if ($unit === self::UNIT_PIECE) {
-            if (! $product->sell_by_piece || $product->price_per_piece === null) {
+            if ($product->price_per_piece === null) {
                 return null;
             }
 
             return DecimalMath::normalizeNumericString((string) $product->price_per_piece);
+        }
+
+        if ($unit === self::UNIT_GRAM) {
+            if ($product->sellingUnit() === Product::UNIT_GRAM && $product->price_per_gram !== null) {
+                return DecimalMath::normalizeNumericString((string) $product->price_per_gram);
+            }
+
+            return DecimalMath::div((string) $product->price_per_kg, '1000');
+        }
+
+        if ($product->sellingUnit() === Product::UNIT_GRAM && $product->price_per_gram !== null) {
+            return DecimalMath::mul((string) $product->price_per_gram, '1000');
         }
 
         return DecimalMath::normalizeNumericString((string) $product->price_per_kg);
@@ -541,7 +608,11 @@ final class StoreCart
 
     private static function normalizeUnit(mixed $unit): string
     {
-        return $unit === self::UNIT_PIECE ? self::UNIT_PIECE : self::UNIT_KG;
+        return match ($unit) {
+            self::UNIT_PIECE => self::UNIT_PIECE,
+            self::UNIT_GRAM => self::UNIT_GRAM,
+            default => self::UNIT_KG,
+        };
     }
 
     private static function normalizeQuantity(string $qty, string $unit): string
@@ -551,7 +622,7 @@ final class StoreCart
             return '0';
         }
 
-        if ($unit === self::UNIT_PIECE) {
+        if ($unit === self::UNIT_PIECE || $unit === self::UNIT_GRAM) {
             return (string) max(1, (int) round((float) $qty));
         }
 

@@ -39,7 +39,11 @@ final class BuildOrderLinesFromProduceBoxAction
                 continue;
             }
 
-            $unit = $item->unit === StoreCart::UNIT_PIECE ? StoreCart::UNIT_PIECE : StoreCart::UNIT_KG;
+            $unit = match ($item->unit) {
+                StoreCart::UNIT_PIECE => StoreCart::UNIT_PIECE,
+                StoreCart::UNIT_GRAM => StoreCart::UNIT_GRAM,
+                default => StoreCart::UNIT_KG,
+            };
             $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
             if ($unitPrice === null) {
                 continue;

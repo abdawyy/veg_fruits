@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Product;
 use App\Payments\PaymentGatewayResolver;
 use App\Services\Coupons\ApplyCouponService;
+use App\Services\Money\DecimalMath;
 use App\Support\MinimumOrder;
 use App\Support\Money\MoneyCents;
 use App\Support\StoreCart;
@@ -82,8 +83,8 @@ final class CartController extends Controller
                 'integer',
                 Rule::exists('products', 'id')->where(fn ($q) => $q->where('is_active', true)),
             ],
-            'unit' => ['sometimes', Rule::in([StoreCart::UNIT_KG, StoreCart::UNIT_PIECE])],
-            'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500'],
+            'unit' => ['sometimes', Rule::in(StoreCart::units())],
+            'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500000'],
             'kg' => ['sometimes', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
@@ -96,6 +97,7 @@ final class CartController extends Controller
             ->firstOrFail();
 
         [$unit, $quantity] = $this->resolveUnitQuantity($data, $product);
+        $this->assertQuantityCap($unit, $quantity);
         $this->assertMinimumQuantity($product, $unit, $quantity);
 
         $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
@@ -105,7 +107,7 @@ final class CartController extends Controller
             ]);
         }
 
-        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity, $unit)) {
             throw ValidationException::withMessages([
                 'product_id' => [__('aldawy.stock_insufficient')],
             ]);
@@ -135,8 +137,8 @@ final class CartController extends Controller
     {
         $data = $request->validate([
             'line' => ['required', 'integer', 'min:0'],
-            'unit' => ['required', Rule::in([StoreCart::UNIT_KG, StoreCart::UNIT_PIECE])],
-            'quantity' => ['required', 'numeric', 'min:0.01', 'max:500'],
+            'unit' => ['required', Rule::in(StoreCart::units())],
+            'quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
         ]);
 
         $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity']);
@@ -150,8 +152,8 @@ final class CartController extends Controller
     {
         $data = $request->validate([
             'line' => ['required', 'integer', 'min:0'],
-            'unit' => ['required', Rule::in([StoreCart::UNIT_KG, StoreCart::UNIT_PIECE])],
-            'quantity' => ['required', 'numeric', 'min:0.01', 'max:500'],
+            'unit' => ['required', Rule::in(StoreCart::units())],
+            'quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
@@ -228,11 +230,31 @@ final class CartController extends Controller
             ]);
         }
 
+        if (! $product->allowsUnit($unit)) {
+            throw ValidationException::withMessages([
+                'unit' => [__('aldawy.cart_unit_unavailable')],
+            ]);
+        }
+
+        $this->assertQuantityCap($unit, $quantity);
         $this->assertMinimumQuantity($product, $unit, $quantity);
 
-        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity, $unit)) {
             throw ValidationException::withMessages([
                 'quantity' => [__('aldawy.stock_insufficient')],
+            ]);
+        }
+    }
+
+    private function assertQuantityCap(string $unit, string $quantity): void
+    {
+        $maximum = StoreCart::maxQuantity($unit);
+        if (bccomp(DecimalMath::normalizeNumericString($quantity), $maximum, 4) > 0) {
+            throw ValidationException::withMessages([
+                'quantity' => [__('aldawy.cart_max_quantity', [
+                    'maximum' => StoreCart::formatQuantity($maximum, $unit),
+                    'unit' => StoreCart::unitLabel($unit),
+                ])],
             ]);
         }
     }
@@ -243,8 +265,8 @@ final class CartController extends Controller
         if (bccomp($quantity, $minimum, 4) < 0) {
             throw ValidationException::withMessages([
                 'quantity' => [__('aldawy.cart_min_quantity', [
-                    'minimum' => number_format((float) $minimum, 2),
-                    'unit' => $unit === StoreCart::UNIT_PIECE ? __('aldawy.per_piece') : __('aldawy.per_kg'),
+                    'minimum' => StoreCart::formatQuantity($minimum, $unit),
+                    'unit' => StoreCart::unitLabel($unit),
                 ])],
             ]);
         }
@@ -253,17 +275,17 @@ final class CartController extends Controller
     /** @param  array<string, mixed>  $data */
     private function resolveUnitQuantity(array $data, Product $product): array
     {
-        $unit = $data['unit'] ?? StoreCart::UNIT_KG;
+        $unit = $data['unit'] ?? $product->sellingUnit();
         if (isset($data['quantity'])) {
             $quantity = (string) $data['quantity'];
         } elseif (isset($data['kg'])) {
             $unit = StoreCart::UNIT_KG;
             $quantity = (string) $data['kg'];
         } else {
-            $quantity = $unit === StoreCart::UNIT_PIECE ? '1' : '1';
+            $quantity = $product->minimumOrderQuantity($unit);
         }
 
-        if ($unit === StoreCart::UNIT_PIECE && (! $product->sell_by_piece || $product->price_per_piece === null)) {
+        if (! $product->allowsUnit($unit)) {
             throw ValidationException::withMessages([
                 'unit' => [__('aldawy.cart_unit_unavailable')],
             ]);

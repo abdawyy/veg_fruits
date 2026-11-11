@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Product;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -19,7 +20,9 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
             'sku' => ['required', 'string', 'max:64'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'price_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'price_per_gram' => ['nullable', 'numeric', 'min:0'],
             'price_per_piece' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', Rule::in([Product::UNIT_KG, Product::UNIT_GRAM, Product::UNIT_PIECE])],
             'min_order_quantity' => ['nullable', 'numeric', 'min:0'],
             'track_stock' => ['nullable'],
             'stock_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -80,8 +83,16 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
             $product->price_per_kg = $row['price_per_kg'];
         }
 
+        if (isset($row['price_per_gram']) && $row['price_per_gram'] !== '') {
+            $product->price_per_gram = $row['price_per_gram'];
+        }
+
         if (isset($row['price_per_piece']) && $row['price_per_piece'] !== '') {
             $product->price_per_piece = $row['price_per_piece'];
+        }
+
+        if (isset($row['unit']) && in_array((string) $row['unit'], [Product::UNIT_KG, Product::UNIT_GRAM, Product::UNIT_PIECE], true)) {
+            $product->unit = (string) $row['unit'];
         }
 
         if (isset($row['sell_by_piece'])) {

@@ -1,20 +1,41 @@
 @php
-    $sellPiece = $product->sell_by_piece && $product->price_per_piece;
+    use App\Support\StoreCart;
+
+    $units = $product->availableUnits();
+    $defaultUnit = $product->sellingUnit();
     $minKg = $product->minimumOrderQuantity('kg');
+    $minGram = $product->minimumOrderQuantity('gram');
     $minPiece = $product->minimumOrderQuantity('piece');
-    $defaultQty = max((float) $minKg, 1);
+    $defaultMin = match ($defaultUnit) {
+        'gram' => $minGram,
+        'piece' => $minPiece,
+        default => $minKg,
+    };
+    $defaultQty = $defaultUnit === 'kg'
+        ? (string) max((float) $defaultMin, 1)
+        : $defaultMin;
+    $qtyValue = StoreCart::formatQuantity($defaultQty, $defaultUnit);
+    $qtyStep = $defaultUnit === 'kg' ? '0.25' : '1';
+    $qtyMin = StoreCart::formatQuantity($defaultMin, $defaultUnit);
 @endphp
-<div class="flex flex-wrap items-end gap-2" data-unit-quantity data-min-kg="{{ $minKg }}" data-min-piece="{{ $minPiece }}">
-    @if ($sellPiece)
+<div
+    class="flex flex-wrap items-end gap-2"
+    data-unit-quantity
+    data-min-kg="{{ $minKg }}"
+    data-min-gram="{{ $minGram }}"
+    data-min-piece="{{ $minPiece }}"
+>
+    @if (count($units) > 1)
         <div>
             <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="unit-{{ $product->id }}">{{ __('aldawy.cart_unit') }}</label>
             <select id="unit-{{ $product->id }}" name="unit" class="rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-auto !py-2 !text-sm">
-                <option value="kg">{{ __('aldawy.per_kg') }}</option>
-                <option value="piece">{{ __('aldawy.per_piece') }}</option>
+                @foreach ($units as $unit)
+                    <option value="{{ $unit }}" @selected($unit === $defaultUnit)>{{ StoreCart::unitLabel($unit) }}</option>
+                @endforeach
             </select>
         </div>
     @else
-        <input type="hidden" name="unit" value="kg">
+        <input type="hidden" name="unit" value="{{ $defaultUnit }}">
     @endif
     <div>
         <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="qty-{{ $product->id }}">{{ __('aldawy.cart_qty') }}</label>
@@ -22,15 +43,14 @@
             id="qty-{{ $product->id }}"
             name="quantity"
             type="number"
-            step="0.25"
-            min="{{ $minKg }}"
-            value="{{ rtrim(rtrim(number_format($defaultQty, 2, '.', ''), '0'), '.') }}"
-            data-qty-kg
+            step="{{ $qtyStep }}"
+            min="{{ $qtyMin }}"
+            value="{{ $qtyValue }}"
             class="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-28 !py-2 !text-sm"
         >
     </div>
 </div>
-@if ($sellPiece)
+@if (count($units) > 1)
     <script>
         (function () {
             var root = document.getElementById('qty-{{ $product->id }}')?.closest('[data-unit-quantity]');
@@ -39,23 +59,31 @@
             var qty = root.querySelector('[name="quantity"]');
             if (!unitSel || !qty) return;
             var minKg = parseFloat(root.dataset.minKg || '0.25');
+            var minGram = parseFloat(root.dataset.minGram || '1');
             var minPiece = parseFloat(root.dataset.minPiece || '1');
-            function sync() {
-                if (unitSel.value === 'piece') {
+            function apply(reset) {
+                var unit = unitSel.value;
+                if (unit === 'piece') {
                     qty.step = '1';
                     qty.min = String(minPiece);
-                    qty.value = Math.max(minPiece, Math.round(parseFloat(qty.value) || minPiece));
+                    if (reset) qty.value = String(minPiece);
+                } else if (unit === 'gram') {
+                    qty.step = '1';
+                    qty.min = String(minGram);
+                    if (reset) qty.value = String(Math.max(1, Math.round(minGram)));
                 } else {
                     qty.step = '0.25';
                     qty.min = String(minKg);
-                    var current = parseFloat(qty.value) || minKg;
-                    if (current < minKg) {
-                        qty.value = minKg;
-                    }
+                    if (reset) qty.value = String(Math.max(minKg, 1));
+                }
+                if (!reset) {
+                    var current = parseFloat(qty.value);
+                    var min = parseFloat(qty.min);
+                    if (!current || current < min) qty.value = qty.min;
                 }
             }
-            unitSel.addEventListener('change', sync);
-            sync();
+            unitSel.addEventListener('change', function () { apply(true); });
+            apply(false);
         })();
     </script>
 @endif

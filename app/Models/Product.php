@@ -15,6 +15,12 @@ class Product extends Model
 {
     use HasTranslations;
 
+    public const UNIT_KG = 'kg';
+
+    public const UNIT_GRAM = 'gram';
+
+    public const UNIT_PIECE = 'piece';
+
     /** @var list<string> */
     public array $translatable = ['name', 'slug', 'description'];
 
@@ -27,7 +33,9 @@ class Product extends Model
         'image_path',
         'sku',
         'price_per_kg',
+        'price_per_gram',
         'price_per_piece',
+        'unit',
         'sell_by_piece',
         'is_active',
         'track_stock',
@@ -51,6 +59,19 @@ class Product extends Model
         static::deleting(function (Product $product): void {
             if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
                 Storage::disk('public')->delete($product->image_path);
+            }
+        });
+
+        static::saving(function (Product $product): void {
+            $unit = $product->sellingUnit();
+            $product->unit = $unit;
+
+            if ($unit === self::UNIT_PIECE) {
+                $product->sell_by_piece = true;
+            }
+
+            if ($unit === self::UNIT_GRAM) {
+                $product->sell_by_piece = false;
             }
         });
     }
@@ -88,7 +109,7 @@ class Product extends Model
         return $qty === null || bccomp((string) $qty, '0', 4) <= 0;
     }
 
-    public function hasStockFor(string $requestedQty): bool
+    public function hasStockFor(string $requestedQty, ?string $unit = null): bool
     {
         if (! $this->track_stock) {
             return true;
@@ -98,10 +119,72 @@ class Product extends Model
             return false;
         }
 
-        $requested = DecimalMath::normalizeNumericString($requestedQty);
+        $requested = $unit === null
+            ? DecimalMath::normalizeNumericString($requestedQty)
+            : $this->quantityInStockUnit($unit, $requestedQty);
         $available = DecimalMath::normalizeNumericString((string) $this->stock_quantity);
 
         return bccomp($available, $requested, 4) >= 0;
+    }
+
+    public function sellingUnit(): string
+    {
+        $unit = (string) ($this->unit ?? self::UNIT_KG);
+
+        return in_array($unit, [self::UNIT_KG, self::UNIT_GRAM, self::UNIT_PIECE], true)
+            ? $unit
+            : self::UNIT_KG;
+    }
+
+    /**
+     * Units a customer can pick. Weight products can switch between kg and gram.
+     * Piece is included when that is the selling unit, or when a kg product also sells by piece.
+     *
+     * @return list<string>
+     */
+    public function availableUnits(): array
+    {
+        $unit = $this->sellingUnit();
+
+        if ($unit === self::UNIT_PIECE) {
+            return [self::UNIT_PIECE];
+        }
+
+        $units = $unit === self::UNIT_GRAM
+            ? [self::UNIT_GRAM, self::UNIT_KG]
+            : [self::UNIT_KG, self::UNIT_GRAM];
+
+        if ($unit === self::UNIT_KG && $this->sell_by_piece && $this->price_per_piece !== null) {
+            $units[] = self::UNIT_PIECE;
+        }
+
+        return $units;
+    }
+
+    public function allowsUnit(string $unit): bool
+    {
+        return in_array($unit, $this->availableUnits(), true);
+    }
+
+    /** Convert an ordered quantity into the unit stored in stock_quantity. */
+    public function quantityInStockUnit(string $unit, string $quantity): string
+    {
+        $quantity = DecimalMath::normalizeNumericString($quantity);
+        $stockUnit = $this->sellingUnit();
+
+        if ($unit === $stockUnit) {
+            return $quantity;
+        }
+
+        if ($stockUnit === self::UNIT_KG && $unit === self::UNIT_GRAM) {
+            return DecimalMath::div($quantity, '1000');
+        }
+
+        if ($stockUnit === self::UNIT_GRAM && $unit === self::UNIT_KG) {
+            return DecimalMath::mul($quantity, '1000');
+        }
+
+        return $quantity;
     }
 
     protected function casts(): array
@@ -113,21 +196,47 @@ class Product extends Model
             'stock_quantity' => 'decimal:4',
             'min_order_quantity' => 'decimal:4',
             'price_per_kg' => 'decimal:4',
+            'price_per_gram' => 'decimal:4',
             'price_per_piece' => 'decimal:4',
             'view_count' => 'integer',
         ];
     }
 
-    /** Minimum quantity for the given unit. Empty product setting falls back to 0.25 kg / 1 piece. */
+    /**
+     * Minimum quantity for the given unit.
+     * An empty product setting falls back to 0.25 kg, 1 gram, or 1 piece on the selling unit.
+     * Gram and kilogram minimums convert at 1 kg = 1,000 g.
+     */
     public function minimumOrderQuantity(string $unit = 'kg'): string
     {
-        if ($this->min_order_quantity !== null && bccomp((string) $this->min_order_quantity, '0', 4) > 0) {
-            return DecimalMath::normalizeNumericString((string) $this->min_order_quantity);
+        $selling = $this->sellingUnit();
+        $hasCustom = $this->min_order_quantity !== null
+            && bccomp((string) $this->min_order_quantity, '0', 4) > 0;
+        $base = $hasCustom
+            ? DecimalMath::normalizeNumericString((string) $this->min_order_quantity)
+            : match ($selling) {
+                self::UNIT_PIECE => DecimalMath::normalizeNumericString('1'),
+                self::UNIT_GRAM => DecimalMath::normalizeNumericString('1'),
+                default => DecimalMath::normalizeNumericString('0.25'),
+            };
+
+        if ($unit === $selling) {
+            return $base;
         }
 
-        return $unit === 'piece'
-            ? DecimalMath::normalizeNumericString('1')
-            : DecimalMath::normalizeNumericString('0.25');
+        if ($selling === self::UNIT_KG && $unit === self::UNIT_GRAM) {
+            return DecimalMath::mul($base, '1000');
+        }
+
+        if ($selling === self::UNIT_GRAM && $unit === self::UNIT_KG) {
+            return DecimalMath::div($base, '1000');
+        }
+
+        return match ($unit) {
+            self::UNIT_PIECE => DecimalMath::normalizeNumericString('1'),
+            self::UNIT_GRAM => DecimalMath::normalizeNumericString('1'),
+            default => DecimalMath::normalizeNumericString('0.25'),
+        };
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

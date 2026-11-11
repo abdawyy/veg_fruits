@@ -42,7 +42,8 @@ class OrderItemsRelationManager extends RelationManager
                     ->label(__('Product'))
                     ->getStateUsing(fn (OrderItem $record): string => $record->productLabel()),
                 TextColumn::make('quantity')->alignEnd(),
-                TextColumn::make('unit'),
+                TextColumn::make('unit')
+                    ->formatStateUsing(fn (?string $state): string => $state ? \App\Support\StoreCart::unitLabel($state) : '—'),
                 TextColumn::make('unit_price')->numeric(decimalPlaces: 2),
                 TextColumn::make('line_total')->numeric(decimalPlaces: 2),
                 TextColumn::make('packaging'),

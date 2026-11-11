@@ -58,8 +58,16 @@
                         <a href="{{ route('store.product', $product) }}" class="text-lg font-bold text-slate-800 hover:text-brand dark:text-white dark:hover:text-brand-light">
                             {{ $product->getTranslation('name', $locale) }}
                         </a>
+                        @php
+                            $lineUnit = (string) $row['unit'];
+                            $lineUnits = $product->availableUnits();
+                            if (! in_array($lineUnit, $lineUnits, true)) {
+                                $lineUnit = $product->sellingUnit();
+                            }
+                            $lineUnitPrice = \App\Support\StoreCart::unitPriceForProduct($product, $lineUnit);
+                        @endphp
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {{ number_format((float) $product->price_per_kg, 2) }} {{ $currency }} / {{ __('aldawy.per_kg') }}
+                            {{ \App\Support\StoreCart::formatAmount($lineUnitPrice ?? '0') }} {{ $currency }} / {{ \App\Support\StoreCart::unitLabel($lineUnit) }}
                         </p>
                     </div>
                     <p class="text-xl font-extrabold text-brand">
@@ -109,19 +117,31 @@
                     <form method="post" action="{{ route('store.cart.update') }}" class="flex flex-wrap items-end gap-2">
                         @csrf
                         <input type="hidden" name="line" value="{{ $line }}">
-                        <input type="hidden" name="unit" value="{{ $row['unit'] }}">
+                        <label class="block">
+                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_unit') }}</span>
+                            @if (count($lineUnits) > 1)
+                                <select name="unit" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    @foreach ($lineUnits as $unitOption)
+                                        <option value="{{ $unitOption }}" @selected($lineUnit === $unitOption)>{{ \App\Support\StoreCart::unitLabel($unitOption) }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <input type="hidden" name="unit" value="{{ $lineUnit }}">
+                                <span class="inline-flex rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-slate-600 dark:text-slate-300">{{ \App\Support\StoreCart::unitLabel($lineUnit) }}</span>
+                            @endif
+                        </label>
                         <label class="block">
                             <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_qty') }}</span>
                             <div class="flex items-center gap-2">
                                 <input
                                     type="number"
                                     name="quantity"
-                                    step="{{ $row['unit'] === 'piece' ? '1' : '0.25' }}"
-                                    min="{{ $row['unit'] === 'piece' ? '1' : '0.25' }}"
-                                    value="{{ $row['quantity'] }}"
+                                    step="{{ $lineUnit === 'kg' ? '0.25' : '1' }}"
+                                    min="{{ \App\Support\StoreCart::formatQuantity($product->minimumOrderQuantity($lineUnit), $lineUnit) }}"
+                                    value="{{ \App\Support\StoreCart::formatQuantity((string) $row['quantity'], $lineUnit) }}"
                                     class="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                                 >
-                                <span class="text-sm text-slate-500">{{ $row['unit'] === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg') }}</span>
+                                <span class="text-sm text-slate-500">{{ \App\Support\StoreCart::unitLabel($lineUnit) }}</span>
                             </div>
                         </label>
                         <button type="submit" class="rounded-xl border border-brand/30 bg-brand/10 px-4 py-2 text-xs font-bold text-brand transition hover:bg-brand/20 dark:bg-brand/20">

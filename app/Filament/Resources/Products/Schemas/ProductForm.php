@@ -46,10 +46,9 @@ class ProductForm
                         TextInput::make('min_order_quantity')
                             ->numeric()
                             ->label(__('Minimum order quantity'))
-                            ->helperText(__('Leave empty for the shop default (0.25 kg or 1 piece).'))
+                            ->helperText(__('Leave empty for the shop default (0.25 kg, 1 gram, or 1 piece), measured in the selling unit.'))
                             ->minValue(0)
                             ->nullable(),
-                        Toggle::make('sell_by_piece')->label(__('Sell by piece')),
                     ]),
                 Section::make(__('Names & slugs'))
                     ->columns(2)
@@ -68,15 +67,48 @@ class ProductForm
                 Section::make(__('Pricing'))
                     ->columns(2)
                     ->schema([
+                        Select::make('unit')
+                            ->label(__('Selling unit'))
+                            ->options([
+                                'kg' => __('Kilogram'),
+                                'gram' => __('Gram'),
+                                'piece' => __('Piece'),
+                            ])
+                            ->default('kg')
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, $set): void {
+                                if ($state === 'piece') {
+                                    $set('sell_by_piece', true);
+                                }
+                                if ($state === 'gram') {
+                                    $set('sell_by_piece', false);
+                                }
+                            }),
+                        Toggle::make('sell_by_piece')
+                            ->label(__('Also sell by piece'))
+                            ->live()
+                            ->visible(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg'),
                         TextInput::make('price_per_kg')
                             ->label(__('Price per kg'))
                             ->numeric()
-                            ->required()
-                            ->default(0),
+                            ->minValue(0)
+                            ->default(0)
+                            ->required(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg')
+                            ->visible(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg'),
+                        TextInput::make('price_per_gram')
+                            ->label(__('Price per gram'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->required(fn ($get): bool => $get('unit') === 'gram')
+                            ->visible(fn ($get): bool => $get('unit') === 'gram')
+                            ->helperText(__('Customers can also order by kilogram. 1 kg = 1,000 grams.')),
                         TextInput::make('price_per_piece')
                             ->label(__('Price per piece'))
                             ->numeric()
-                            ->visible(fn ($get) => (bool) $get('sell_by_piece')),
+                            ->minValue(0)
+                            ->required(fn ($get): bool => $get('unit') === 'piece' || (bool) $get('sell_by_piece'))
+                            ->visible(fn ($get): bool => $get('unit') === 'piece' || (($get('unit') ?? 'kg') === 'kg' && (bool) $get('sell_by_piece'))),
                     ]),
                 Section::make(__('Media'))
                     ->description(__('Upload a file or paste an image URL (upload is shown first on the shop).'))

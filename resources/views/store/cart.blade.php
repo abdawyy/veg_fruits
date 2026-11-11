@@ -47,7 +47,7 @@
                                 'old' => number_format((float) $change['snapshot'], 2),
                                 'new' => number_format((float) $change['current'], 2),
                                 'currency' => config('aldawy.currency', 'EGP'),
-                                'unit' => ($change['unit'] ?? 'kg') === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg'),
+                                'unit' => \App\Support\StoreCart::unitLabel((string) ($change['unit'] ?? 'kg')),
                             ]) }}
                         </li>
                     @endforeach

@@ -51,7 +51,7 @@
                                 <li class="flex justify-between gap-4 rounded-xl bg-surface px-4 py-3 text-sm dark:bg-slate-800">
                                     <span class="font-medium text-slate-800 dark:text-slate-100">{{ $item->product->getTranslation('name', $locale) }}</span>
                                     <span class="shrink-0 font-bold text-brand">
-                                        {{ $item->quantity }} {{ $item->unit === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg') }}
+                                        {{ $item->quantity }} {{ \App\Support\StoreCart::unitLabel((string) $item->unit) }}
                                     </span>
                                 </li>
                             @endif

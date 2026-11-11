@@ -125,23 +125,36 @@ final class ProductBulkEditor
 
     /**
      * @param  Collection<int, Product>  $products
-     * @param  'kg'|'piece'  $mode
+     * @param  'kg'|'gram'|'piece'  $mode
      */
-    public static function setSellUnit(Collection $products, string $mode, ?string $pricePerPiece = null): int
+    public static function setSellUnit(Collection $products, string $mode, ?string $unitPrice = null): int
     {
         $updated = 0;
 
-        DB::transaction(function () use ($products, $mode, $pricePerPiece, &$updated): void {
+        DB::transaction(function () use ($products, $mode, $unitPrice, &$updated): void {
             foreach ($products as $product) {
-                if ($mode === 'piece') {
+                if ($mode === Product::UNIT_PIECE) {
+                    $product->unit = Product::UNIT_PIECE;
                     $product->sell_by_piece = true;
-                    if ($pricePerPiece !== null && $pricePerPiece !== '') {
-                        $product->price_per_piece = DecimalMath::normalizeNumericString($pricePerPiece);
+                    if ($unitPrice !== null && $unitPrice !== '') {
+                        $product->price_per_piece = DecimalMath::normalizeNumericString($unitPrice);
                     } elseif ($product->price_per_piece === null) {
                         $product->price_per_piece = $product->price_per_kg;
                     }
-                } else {
+                } elseif ($mode === Product::UNIT_GRAM) {
+                    $product->unit = Product::UNIT_GRAM;
                     $product->sell_by_piece = false;
+                    if ($unitPrice !== null && $unitPrice !== '') {
+                        $product->price_per_gram = DecimalMath::normalizeNumericString($unitPrice);
+                    } elseif ($product->price_per_gram === null) {
+                        $product->price_per_gram = DecimalMath::div((string) $product->price_per_kg, '1000');
+                    }
+                } else {
+                    $product->unit = Product::UNIT_KG;
+                    $product->sell_by_piece = false;
+                    if ($unitPrice !== null && $unitPrice !== '') {
+                        $product->price_per_kg = DecimalMath::normalizeNumericString($unitPrice);
+                    }
                 }
 
                 $product->save();

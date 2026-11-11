@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Services\Cart\CalculateCartTotalService;
 use App\Services\Money\DecimalMath;
 use App\Services\Pricing\SurchargeOnBase;
+use App\Support\StoreCart;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,8 +20,8 @@ final class CartQuoteController extends Controller
         $data = $request->validate([
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'lines.*.unit' => ['required', Rule::in(['kg', 'piece'])],
-            'lines.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:500'],
+            'lines.*.unit' => ['required', Rule::in(StoreCart::units())],
+            'lines.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
             'lines.*.preparation_service_ids' => ['sometimes', 'array'],
             'lines.*.preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
             'lines.*.packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
@@ -39,17 +40,28 @@ final class CartQuoteController extends Controller
                 ])
                 ->findOrFail((int) $row['product_id']);
 
-            if ($product->isOutOfStock() || ! $product->hasStockFor((string) $row['quantity'])) {
+            $unit = (string) $row['unit'];
+            $qtyRaw = (string) $row['quantity'];
+
+            if (! $product->allowsUnit($unit)) {
+                return response()->json(['message' => __('aldawy.cart_unit_unavailable'), 'product_id' => $product->id], 422);
+            }
+
+            if (bccomp(DecimalMath::normalizeNumericString($qtyRaw), StoreCart::maxQuantity($unit), 4) > 0) {
+                return response()->json(['message' => __('aldawy.cart_max_quantity', [
+                    'maximum' => StoreCart::formatQuantity(StoreCart::maxQuantity($unit), $unit),
+                    'unit' => StoreCart::unitLabel($unit),
+                ]), 'product_id' => $product->id], 422);
+            }
+
+            if ($product->isOutOfStock() || ! $product->hasStockFor($qtyRaw, $unit)) {
                 return response()->json([
                     'message' => __('aldawy.stock_insufficient'),
                     'product_id' => $product->id,
                 ], 422);
             }
 
-            $unit = $row['unit'];
-            $unitPrice = $unit === 'piece'
-                ? ($product->price_per_piece !== null ? DecimalMath::normalizeNumericString((string) $product->price_per_piece) : null)
-                : DecimalMath::normalizeNumericString((string) $product->price_per_kg);
+            $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
 
             if ($unitPrice === null) {
                 return response()->json(['message' => __('aldawy.cart_unit_unavailable'), 'product_id' => $product->id], 422);

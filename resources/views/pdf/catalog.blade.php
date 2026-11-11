@@ -26,7 +26,11 @@
                     <td lang="en">{{ $product->getTranslation('name', 'en') }}</td>
                     <td lang="ar">{{ $product->getTranslation('name', 'ar') }}</td>
                     <td>{{ $product->category?->getTranslation('name', app()->getLocale()) ?? '—' }}</td>
-                    <td>{{ number_format((float) $product->price_per_kg, 2) }}</td>
+                    @php
+                        $catalogUnit = $product->sellingUnit();
+                        $catalogPrice = \App\Support\StoreCart::unitPriceForProduct($product, $catalogUnit);
+                    @endphp
+                    <td>{{ $catalogPrice !== null ? \App\Support\StoreCart::formatAmount($catalogPrice) : '—' }} / {{ \App\Support\StoreCart::unitLabel($catalogUnit) }}</td>
                     <td>{{ $product->is_active ? 'yes' : 'no' }}</td>
                 </tr>
             @endforeach

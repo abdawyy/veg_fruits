@@ -35,8 +35,15 @@ final class ProductBulkActionsTest extends TestCase
 
         ProductBulkEditor::setSellUnit(new EloquentCollection([$b->fresh()]), 'piece', '9');
         $b = $b->fresh();
+        $this->assertSame('piece', $b->unit);
         $this->assertTrue($b->sell_by_piece);
         $this->assertSame(0, bccomp((string) $b->price_per_piece, '9', 4));
+
+        ProductBulkEditor::setSellUnit(new EloquentCollection([$a->fresh()]), 'gram', '0.02');
+        $a = $a->fresh();
+        $this->assertSame('gram', $a->unit);
+        $this->assertFalse($a->sell_by_piece);
+        $this->assertSame(0, bccomp((string) $a->price_per_gram, '0.02', 4));
     }
 
     public function test_excel_import_updates_and_creates_products_by_sku(): void

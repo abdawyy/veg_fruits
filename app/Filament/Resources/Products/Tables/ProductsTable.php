@@ -50,6 +50,14 @@ class ProductsTable
                     ->label(__('Category'))
                     ->formatStateUsing(fn ($state, $record) => $record->category?->getTranslation('name', 'en') ?? '—'),
                 TextColumn::make('price_per_kg')->sortable()->numeric(decimalPlaces: 2),
+                TextColumn::make('unit')
+                    ->label(__('Unit'))
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'gram' => __('Gram'),
+                        'piece' => __('Piece'),
+                        default => __('Kilogram'),
+                    }),
                 TextColumn::make('min_order_quantity')
                     ->label(__('Min qty'))
                     ->placeholder('—')
@@ -213,28 +221,29 @@ class ProductsTable
                         })
                         ->deselectRecordsAfterCompletion(),
                     BulkAction::make('set_sell_unit')
-                        ->label(__('Sell by kg or piece'))
+                        ->label(__('Change selling unit'))
                         ->icon('heroicon-o-shopping-bag')
                         ->schema([
                             Select::make('mode')
                                 ->label(__('Selling unit'))
                                 ->options([
-                                    'kg' => __('Kilogram only'),
-                                    'piece' => __('Allow piece (and kg)'),
+                                    'kg' => __('Kilogram'),
+                                    'gram' => __('Gram'),
+                                    'piece' => __('Piece'),
                                 ])
                                 ->required()
                                 ->default('kg'),
-                            TextInput::make('price_per_piece')
-                                ->label(__('Price per piece'))
+                            TextInput::make('unit_price')
+                                ->label(__('Price for this unit'))
                                 ->numeric()
                                 ->minValue(0)
-                                ->helperText(__('Used when enabling piece sales and a product has no piece price yet.')),
+                                ->helperText(__('Kilogram: price per kg. Gram: price per gram. Piece: price per piece. Leave empty to keep the current price.')),
                         ])
                         ->action(function (Collection $records, array $data): void {
                             $count = ProductBulkEditor::setSellUnit(
                                 $records,
                                 (string) $data['mode'],
-                                isset($data['price_per_piece']) ? (string) $data['price_per_piece'] : null,
+                                isset($data['unit_price']) && $data['unit_price'] !== '' ? (string) $data['unit_price'] : null,
                             );
                             Notification::make()
                                 ->title(__('Updated sell unit on :count products', ['count' => $count]))

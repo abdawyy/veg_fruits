@@ -62,15 +62,19 @@
                 </p>
 
                 <div class="aldawy-card mt-6 border-brand/20 bg-gradient-to-br from-brand/5 to-transparent p-5 dark:from-brand/10">
+                    @php
+                        $sellUnit = $product->sellingUnit();
+                        $sellPrice = \App\Support\StoreCart::unitPriceForProduct($product, $sellUnit);
+                    @endphp
                     <div class="flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ __('aldawy.per_kg') }}</p>
+                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ \App\Support\StoreCart::unitLabel($sellUnit) }}</p>
                             <p class="text-3xl font-extrabold text-brand dark:text-brand-light">
-                                {{ number_format((float) $product->price_per_kg, 2) }}
+                                {{ \App\Support\StoreCart::formatAmount($sellPrice ?? '0') }}
                                 <span class="text-base font-semibold text-slate-500 dark:text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
                             </p>
                         </div>
-                        @if ($product->sell_by_piece && $product->price_per_piece)
+                        @if ($sellUnit === 'kg' && $product->sell_by_piece && $product->price_per_piece)
                             <span class="rounded-xl bg-accent/10 px-3 py-2 text-sm font-bold text-accent">
                                 {{ __('aldawy.piece_price', ['price' => number_format((float) $product->price_per_piece, 2)]) }}
                             </span>

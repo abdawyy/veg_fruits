@@ -67,8 +67,8 @@ new class extends Component
                                 @else
                                     <span class="font-semibold">{{ $row['product']->getTranslation('name', $locale) }}</span>
                                     <span class="block text-xs text-slate-500">
-                                        {{ $row['quantity'] }}
-                                        {{ $row['unit'] === 'piece' ? __('aldawy.per_piece') : __('aldawy.per_kg') }}
+                                        {{ \App\Support\StoreCart::formatQuantity((string) $row['quantity'], (string) $row['unit']) }}
+                                        {{ \App\Support\StoreCart::unitLabel((string) $row['unit']) }}
                                     </span>
                                 @endif
                                 <span class="mt-1 block font-semibold text-brand">{{ number_format((float) $row['line_subtotal'], 2) }} {{ config('aldawy.currency', 'EGP') }}</span>
