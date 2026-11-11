@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Product;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -18,6 +19,8 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
             'sku' => ['required', 'string', 'max:64'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'price_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'price_per_piece' => ['nullable', 'numeric', 'min:0'],
+            'min_order_quantity' => ['nullable', 'numeric', 'min:0'],
             'track_stock' => ['nullable'],
             'stock_quantity' => ['nullable', 'numeric', 'min:0'],
         ];
@@ -57,8 +60,8 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
         $slugAr = trim((string) ($row['slug_ar'] ?? ''));
         if ($slugEn !== '' || $slugAr !== '') {
             $product->slug = [
-                'en' => $slugEn !== '' ? $slugEn : ($product->getTranslation('slug', 'en') ?: \Illuminate\Support\Str::slug($product->getTranslation('name', 'en'))),
-                'ar' => $slugAr !== '' ? $slugAr : ($product->getTranslation('slug', 'ar') ?: \Illuminate\Support\Str::slug($product->getTranslation('name', 'ar'))),
+                'en' => $slugEn !== '' ? $slugEn : ($product->getTranslation('slug', 'en') ?: Str::slug($product->getTranslation('name', 'en'))),
+                'ar' => $slugAr !== '' ? $slugAr : ($product->getTranslation('slug', 'ar') ?: Str::slug($product->getTranslation('name', 'ar'))),
             ];
         }
 
@@ -100,8 +103,33 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
             $product->stock_quantity = $row['stock_quantity'];
         }
 
+        if (array_key_exists('min_order_quantity', $row)) {
+            $minQty = $row['min_order_quantity'];
+            $product->min_order_quantity = ($minQty === null || $minQty === '')
+                ? null
+                : $minQty;
+        }
+
         if (isset($row['image_url']) && $row['image_url'] !== '') {
             $product->image_url = (string) $row['image_url'];
+        }
+
+        if ($product->exists === false) {
+            $product->price_per_kg ??= 0;
+            $product->is_active ??= true;
+            if (! filled($product->getTranslation('name', 'en'))) {
+                $product->name = [
+                    'en' => $sku,
+                    'ar' => $sku,
+                ];
+            }
+            if (! filled($product->getTranslation('slug', 'en'))) {
+                $slug = Str::slug($sku);
+                $product->slug = [
+                    'en' => $slug !== '' ? $slug : 'product-'.$sku,
+                    'ar' => $slug !== '' ? $slug : 'product-'.$sku,
+                ];
+            }
         }
 
         return $product;

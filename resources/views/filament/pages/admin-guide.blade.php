@@ -2,7 +2,7 @@
     <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
         <h2 class="text-base font-semibold text-gray-950 dark:text-white">Products &amp; special services</h2>
         <ul class="mt-3 list-disc space-y-2 ps-5">
-            <li><strong>Products</strong> — sidebar group <em>Catalog</em> → add/edit SKUs, bilingual names, prices, image URL, and per-product <strong>preparation services</strong> &amp; <strong>packaging</strong> (checkboxes).</li>
+            <li><strong>Products</strong> — sidebar group <em>Catalog</em> → add/edit SKUs, bilingual names, prices, image URL, minimum order quantity, and per-product <strong>preparation services</strong> &amp; <strong>packaging</strong> (checkboxes). Select rows for bulk actions: apply price, discount, mark active/inactive, change minimum qty, sell by kg or piece, and export the selection to Excel. Use the page header <strong>Import Excel</strong> to update those rows or add new SKUs (match on <code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">sku</code>).</li>
             <li><strong>Preparation services</strong> — catalog-wide definitions (wash, peel, …) and surcharges.</li>
             <li><strong>Packaging types</strong> — bag / tray / box fees applied when customers pick packaging at checkout.</li>
         </ul>

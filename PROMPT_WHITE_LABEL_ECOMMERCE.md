@@ -521,7 +521,7 @@ Run `php artisan test` before calling the work done.
 4. Paymob gateway, transactions table, webhook, return page.
 5. Visitor middleware, both dashboards, per-customer insights.
 6. Banner + gallery + design asset admin, wire every key into Blade.
-7. Excel import/export for products and orders, phone OTP if enabled, subscriptions.
+7. Excel import/export for products and orders (product list: bulk apply price/discount, active flag, minimum qty, kg/piece unit, export selected then re-import by SKU to update or add), phone OTP if enabled, subscriptions.
 8. EN/AR strings, admin guide, seed data for the business profile above.
 
 ---

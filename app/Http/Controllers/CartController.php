@@ -96,6 +96,7 @@ final class CartController extends Controller
             ->firstOrFail();
 
         [$unit, $quantity] = $this->resolveUnitQuantity($data, $product);
+        $this->assertMinimumQuantity($product, $unit, $quantity);
 
         $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
         if ($unitPrice === null) {
@@ -138,7 +139,7 @@ final class CartController extends Controller
             'quantity' => ['required', 'numeric', 'min:0.01', 'max:500'],
         ]);
 
-        $this->assertLineStock((int) $data['line'], (string) $data['quantity']);
+        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity']);
 
         StoreCart::update((int) $data['line'], $data['unit'], (string) $data['quantity']);
 
@@ -156,7 +157,7 @@ final class CartController extends Controller
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
 
-        $this->assertLineStock((int) $data['line'], (string) $data['quantity']);
+        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity']);
 
         StoreCart::updateLine(
             (int) $data['line'],
@@ -213,7 +214,7 @@ final class CartController extends Controller
         return back()->with('status', __('aldawy.coupon_removed'));
     }
 
-    private function assertLineStock(int $lineIndex, string $quantity): void
+    private function assertLineQuantityRules(int $lineIndex, string $unit, string $quantity): void
     {
         $lines = StoreCart::lines();
         if (! isset($lines[$lineIndex]) || ($lines[$lineIndex]['type'] ?? StoreCart::KIND_PRODUCT) !== StoreCart::KIND_PRODUCT) {
@@ -221,9 +222,30 @@ final class CartController extends Controller
         }
 
         $product = Product::query()->find((int) $lines[$lineIndex]['product_id']);
-        if (! $product || $product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+        if (! $product) {
             throw ValidationException::withMessages([
                 'quantity' => [__('aldawy.stock_insufficient')],
+            ]);
+        }
+
+        $this->assertMinimumQuantity($product, $unit, $quantity);
+
+        if ($product->isOutOfStock() || ! $product->hasStockFor($quantity)) {
+            throw ValidationException::withMessages([
+                'quantity' => [__('aldawy.stock_insufficient')],
+            ]);
+        }
+    }
+
+    private function assertMinimumQuantity(Product $product, string $unit, string $quantity): void
+    {
+        $minimum = $product->minimumOrderQuantity($unit);
+        if (bccomp($quantity, $minimum, 4) < 0) {
+            throw ValidationException::withMessages([
+                'quantity' => [__('aldawy.cart_min_quantity', [
+                    'minimum' => number_format((float) $minimum, 2),
+                    'unit' => $unit === StoreCart::UNIT_PIECE ? __('aldawy.per_piece') : __('aldawy.per_kg'),
+                ])],
             ]);
         }
     }

@@ -43,6 +43,12 @@ class ProductForm
                             ->numeric()
                             ->label(__('Stock quantity'))
                             ->visible(fn ($get) => (bool) $get('track_stock')),
+                        TextInput::make('min_order_quantity')
+                            ->numeric()
+                            ->label(__('Minimum order quantity'))
+                            ->helperText(__('Leave empty for the shop default (0.25 kg or 1 piece).'))
+                            ->minValue(0)
+                            ->nullable(),
                         Toggle::make('sell_by_piece')->label(__('Sell by piece')),
                     ]),
                 Section::make(__('Names & slugs'))

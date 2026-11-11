@@ -1,8 +1,10 @@
 @php
     $sellPiece = $product->sell_by_piece && $product->price_per_piece;
-    $defaultUnit = $sellPiece ? 'kg' : 'kg';
+    $minKg = $product->minimumOrderQuantity('kg');
+    $minPiece = $product->minimumOrderQuantity('piece');
+    $defaultQty = max((float) $minKg, 1);
 @endphp
-<div class="flex flex-wrap items-end gap-2" data-unit-quantity>
+<div class="flex flex-wrap items-end gap-2" data-unit-quantity data-min-kg="{{ $minKg }}" data-min-piece="{{ $minPiece }}">
     @if ($sellPiece)
         <div>
             <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="unit-{{ $product->id }}">{{ __('aldawy.cart_unit') }}</label>
@@ -21,8 +23,8 @@
             name="quantity"
             type="number"
             step="0.25"
-            min="0.25"
-            value="1"
+            min="{{ $minKg }}"
+            value="{{ rtrim(rtrim(number_format($defaultQty, 2, '.', ''), '0'), '.') }}"
             data-qty-kg
             class="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-28 !py-2 !text-sm"
         >
@@ -36,14 +38,20 @@
             var unitSel = root.querySelector('[name="unit"]');
             var qty = root.querySelector('[name="quantity"]');
             if (!unitSel || !qty) return;
+            var minKg = parseFloat(root.dataset.minKg || '0.25');
+            var minPiece = parseFloat(root.dataset.minPiece || '1');
             function sync() {
                 if (unitSel.value === 'piece') {
                     qty.step = '1';
-                    qty.min = '1';
-                    qty.value = Math.max(1, Math.round(parseFloat(qty.value) || 1));
+                    qty.min = String(minPiece);
+                    qty.value = Math.max(minPiece, Math.round(parseFloat(qty.value) || minPiece));
                 } else {
                     qty.step = '0.25';
-                    qty.min = '0.25';
+                    qty.min = String(minKg);
+                    var current = parseFloat(qty.value) || minKg;
+                    if (current < minKg) {
+                        qty.value = minKg;
+                    }
                 }
             }
             unitSel.addEventListener('change', sync);

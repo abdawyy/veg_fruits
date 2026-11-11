@@ -335,6 +335,7 @@ return [
 
     'stock_out' => 'غير متوفر',
     'stock_insufficient' => 'الكمية غير متوفرة في المخزون.',
+    'cart_min_quantity' => 'أضف على الأقل :minimum :unit من هذا المنتج.',
 
     'phone_login_title' => 'الدخول برقم الهاتف',
     'phone_login_sub' => 'سنرسل رمزاً لمرة واحدة عبر الرسائل.',

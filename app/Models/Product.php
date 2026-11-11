@@ -32,6 +32,7 @@ class Product extends Model
         'is_active',
         'track_stock',
         'stock_quantity',
+        'min_order_quantity',
         'view_count',
     ];
 
@@ -110,10 +111,23 @@ class Product extends Model
             'is_active' => 'boolean',
             'track_stock' => 'boolean',
             'stock_quantity' => 'decimal:4',
+            'min_order_quantity' => 'decimal:4',
             'price_per_kg' => 'decimal:4',
             'price_per_piece' => 'decimal:4',
             'view_count' => 'integer',
         ];
+    }
+
+    /** Minimum quantity for the given unit. Empty product setting falls back to 0.25 kg / 1 piece. */
+    public function minimumOrderQuantity(string $unit = 'kg'): string
+    {
+        if ($this->min_order_quantity !== null && bccomp((string) $this->min_order_quantity, '0', 4) > 0) {
+            return DecimalMath::normalizeNumericString((string) $this->min_order_quantity);
+        }
+
+        return $unit === 'piece'
+            ? DecimalMath::normalizeNumericString('1')
+            : DecimalMath::normalizeNumericString('0.25');
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

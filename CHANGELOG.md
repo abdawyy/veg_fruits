@@ -4,6 +4,26 @@ All notable modifications, newest first. Each entry lists **what changed**, **fi
 
 ---
 
+## 2026-11-11 — Product bulk actions and Excel round-trip
+
+### What to run after pulling
+
+```powershell
+php artisan migrate
+```
+
+### What changed
+
+On **Catalog → Products**, selected rows can apply a price, apply a percent/fixed discount, mark active or inactive, set a minimum order quantity, switch kg vs piece selling, and export Excel/PDF. The Excel export now includes stock and minimum qty columns so the same file can be edited and re-imported (update by SKU, or add new SKUs). The storefront respects each product’s minimum quantity.
+
+### Files
+
+- New: `database/migrations/2026_11_11_000001_add_min_order_quantity_to_products_table.php`, `app/Support/ProductBulkEditor.php`, `tests/Feature/ProductBulkActionsTest.php`
+- `ProductsTable`, `ProductForm`, `Product` model, `ProductsExport`, `ProductsImport`
+- `CartController`, product quantity partial, `lang/{en,ar}/aldawy.php`, admin guide
+
+---
+
 ## 2026-11-06 — Minimum order in the admin panel
 
 ### What to run after pulling

@@ -332,6 +332,7 @@ return [
 
     'stock_out' => 'Out of stock',
     'stock_insufficient' => 'Not enough stock for this quantity.',
+    'cart_min_quantity' => 'Add at least :minimum :unit of this product.',
 
     'phone_login_title' => 'Sign in with phone',
     'phone_login_sub' => 'We will send a one-time code by SMS.',
