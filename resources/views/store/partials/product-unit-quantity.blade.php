@@ -2,7 +2,9 @@
     use App\Support\StoreCart;
 
     $units = $product->availableUnits();
-    $defaultUnit = $product->sellingUnit();
+    $defaultUnit = $product->defaultOrderUnit();
+    $defaultOrigin = $product->defaultOrigin();
+    $origins = $product->availableOrigins();
     $minKg = $product->minimumOrderQuantity('kg');
     $minGram = $product->minimumOrderQuantity('gram');
     $minPiece = $product->minimumOrderQuantity('piece');
@@ -25,6 +27,18 @@
     data-min-gram="{{ $minGram }}"
     data-min-piece="{{ $minPiece }}"
 >
+    @if (count($origins) > 1)
+        <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="origin-{{ $product->id }}">{{ __('aldawy.cart_origin') }}</label>
+            <select id="origin-{{ $product->id }}" name="origin" class="rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-auto !py-2 !text-sm">
+                @foreach ($origins as $origin)
+                    <option value="{{ $origin }}" @selected($origin === $defaultOrigin)>{{ StoreCart::originLabel($origin) }}</option>
+                @endforeach
+            </select>
+        </div>
+    @else
+        <input type="hidden" name="origin" value="{{ $defaultOrigin }}">
+    @endif
     @if (count($units) > 1)
         <div>
             <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="unit-{{ $product->id }}">{{ __('aldawy.cart_unit') }}</label>

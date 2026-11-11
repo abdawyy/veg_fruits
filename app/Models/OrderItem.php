@@ -13,6 +13,7 @@ class OrderItem extends Model
         'produce_box_id',
         'product_name_snapshot',
         'unit',
+        'origin',
         'quantity',
         'services',
         'packaging',

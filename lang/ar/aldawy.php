@@ -30,6 +30,9 @@ return [
     'per_kg' => 'كيلو',
     'per_gram' => 'جرام',
     'per_piece' => 'قطعة',
+    'origin_local' => 'محلي',
+    'origin_imported' => 'مستورد',
+    'cart_origin' => 'المصدر',
     'cart_unit' => 'الوحدة',
     'or_piece' => 'أو :p للقطعة',
     'piece_price' => 'القطعة: :price',
@@ -303,6 +306,8 @@ return [
     'verification_link_sent' => 'تم إرسال رابط تأكيد جديد إلى بريدك.',
 
     'cart_unit_unavailable' => 'هذه الوحدة غير متاحة لهذا المنتج.',
+    'cart_origin_unavailable' => 'هذا المصدر غير متاح لهذا المنتج.',
+    'cart_origin_unpriced' => 'لا يوجد سعر :origin لهذا المنتج.',
     'cart_price_changed_line' => ':old ← :new :currency / :unit',
 
     'order_cancel_action' => 'إلغاء الطلب',

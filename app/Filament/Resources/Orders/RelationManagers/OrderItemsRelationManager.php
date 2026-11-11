@@ -44,6 +44,8 @@ class OrderItemsRelationManager extends RelationManager
                 TextColumn::make('quantity')->alignEnd(),
                 TextColumn::make('unit')
                     ->formatStateUsing(fn (?string $state): string => $state ? \App\Support\StoreCart::unitLabel($state) : '—'),
+                TextColumn::make('origin')
+                    ->formatStateUsing(fn (?string $state): string => $state ? \App\Support\StoreCart::originLabel($state) : '—'),
                 TextColumn::make('unit_price')->numeric(decimalPlaces: 2),
                 TextColumn::make('line_total')->numeric(decimalPlaces: 2),
                 TextColumn::make('packaging'),

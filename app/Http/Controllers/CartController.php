@@ -84,6 +84,7 @@ final class CartController extends Controller
                 Rule::exists('products', 'id')->where(fn ($q) => $q->where('is_active', true)),
             ],
             'unit' => ['sometimes', Rule::in(StoreCart::units())],
+            'origin' => ['sometimes', Rule::in([Product::ORIGIN_LOCAL, Product::ORIGIN_IMPORTED])],
             'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500000'],
             'kg' => ['sometimes', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
@@ -97,13 +98,14 @@ final class CartController extends Controller
             ->firstOrFail();
 
         [$unit, $quantity] = $this->resolveUnitQuantity($data, $product);
+        $origin = $this->resolveOrigin($data, $product);
         $this->assertQuantityCap($unit, $quantity);
         $this->assertMinimumQuantity($product, $unit, $quantity);
 
-        $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+        $unitPrice = StoreCart::unitPriceForProduct($product, $unit, $origin);
         if ($unitPrice === null) {
             throw ValidationException::withMessages([
-                'unit' => [__('aldawy.cart_unit_unavailable')],
+                'origin' => [__('aldawy.cart_origin_unpriced', ['origin' => StoreCart::originLabel($origin)])],
             ]);
         }
 
@@ -120,6 +122,7 @@ final class CartController extends Controller
             $data['preparation_service_ids'] ?? [],
             isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null,
             $unitPrice,
+            $origin,
         );
 
         if ($request->expectsJson()) {
@@ -138,12 +141,13 @@ final class CartController extends Controller
         $data = $request->validate([
             'line' => ['required', 'integer', 'min:0'],
             'unit' => ['required', Rule::in(StoreCart::units())],
+            'origin' => ['required', Rule::in([Product::ORIGIN_LOCAL, Product::ORIGIN_IMPORTED])],
             'quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
         ]);
 
-        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity']);
+        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity'], $data['origin']);
 
-        StoreCart::update((int) $data['line'], $data['unit'], (string) $data['quantity']);
+        StoreCart::update((int) $data['line'], $data['unit'], (string) $data['quantity'], $data['origin']);
 
         return back()->with('status', __('aldawy.cart_updated'));
     }
@@ -153,13 +157,14 @@ final class CartController extends Controller
         $data = $request->validate([
             'line' => ['required', 'integer', 'min:0'],
             'unit' => ['required', Rule::in(StoreCart::units())],
+            'origin' => ['required', Rule::in([Product::ORIGIN_LOCAL, Product::ORIGIN_IMPORTED])],
             'quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
             'preparation_service_ids' => ['sometimes', 'array'],
             'preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
 
-        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity']);
+        $this->assertLineQuantityRules((int) $data['line'], $data['unit'], (string) $data['quantity'], $data['origin']);
 
         StoreCart::updateLine(
             (int) $data['line'],
@@ -167,6 +172,7 @@ final class CartController extends Controller
             (string) $data['quantity'],
             $data['preparation_service_ids'] ?? [],
             isset($data['packaging_type_id']) ? (int) $data['packaging_type_id'] : null,
+            $data['origin'],
         );
 
         return back()->with('status', __('aldawy.cart_options_updated'));
@@ -216,7 +222,7 @@ final class CartController extends Controller
         return back()->with('status', __('aldawy.coupon_removed'));
     }
 
-    private function assertLineQuantityRules(int $lineIndex, string $unit, string $quantity): void
+    private function assertLineQuantityRules(int $lineIndex, string $unit, string $quantity, string $origin): void
     {
         $lines = StoreCart::lines();
         if (! isset($lines[$lineIndex]) || ($lines[$lineIndex]['type'] ?? StoreCart::KIND_PRODUCT) !== StoreCart::KIND_PRODUCT) {
@@ -233,6 +239,18 @@ final class CartController extends Controller
         if (! $product->allowsUnit($unit)) {
             throw ValidationException::withMessages([
                 'unit' => [__('aldawy.cart_unit_unavailable')],
+            ]);
+        }
+
+        if (! $product->allowsOrigin($origin)) {
+            throw ValidationException::withMessages([
+                'origin' => [__('aldawy.cart_origin_unavailable')],
+            ]);
+        }
+
+        if (StoreCart::unitPriceForProduct($product, $unit, $origin) === null) {
+            throw ValidationException::withMessages([
+                'origin' => [__('aldawy.cart_origin_unpriced', ['origin' => StoreCart::originLabel($origin)])],
             ]);
         }
 
@@ -275,7 +293,7 @@ final class CartController extends Controller
     /** @param  array<string, mixed>  $data */
     private function resolveUnitQuantity(array $data, Product $product): array
     {
-        $unit = $data['unit'] ?? $product->sellingUnit();
+        $unit = $data['unit'] ?? $product->defaultOrderUnit();
         if (isset($data['quantity'])) {
             $quantity = (string) $data['quantity'];
         } elseif (isset($data['kg'])) {
@@ -292,5 +310,19 @@ final class CartController extends Controller
         }
 
         return [$unit, $quantity];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function resolveOrigin(array $data, Product $product): string
+    {
+        $origin = $data['origin'] ?? $product->defaultOrigin();
+
+        if (! $product->allowsOrigin($origin)) {
+            throw ValidationException::withMessages([
+                'origin' => [__('aldawy.cart_origin_unavailable')],
+            ]);
+        }
+
+        return $origin;
     }
 }

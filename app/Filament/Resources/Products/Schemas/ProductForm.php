@@ -65,8 +65,17 @@ class ProductForm
                         Textarea::make('description.ar')->label(__('Description (Arabic)'))->rows(3),
                     ]),
                 Section::make(__('Pricing'))
+                    ->description(__('A product can be local, imported, or both. Each source has its own price, and a missing price is not taken from the other source.'))
                     ->columns(2)
                     ->schema([
+                        Toggle::make('is_local')
+                            ->label(__('Local'))
+                            ->default(true)
+                            ->live(),
+                        Toggle::make('is_imported')
+                            ->label(__('Imported'))
+                            ->default(false)
+                            ->live(),
                         Select::make('unit')
                             ->label(__('Selling unit'))
                             ->options([
@@ -75,8 +84,14 @@ class ProductForm
                                 'piece' => __('Piece'),
                             ])
                             ->default('kg')
+                            ->selectablePlaceholder(false)
                             ->required()
                             ->live()
+                            ->afterStateHydrated(function (Select $component): void {
+                                if (blank($component->getState())) {
+                                    $component->state(Product::UNIT_KG);
+                                }
+                            })
                             ->afterStateUpdated(function ($state, $set): void {
                                 if ($state === 'piece') {
                                     $set('sell_by_piece', true);
@@ -90,25 +105,43 @@ class ProductForm
                             ->live()
                             ->visible(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg'),
                         TextInput::make('price_per_kg')
-                            ->label(__('Price per kg'))
+                            ->label(__('Local price per kg'))
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
-                            ->required(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg')
-                            ->visible(fn ($get): bool => ($get('unit') ?? 'kg') === 'kg'),
+                            ->required(fn ($get): bool => (bool) $get('is_local') && ($get('unit') ?? 'kg') === 'kg')
+                            ->visible(fn ($get): bool => (bool) $get('is_local') && ($get('unit') ?? 'kg') === 'kg'),
+                        TextInput::make('imported_price_per_kg')
+                            ->label(__('Imported price per kg'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->required(fn ($get): bool => (bool) $get('is_imported') && ($get('unit') ?? 'kg') === 'kg')
+                            ->visible(fn ($get): bool => (bool) $get('is_imported') && ($get('unit') ?? 'kg') === 'kg'),
                         TextInput::make('price_per_gram')
-                            ->label(__('Price per gram'))
+                            ->label(__('Local price per gram'))
                             ->numeric()
                             ->minValue(0)
-                            ->required(fn ($get): bool => $get('unit') === 'gram')
-                            ->visible(fn ($get): bool => $get('unit') === 'gram')
+                            ->required(fn ($get): bool => (bool) $get('is_local') && $get('unit') === 'gram')
+                            ->visible(fn ($get): bool => (bool) $get('is_local') && $get('unit') === 'gram')
                             ->helperText(__('Customers can also order by kilogram. 1 kg = 1,000 grams.')),
-                        TextInput::make('price_per_piece')
-                            ->label(__('Price per piece'))
+                        TextInput::make('imported_price_per_gram')
+                            ->label(__('Imported price per gram'))
                             ->numeric()
                             ->minValue(0)
-                            ->required(fn ($get): bool => $get('unit') === 'piece' || (bool) $get('sell_by_piece'))
-                            ->visible(fn ($get): bool => $get('unit') === 'piece' || (($get('unit') ?? 'kg') === 'kg' && (bool) $get('sell_by_piece'))),
+                            ->required(fn ($get): bool => (bool) $get('is_imported') && $get('unit') === 'gram')
+                            ->visible(fn ($get): bool => (bool) $get('is_imported') && $get('unit') === 'gram'),
+                        TextInput::make('price_per_piece')
+                            ->label(__('Local price per piece'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->required(fn ($get): bool => (bool) $get('is_local') && ($get('unit') === 'piece' || (bool) $get('sell_by_piece')))
+                            ->visible(fn ($get): bool => (bool) $get('is_local') && ($get('unit') === 'piece' || (($get('unit') ?? 'kg') === 'kg' && (bool) $get('sell_by_piece')))),
+                        TextInput::make('imported_price_per_piece')
+                            ->label(__('Imported price per piece'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->required(fn ($get): bool => (bool) $get('is_imported') && ($get('unit') === 'piece' || (bool) $get('sell_by_piece')))
+                            ->visible(fn ($get): bool => (bool) $get('is_imported') && ($get('unit') === 'piece' || (($get('unit') ?? 'kg') === 'kg' && (bool) $get('sell_by_piece')))),
                     ]),
                 Section::make(__('Media'))
                     ->description(__('Upload a file or paste an image URL (upload is shown first on the shop).'))

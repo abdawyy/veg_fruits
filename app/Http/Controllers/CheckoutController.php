@@ -121,7 +121,8 @@ final class CheckoutController extends Controller
             $packagingCode = $pkg ? (string) $pkg->code : '';
             $extras = bcadd($row['services_surcharge'], $row['packaging_surcharge'], 4);
             $unit = $row['unit'];
-            $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+            $origin = $row['origin'] ?? $product->defaultOrigin();
+            $unitPrice = StoreCart::unitPriceForProduct($product, $unit, $origin);
             if ($unitPrice === null) {
                 return redirect()
                     ->route('store.cart')
@@ -138,6 +139,7 @@ final class CheckoutController extends Controller
                 packaging: $packagingCode,
                 unitPrice: $unitPrice,
                 servicesSurchargeTotal: $extras,
+                origin: $origin,
             );
         }
 

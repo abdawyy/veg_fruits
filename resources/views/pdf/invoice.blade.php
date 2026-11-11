@@ -127,7 +127,12 @@
                     <tr class="{{ $i % 2 === 1 ? 'alt' : '' }}">
                         <td>{{ $i + 1 }}</td>
                         <td>{{ $label }}</td>
-                        <td>{{ \App\Support\StoreCart::unitLabel((string) $item->unit) }}</td>
+                        <td>
+                            {{ \App\Support\StoreCart::unitLabel((string) $item->unit) }}
+                            @if ($item->origin)
+                                · {{ \App\Support\StoreCart::originLabel((string) $item->origin) }}
+                            @endif
+                        </td>
                         <td class="num">{{ $qty($item->quantity) }}</td>
                         <td class="num">{{ $money($item->line_total) }}</td>
                     </tr>

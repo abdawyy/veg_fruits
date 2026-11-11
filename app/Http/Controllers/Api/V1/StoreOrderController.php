@@ -39,6 +39,7 @@ final class StoreOrderController extends Controller
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'lines.*.unit' => ['required', Rule::in(StoreCart::units())],
+            'lines.*.origin' => ['sometimes', Rule::in([Product::ORIGIN_LOCAL, Product::ORIGIN_IMPORTED])],
             'lines.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:500000'],
             'lines.*.preparation_service_ids' => ['sometimes', 'array'],
             'lines.*.preparation_service_ids.*' => ['integer', 'exists:preparation_services,id'],
@@ -60,10 +61,15 @@ final class StoreOrderController extends Controller
                 ->findOrFail((int) $row['product_id']);
 
             $unit = (string) $row['unit'];
+            $origin = (string) ($row['origin'] ?? $product->defaultOrigin());
             $qtyRaw = (string) $row['quantity'];
 
             if (! $product->allowsUnit($unit)) {
                 return response()->json(['message' => __('aldawy.cart_unit_unavailable'), 'product_id' => $product->id], 422);
+            }
+
+            if (! $product->allowsOrigin($origin)) {
+                return response()->json(['message' => __('aldawy.cart_origin_unavailable'), 'product_id' => $product->id], 422);
             }
 
             if (bccomp(DecimalMath::normalizeNumericString($qtyRaw), StoreCart::maxQuantity($unit), 4) > 0) {
@@ -78,7 +84,7 @@ final class StoreOrderController extends Controller
             }
 
             $qty = DecimalMath::normalizeNumericString($qtyRaw);
-            $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+            $unitPrice = StoreCart::unitPriceForProduct($product, $unit, $origin);
 
             if ($unitPrice === null) {
                 return response()->json(['message' => __('aldawy.cart_unit_unavailable')], 422);
@@ -113,6 +119,7 @@ final class StoreOrderController extends Controller
                 packaging: $packaging ? (string) $packaging->code : '',
                 unitPrice: $unitPrice,
                 servicesSurchargeTotal: $extras,
+                origin: $origin,
             );
         }
 

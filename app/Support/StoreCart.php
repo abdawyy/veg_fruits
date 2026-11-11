@@ -21,6 +21,10 @@ final class StoreCart
 
     public const UNIT_PIECE = 'piece';
 
+    public const ORIGIN_LOCAL = 'local';
+
+    public const ORIGIN_IMPORTED = 'imported';
+
     /** @return list<string> */
     public static function units(): array
     {
@@ -36,6 +40,13 @@ final class StoreCart
             'box' => __('aldawy.per_box'),
             default => $unit,
         };
+    }
+
+    public static function originLabel(string $origin): string
+    {
+        return $origin === self::ORIGIN_IMPORTED
+            ? __('aldawy.origin_imported')
+            : __('aldawy.origin_local');
     }
 
     public static function maxQuantity(string $unit): string
@@ -148,7 +159,8 @@ final class StoreCart
             }
 
             $unit = $row['unit'];
-            $current = self::unitPriceForProduct($product, $unit);
+            $origin = $row['origin'] ?? self::ORIGIN_LOCAL;
+            $current = self::unitPriceForProduct($product, $unit, $origin);
             if ($current === null) {
                 return null;
             }
@@ -163,6 +175,7 @@ final class StoreCart
                 'snapshot' => $snapshot,
                 'current' => $current,
                 'unit' => $unit,
+                'origin' => $origin,
             ];
         })->filter()->values();
     }
@@ -177,8 +190,10 @@ final class StoreCart
         array $preparationServiceIds = [],
         ?int $packagingTypeId = null,
         ?string $unitPriceSnapshot = null,
+        string $origin = self::ORIGIN_LOCAL,
     ): void {
         $unit = self::normalizeUnit($unit);
+        $origin = self::normalizeOrigin($origin);
         $quantity = self::normalizeQuantity($quantity, $unit);
         if (bccomp($quantity, '0', 4) <= 0) {
             return;
@@ -191,6 +206,7 @@ final class StoreCart
             'type' => self::KIND_PRODUCT,
             'product_id' => $productId,
             'unit' => $unit,
+            'origin' => $origin,
             'quantity' => $quantity,
             'preparation_service_ids' => $prepIds,
             'packaging_type_id' => $packId,
@@ -243,7 +259,7 @@ final class StoreCart
         session([self::SESSION_KEY => $lines]);
     }
 
-    public static function update(int $index, string $unit, string $quantity): void
+    public static function update(int $index, string $unit, string $quantity, ?string $origin = null): void
     {
         $lines = self::lines();
         if (! isset($lines[$index]) || ($lines[$index]['type'] ?? self::KIND_PRODUCT) !== self::KIND_PRODUCT) {
@@ -264,6 +280,7 @@ final class StoreCart
             $quantity,
             $lines[$index]['preparation_service_ids'],
             $lines[$index]['packaging_type_id'] ?? null,
+            $origin ?? ($lines[$index]['origin'] ?? self::ORIGIN_LOCAL),
         );
     }
 
@@ -276,6 +293,7 @@ final class StoreCart
         string $quantity,
         array $preparationServiceIds,
         ?int $packagingTypeId,
+        ?string $origin = null,
     ): void {
         $lines = self::lines();
         if (! isset($lines[$index]) || ($lines[$index]['type'] ?? self::KIND_PRODUCT) !== self::KIND_PRODUCT) {
@@ -283,6 +301,7 @@ final class StoreCart
         }
 
         $unit = self::normalizeUnit($unit);
+        $origin = self::normalizeOrigin($origin ?? ($lines[$index]['origin'] ?? self::ORIGIN_LOCAL));
         $quantity = self::normalizeQuantity($quantity, $unit);
         if (bccomp($quantity, '0', 4) <= 0) {
             self::remove($index);
@@ -294,11 +313,25 @@ final class StoreCart
             'type' => self::KIND_PRODUCT,
             'product_id' => (int) $lines[$index]['product_id'],
             'unit' => $unit,
+            'origin' => $origin,
             'quantity' => $quantity,
             'preparation_service_ids' => self::normalizePrepIds($preparationServiceIds),
             'packaging_type_id' => self::normalizePackagingId($packagingTypeId),
             'unit_price_snapshot' => $lines[$index]['unit_price_snapshot'] ?? null,
         ];
+
+        $key = self::lineKey($lines[$index]);
+        foreach ($lines as $otherIndex => $line) {
+            if ($otherIndex === $index || self::lineKey($line) !== $key) {
+                continue;
+            }
+
+            $lines[$index]['quantity'] = self::normalizeQuantity(
+                bcadd((string) $lines[$index]['quantity'], (string) $line['quantity'], 4),
+                $unit,
+            );
+            unset($lines[$otherIndex]);
+        }
 
         session([self::SESSION_KEY => array_values($lines)]);
     }
@@ -366,12 +399,13 @@ final class StoreCart
                 }
 
                 $unit = $row['unit'];
+                $origin = self::normalizeOrigin($row['origin'] ?? self::ORIGIN_LOCAL);
                 $quantity = $row['quantity'];
 
                 if ($product->isOutOfStock() || ! $product->hasStockFor($quantity, $unit)) {
                     continue;
                 }
-                $unitPrice = self::unitPriceForProduct($product, $unit);
+                $unitPrice = self::unitPriceForProduct($product, $unit, $origin);
                 if ($unitPrice === null) {
                     continue;
                 }
@@ -402,6 +436,7 @@ final class StoreCart
                     'line' => $lineIndex,
                     'product' => $product,
                     'unit' => $unit,
+                    'origin' => $origin,
                     'quantity' => $quantity,
                     'preparation_service_ids' => $prepIds,
                     'packaging_type_id' => $packagingType?->id,
@@ -477,33 +512,50 @@ final class StoreCart
         return $sum;
     }
 
-    public static function unitPriceForProduct(Product $product, string $unit): ?string
+    public static function unitPriceForProduct(Product $product, string $unit, ?string $origin = null): ?string
     {
         if (! $product->allowsUnit($unit)) {
             return null;
         }
 
+        $origin ??= $product->defaultOrigin();
+        if (! $product->allowsOrigin($origin)) {
+            return null;
+        }
+
+        $perKg = $origin === self::ORIGIN_IMPORTED ? $product->imported_price_per_kg : $product->price_per_kg;
+        $perGram = $origin === self::ORIGIN_IMPORTED ? $product->imported_price_per_gram : $product->price_per_gram;
+        $perPiece = $origin === self::ORIGIN_IMPORTED ? $product->imported_price_per_piece : $product->price_per_piece;
+
         if ($unit === self::UNIT_PIECE) {
-            if ($product->price_per_piece === null) {
+            if ($perPiece === null) {
                 return null;
             }
 
-            return DecimalMath::normalizeNumericString((string) $product->price_per_piece);
+            return DecimalMath::normalizeNumericString((string) $perPiece);
         }
 
         if ($unit === self::UNIT_GRAM) {
-            if ($product->sellingUnit() === Product::UNIT_GRAM && $product->price_per_gram !== null) {
-                return DecimalMath::normalizeNumericString((string) $product->price_per_gram);
+            if ($product->sellingUnit() === Product::UNIT_GRAM && $perGram !== null) {
+                return DecimalMath::normalizeNumericString((string) $perGram);
             }
 
-            return DecimalMath::div((string) $product->price_per_kg, '1000');
+            if ($perKg === null) {
+                return null;
+            }
+
+            return DecimalMath::div((string) $perKg, '1000');
         }
 
-        if ($product->sellingUnit() === Product::UNIT_GRAM && $product->price_per_gram !== null) {
-            return DecimalMath::mul((string) $product->price_per_gram, '1000');
+        if ($product->sellingUnit() === Product::UNIT_GRAM && $perGram !== null) {
+            return DecimalMath::mul((string) $perGram, '1000');
         }
 
-        return DecimalMath::normalizeNumericString((string) $product->price_per_kg);
+        if ($perKg === null) {
+            return null;
+        }
+
+        return DecimalMath::normalizeNumericString((string) $perKg);
     }
 
     /**
@@ -543,6 +595,7 @@ final class StoreCart
         }
 
         $unit = self::normalizeUnit($row['unit'] ?? self::UNIT_KG);
+        $origin = self::normalizeOrigin($row['origin'] ?? self::ORIGIN_LOCAL);
         if (isset($row['quantity'])) {
             $quantity = self::normalizeQuantity((string) $row['quantity'], $unit);
         } else {
@@ -564,6 +617,7 @@ final class StoreCart
             'type' => self::KIND_PRODUCT,
             'product_id' => (int) $row['product_id'],
             'unit' => $unit,
+            'origin' => $origin,
             'quantity' => $quantity,
             'preparation_service_ids' => self::normalizePrepIds($row['preparation_service_ids'] ?? []),
             'packaging_type_id' => self::normalizePackagingId($row['packaging_type_id'] ?? null),
@@ -581,7 +635,7 @@ final class StoreCart
         $prep = $line['preparation_service_ids'] ?? [];
         sort($prep);
 
-        return 'product|'.$line['product_id'].'|'.$line['unit'].'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
+        return 'product|'.$line['product_id'].'|'.$line['unit'].'|'.($line['origin'] ?? self::ORIGIN_LOCAL).'|'.implode(',', $prep).'|'.($line['packaging_type_id'] ?? '0');
     }
 
     /** @return list<int> */
@@ -604,6 +658,11 @@ final class StoreCart
         $n = (int) $id;
 
         return $n > 0 ? $n : null;
+    }
+
+    private static function normalizeOrigin(mixed $origin): string
+    {
+        return $origin === self::ORIGIN_IMPORTED ? self::ORIGIN_IMPORTED : self::ORIGIN_LOCAL;
     }
 
     private static function normalizeUnit(mixed $unit): string

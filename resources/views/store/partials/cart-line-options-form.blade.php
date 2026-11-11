@@ -8,6 +8,7 @@
     @csrf
     <input type="hidden" name="line" value="{{ $line }}">
     <input type="hidden" name="unit" value="{{ $row['unit'] }}">
+    <input type="hidden" name="origin" value="{{ $row['origin'] ?? 'local' }}">
     <input type="hidden" name="quantity" value="{{ $row['quantity'] }}">
     @foreach ($prepEnabled as $svc)
         <label class="flex cursor-pointer items-center gap-2 text-slate-600 dark:text-slate-300">

@@ -29,6 +29,9 @@ return [
     'per_kg' => 'kg',
     'per_gram' => 'gram',
     'per_piece' => 'piece',
+    'origin_local' => 'Local',
+    'origin_imported' => 'Imported',
+    'cart_origin' => 'Source',
     'cart_unit' => 'Unit',
     'or_piece' => 'or :p per piece',
     'piece_price' => 'Piece: :price',
@@ -300,6 +303,8 @@ return [
     'verification_link_sent' => 'A new verification link has been sent to your email.',
 
     'cart_unit_unavailable' => 'That unit is not available for this product.',
+    'cart_origin_unavailable' => 'That source is not available for this product.',
+    'cart_origin_unpriced' => 'This product has no :origin price.',
     'cart_price_changed_line' => ':old → :new :currency / :unit',
 
     'order_cancel_action' => 'Cancel order',

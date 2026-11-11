@@ -20,6 +20,7 @@ final class ProductEstimateController extends Controller
 
         $data = $request->validate([
             'unit' => ['sometimes', Rule::in(StoreCart::units())],
+            'origin' => ['sometimes', Rule::in([Product::ORIGIN_LOCAL, Product::ORIGIN_IMPORTED])],
             'quantity' => ['sometimes', 'numeric', 'min:0.01', 'max:500000'],
             'kg' => ['sometimes', 'numeric', 'min:0.25', 'max:500'],
             'preparation_service_ids' => ['sometimes', 'array'],
@@ -27,7 +28,13 @@ final class ProductEstimateController extends Controller
             'packaging_type_id' => ['nullable', 'integer', 'exists:packaging_types,id'],
         ]);
 
-        $unit = $data['unit'] ?? $product->sellingUnit();
+        $unit = $data['unit'] ?? $product->defaultOrderUnit();
+        $origin = $data['origin'] ?? $product->defaultOrigin();
+        if (! $product->allowsOrigin($origin)) {
+            throw ValidationException::withMessages([
+                'origin' => [__('aldawy.cart_origin_unavailable')],
+            ]);
+        }
         if (isset($data['quantity'])) {
             $quantity = (string) $data['quantity'];
         } elseif (isset($data['kg'])) {
@@ -71,7 +78,7 @@ final class ProductEstimateController extends Controller
             ? $enabledPack->firstWhere('id', $packagingTypeId)
             : null;
 
-        $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+        $unitPrice = StoreCart::unitPriceForProduct($product, $unit, $origin);
         if ($unitPrice === null) {
             throw ValidationException::withMessages([
                 'unit' => [__('aldawy.cart_unit_unavailable')],

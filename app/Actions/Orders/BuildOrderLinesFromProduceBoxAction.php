@@ -44,7 +44,8 @@ final class BuildOrderLinesFromProduceBoxAction
                 StoreCart::UNIT_GRAM => StoreCart::UNIT_GRAM,
                 default => StoreCart::UNIT_KG,
             };
-            $unitPrice = StoreCart::unitPriceForProduct($product, $unit);
+            $origin = $product->defaultOrigin();
+            $unitPrice = StoreCart::unitPriceForProduct($product, $unit, $origin);
             if ($unitPrice === null) {
                 continue;
             }
@@ -59,6 +60,7 @@ final class BuildOrderLinesFromProduceBoxAction
                 packaging: '',
                 unitPrice: $unitPrice,
                 servicesSurchargeTotal: '0',
+                origin: $origin,
             );
         }
 

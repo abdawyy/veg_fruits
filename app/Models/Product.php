@@ -21,6 +21,16 @@ class Product extends Model
 
     public const UNIT_PIECE = 'piece';
 
+    public const ORIGIN_LOCAL = 'local';
+
+    public const ORIGIN_IMPORTED = 'imported';
+
+    protected $attributes = [
+        'unit' => self::UNIT_KG,
+        'is_local' => true,
+        'is_imported' => false,
+    ];
+
     /** @var list<string> */
     public array $translatable = ['name', 'slug', 'description'];
 
@@ -36,6 +46,11 @@ class Product extends Model
         'price_per_gram',
         'price_per_piece',
         'unit',
+        'is_local',
+        'is_imported',
+        'imported_price_per_kg',
+        'imported_price_per_gram',
+        'imported_price_per_piece',
         'sell_by_piece',
         'is_active',
         'track_stock',
@@ -72,6 +87,10 @@ class Product extends Model
 
             if ($unit === self::UNIT_GRAM) {
                 $product->sell_by_piece = false;
+            }
+
+            if (! $product->offersLocal() && ! $product->offersImported()) {
+                $product->is_local = true;
             }
         });
     }
@@ -150,9 +169,7 @@ class Product extends Model
             return [self::UNIT_PIECE];
         }
 
-        $units = $unit === self::UNIT_GRAM
-            ? [self::UNIT_GRAM, self::UNIT_KG]
-            : [self::UNIT_KG, self::UNIT_GRAM];
+        $units = [self::UNIT_KG, self::UNIT_GRAM];
 
         if ($unit === self::UNIT_KG && $this->sell_by_piece && $this->price_per_piece !== null) {
             $units[] = self::UNIT_PIECE;
@@ -164,6 +181,56 @@ class Product extends Model
     public function allowsUnit(string $unit): bool
     {
         return in_array($unit, $this->availableUnits(), true);
+    }
+
+    /** Shop default. Kilogram wins whenever the product can be sold by weight. */
+    public function defaultOrderUnit(): string
+    {
+        return $this->allowsUnit(self::UNIT_KG)
+            ? self::UNIT_KG
+            : $this->sellingUnit();
+    }
+
+    public function offersLocal(): bool
+    {
+        return (bool) ($this->is_local ?? true);
+    }
+
+    public function offersImported(): bool
+    {
+        return (bool) $this->is_imported;
+    }
+
+    /**
+     * Local, imported, or both. Never empty: a product with neither flag is treated as local.
+     *
+     * @return list<string>
+     */
+    public function availableOrigins(): array
+    {
+        $origins = [];
+
+        if ($this->offersLocal()) {
+            $origins[] = self::ORIGIN_LOCAL;
+        }
+
+        if ($this->offersImported()) {
+            $origins[] = self::ORIGIN_IMPORTED;
+        }
+
+        return $origins === [] ? [self::ORIGIN_LOCAL] : $origins;
+    }
+
+    public function allowsOrigin(string $origin): bool
+    {
+        return in_array($origin, $this->availableOrigins(), true);
+    }
+
+    public function defaultOrigin(): string
+    {
+        return $this->offersLocal()
+            ? self::ORIGIN_LOCAL
+            : self::ORIGIN_IMPORTED;
     }
 
     /** Convert an ordered quantity into the unit stored in stock_quantity. */
@@ -192,12 +259,17 @@ class Product extends Model
         return [
             'sell_by_piece' => 'boolean',
             'is_active' => 'boolean',
+            'is_local' => 'boolean',
+            'is_imported' => 'boolean',
             'track_stock' => 'boolean',
             'stock_quantity' => 'decimal:4',
             'min_order_quantity' => 'decimal:4',
             'price_per_kg' => 'decimal:4',
             'price_per_gram' => 'decimal:4',
             'price_per_piece' => 'decimal:4',
+            'imported_price_per_kg' => 'decimal:4',
+            'imported_price_per_gram' => 'decimal:4',
+            'imported_price_per_piece' => 'decimal:4',
             'view_count' => 'integer',
         ];
     }

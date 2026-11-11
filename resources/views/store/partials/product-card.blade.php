@@ -1,8 +1,8 @@
 @php
     $locale = app()->getLocale();
     $categoryName = $product->category?->getTranslation('name', $locale);
-    $sellUnit = $product->sellingUnit();
-    $sellPrice = \App\Support\StoreCart::unitPriceForProduct($product, $sellUnit);
+    $sellUnit = $product->defaultOrderUnit();
+    $origins = $product->availableOrigins();
 @endphp
 <article class="aldawy-product-card group relative flex flex-col overflow-hidden">
     <div class="relative aspect-[4/3] w-full overflow-hidden bg-surface dark:bg-slate-800">
@@ -44,12 +44,17 @@
 
         <div class="mt-auto pt-4">
             <div class="flex flex-wrap items-end justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-                <div>
-                    <div class="flex items-baseline gap-1.5">
-                        <span class="text-xl font-extrabold text-brand dark:text-brand-light">{{ \App\Support\StoreCart::formatAmount($sellPrice ?? '0') }}</span>
-                        <span class="text-xs font-semibold text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
-                    </div>
-                    <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ \App\Support\StoreCart::unitLabel($sellUnit) }}</span>
+                <div class="space-y-2">
+                    @foreach ($origins as $origin)
+                        @php $originPrice = \App\Support\StoreCart::unitPriceForProduct($product, $sellUnit, $origin); @endphp
+                        <div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-xl font-extrabold text-brand dark:text-brand-light">{{ \App\Support\StoreCart::formatAmount($originPrice ?? '0') }}</span>
+                                <span class="text-xs font-semibold text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
+                            </div>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ \App\Support\StoreCart::unitLabel($sellUnit) }} · {{ \App\Support\StoreCart::originLabel($origin) }}</span>
+                        </div>
+                    @endforeach
                 </div>
                 @if ($sellUnit === 'kg' && $product->sell_by_piece && $product->price_per_piece)
                     <span class="rounded-lg bg-accent/10 px-2 py-1 text-xs font-semibold text-accent">

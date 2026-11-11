@@ -52,7 +52,8 @@ final class ProductSellingUnitTest extends TestCase
             'stock_quantity' => 500,
         ]);
 
-        $this->assertSame(['gram', 'kg'], $product->availableUnits());
+        $this->assertSame(['kg', 'gram'], $product->availableUnits());
+        $this->assertSame('kg', $product->defaultOrderUnit());
         $this->assertSame(0, bccomp(StoreCart::unitPriceForProduct($product, 'kg'), '2000', 4));
 
         $this->post(route('store.cart.add'), [

@@ -60,14 +60,19 @@
                         </a>
                         @php
                             $lineUnit = (string) $row['unit'];
+                            $lineOrigin = (string) ($row['origin'] ?? 'local');
                             $lineUnits = $product->availableUnits();
+                            $lineOrigins = $product->availableOrigins();
                             if (! in_array($lineUnit, $lineUnits, true)) {
                                 $lineUnit = $product->sellingUnit();
                             }
-                            $lineUnitPrice = \App\Support\StoreCart::unitPriceForProduct($product, $lineUnit);
+                            if (! in_array($lineOrigin, $lineOrigins, true)) {
+                                $lineOrigin = $product->defaultOrigin();
+                            }
+                            $lineUnitPrice = \App\Support\StoreCart::unitPriceForProduct($product, $lineUnit, $lineOrigin);
                         @endphp
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {{ \App\Support\StoreCart::formatAmount($lineUnitPrice ?? '0') }} {{ $currency }} / {{ \App\Support\StoreCart::unitLabel($lineUnit) }}
+                            {{ \App\Support\StoreCart::formatAmount($lineUnitPrice ?? '0') }} {{ $currency }} / {{ \App\Support\StoreCart::unitLabel($lineUnit) }} · {{ \App\Support\StoreCart::originLabel($lineOrigin) }}
                         </p>
                     </div>
                     <p class="text-xl font-extrabold text-brand">
@@ -117,6 +122,19 @@
                     <form method="post" action="{{ route('store.cart.update') }}" class="flex flex-wrap items-end gap-2">
                         @csrf
                         <input type="hidden" name="line" value="{{ $line }}">
+                        <label class="block">
+                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_origin') }}</span>
+                            @if (count($lineOrigins) > 1)
+                                <select name="origin" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    @foreach ($lineOrigins as $originOption)
+                                        <option value="{{ $originOption }}" @selected($lineOrigin === $originOption)>{{ \App\Support\StoreCart::originLabel($originOption) }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <input type="hidden" name="origin" value="{{ $lineOrigin }}">
+                                <span class="inline-flex rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-slate-600 dark:text-slate-300">{{ \App\Support\StoreCart::originLabel($lineOrigin) }}</span>
+                            @endif
+                        </label>
                         <label class="block">
                             <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_unit') }}</span>
                             @if (count($lineUnits) > 1)

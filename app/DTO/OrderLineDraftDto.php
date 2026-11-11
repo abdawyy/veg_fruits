@@ -18,5 +18,6 @@ final readonly class OrderLineDraftDto
         public string $packaging,
         public string $unitPrice,
         public string $servicesSurchargeTotal = '0',
+        public ?string $origin = null,
     ) {}
 }

@@ -95,6 +95,7 @@ final class CreateOrderAction
                     'produce_box_id' => $line->produceBoxId,
                     'product_name_snapshot' => $line->productNameSnapshot,
                     'unit' => $line->unit,
+                    'origin' => $line->origin,
                     'quantity' => $line->quantity,
                     'services' => $line->services,
                     'packaging' => $line->packaging,

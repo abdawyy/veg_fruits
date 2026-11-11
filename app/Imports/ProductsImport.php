@@ -22,6 +22,9 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
             'price_per_kg' => ['nullable', 'numeric', 'min:0'],
             'price_per_gram' => ['nullable', 'numeric', 'min:0'],
             'price_per_piece' => ['nullable', 'numeric', 'min:0'],
+            'imported_price_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'imported_price_per_gram' => ['nullable', 'numeric', 'min:0'],
+            'imported_price_per_piece' => ['nullable', 'numeric', 'min:0'],
             'unit' => ['nullable', Rule::in([Product::UNIT_KG, Product::UNIT_GRAM, Product::UNIT_PIECE])],
             'min_order_quantity' => ['nullable', 'numeric', 'min:0'],
             'track_stock' => ['nullable'],
@@ -89,6 +92,22 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation
 
         if (isset($row['price_per_piece']) && $row['price_per_piece'] !== '') {
             $product->price_per_piece = $row['price_per_piece'];
+        }
+
+        foreach (['imported_price_per_kg', 'imported_price_per_gram', 'imported_price_per_piece'] as $priceColumn) {
+            if (isset($row[$priceColumn]) && $row[$priceColumn] !== '') {
+                $product->{$priceColumn} = $row[$priceColumn];
+            }
+        }
+
+        if (isset($row['is_local'])) {
+            $product->is_local = filter_var($row['is_local'], FILTER_VALIDATE_BOOLEAN)
+                || (string) $row['is_local'] === '1';
+        }
+
+        if (isset($row['is_imported'])) {
+            $product->is_imported = filter_var($row['is_imported'], FILTER_VALIDATE_BOOLEAN)
+                || (string) $row['is_imported'] === '1';
         }
 
         if (isset($row['unit']) && in_array((string) $row['unit'], [Product::UNIT_KG, Product::UNIT_GRAM, Product::UNIT_PIECE], true)) {

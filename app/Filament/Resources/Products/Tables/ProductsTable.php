@@ -58,6 +58,19 @@ class ProductsTable
                         'piece' => __('Piece'),
                         default => __('Kilogram'),
                     }),
+                TextColumn::make('is_local')
+                    ->label(__('Source'))
+                    ->state(function (Product $record): string {
+                        $parts = [];
+                        if ($record->offersLocal()) {
+                            $parts[] = __('Local');
+                        }
+                        if ($record->offersImported()) {
+                            $parts[] = __('Imported');
+                        }
+
+                        return implode(', ', $parts);
+                    }),
                 TextColumn::make('min_order_quantity')
                     ->label(__('Min qty'))
                     ->placeholder('—')

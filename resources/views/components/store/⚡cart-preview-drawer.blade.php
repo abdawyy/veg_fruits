@@ -69,6 +69,7 @@ new class extends Component
                                     <span class="block text-xs text-slate-500">
                                         {{ \App\Support\StoreCart::formatQuantity((string) $row['quantity'], (string) $row['unit']) }}
                                         {{ \App\Support\StoreCart::unitLabel((string) $row['unit']) }}
+                                        · {{ \App\Support\StoreCart::originLabel((string) ($row['origin'] ?? 'local')) }}
                                     </span>
                                 @endif
                                 <span class="mt-1 block font-semibold text-brand">{{ number_format((float) $row['line_subtotal'], 2) }} {{ config('aldawy.currency', 'EGP') }}</span>
