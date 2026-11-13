@@ -149,7 +149,7 @@
                             @endif
                         </label>
                         <label class="block">
-                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_qty') }}</span>
+                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('aldawy.cart_qty', ['unit' => \App\Support\StoreCart::unitLabel($lineUnit)]) }}</span>
                             <div class="flex items-center gap-2">
                                 <input
                                     type="number"

@@ -74,7 +74,7 @@ return [
     'cart_your_items' => 'Your items',
     'cart_items_count' => '{0} No items|{1} :count item|[2,*] :count items',
     'cart_product' => 'Product',
-    'cart_qty' => 'Quantity (kg)',
+    'cart_qty' => 'Quantity (:unit)',
     'cart_line' => 'Line total',
     'cart_update' => 'Update',
     'cart_remove' => 'Remove',

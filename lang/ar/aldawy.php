@@ -75,7 +75,7 @@ return [
     'cart_your_items' => 'أصنافك',
     'cart_items_count' => '{0} لا أصناف|{1} صنف واحد|{2} صنفان|[3,10] :count أصناف|[11,*] :count صنف',
     'cart_product' => 'المنتج',
-    'cart_qty' => 'الكمية (كيلو)',
+    'cart_qty' => 'الكمية (:unit)',
     'cart_line' => 'الإجمالي',
     'cart_update' => 'تحديث',
     'cart_remove' => 'حذف',

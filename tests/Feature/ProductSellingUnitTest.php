@@ -57,7 +57,7 @@ final class ProductSellingUnitTest extends TestCase
         $this->get(route('store.product', $product))
             ->assertOk()
             ->assertSee('value="piece"', false)
-            ->assertSee('data-qty-unit-label>kg', false)
+            ->assertSee('Quantity (kg)', false)
             ->assertSee('"piece"', false);
 
         $this->post(route('store.cart.add'), [
@@ -138,7 +138,7 @@ final class ProductSellingUnitTest extends TestCase
 
         $this->get(route('store.product', $product))
             ->assertOk()
-            ->assertSee('data-qty-unit-label>piece', false)
+            ->assertSee('Quantity (piece)', false)
             ->assertSee('step="1"', false)
             ->assertDontSee('>kg<', false);
 

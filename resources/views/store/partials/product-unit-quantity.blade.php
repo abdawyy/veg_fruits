@@ -62,7 +62,7 @@
         <input type="hidden" name="unit" value="{{ $defaultUnit }}">
     @endif
     <div>
-        <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="qty-{{ $product->id }}">{{ __('aldawy.cart_qty') }}</label>
+        <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="qty-{{ $product->id }}" data-qty-heading data-qty-template="{{ __('aldawy.cart_qty', ['unit' => ':unit']) }}">{{ __('aldawy.cart_qty', ['unit' => StoreCart::unitLabel($defaultUnit)]) }}</label>
         <input
             id="qty-{{ $product->id }}"
             name="quantity"
@@ -72,7 +72,6 @@
             value="{{ $qtyValue }}"
             class="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-28 !py-2 !text-sm"
         >
-        <span class="mt-1 block text-xs font-semibold text-slate-500 dark:text-slate-400" data-qty-unit-label>{{ StoreCart::unitLabel($defaultUnit) }}</span>
     </div>
 </div>
 @if (count($units) > 1)
@@ -82,7 +81,7 @@
             if (!root) return;
             var unitSel = root.querySelector('[name="unit"]');
             var qty = root.querySelector('[name="quantity"]');
-            var unitLabel = root.querySelector('[data-qty-unit-label]');
+            var heading = root.querySelector('[data-qty-heading]');
             if (!unitSel || !qty) return;
             var minKg = parseFloat(root.dataset.minKg || '0.25');
             var minGram = parseFloat(root.dataset.minGram || '1');
@@ -93,7 +92,10 @@
             function apply(reset) {
                 var unit = unitSel.value;
                 var info = prices[unit] || {};
-                if (unitLabel) unitLabel.textContent = info._label || unit;
+                if (heading) {
+                    var template = heading.getAttribute('data-qty-template') || 'Quantity (:unit)';
+                    heading.textContent = template.replace(':unit', info._label || unit);
+                }
                 if (offer) {
                     offer.querySelectorAll('[data-origin-amount]').forEach(function (el) {
                         var origin = el.getAttribute('data-origin-amount');
