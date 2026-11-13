@@ -4,7 +4,7 @@
     $sellUnit = $product->defaultOrderUnit();
     $origins = $product->availableOrigins();
 @endphp
-<article class="aldawy-product-card group relative flex flex-col overflow-hidden">
+<article class="aldawy-product-card group relative flex flex-col overflow-hidden" data-product-offer>
     <div class="relative aspect-[4/3] w-full overflow-hidden bg-surface dark:bg-slate-800">
         <span class="aldawy-product-badge">{{ __('aldawy.product_fresh_badge') }}</span>
         @if ($categoryName)
@@ -49,15 +49,15 @@
                         @php $originPrice = \App\Support\StoreCart::unitPriceForProduct($product, $sellUnit, $origin); @endphp
                         <div>
                             <div class="flex items-baseline gap-1.5">
-                                <span class="text-xl font-extrabold text-brand dark:text-brand-light">{{ \App\Support\StoreCart::formatAmount($originPrice ?? '0') }}</span>
+                                <span class="text-xl font-extrabold text-brand dark:text-brand-light" data-origin-amount="{{ $origin }}">{{ \App\Support\StoreCart::formatAmount($originPrice ?? '0') }}</span>
                                 <span class="text-xs font-semibold text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
                             </div>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ \App\Support\StoreCart::unitLabel($sellUnit) }} · {{ \App\Support\StoreCart::originLabel($origin) }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">/ <span data-origin-unit>{{ \App\Support\StoreCart::unitLabel($sellUnit) }}</span> · {{ \App\Support\StoreCart::originLabel($origin) }}</span>
                         </div>
                     @endforeach
                 </div>
                 @if ($sellUnit === 'kg' && $product->sell_by_piece && $product->price_per_piece)
-                    <span class="rounded-lg bg-accent/10 px-2 py-1 text-xs font-semibold text-accent">
+                    <span class="rounded-lg bg-accent/10 px-2 py-1 text-xs font-semibold text-accent" data-piece-badge>
                         {{ __('aldawy.piece_price', ['price' => number_format((float) $product->price_per_piece, 2)]) }}
                     </span>
                 @endif

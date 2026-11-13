@@ -46,6 +46,30 @@ final class ProductSellingUnitTest extends TestCase
         $this->assertSame('kg', StoreCart::lines()[0]['unit']);
     }
 
+    public function test_piece_choice_on_a_kg_product_carries_the_piece_price(): void
+    {
+        $product = $this->product([
+            'price_per_kg' => 40,
+            'price_per_piece' => 6,
+            'sell_by_piece' => true,
+        ]);
+
+        $this->get(route('store.product', $product))
+            ->assertOk()
+            ->assertSee('value="piece"', false)
+            ->assertSee('data-qty-unit-label>kg', false)
+            ->assertSee('"piece"', false);
+
+        $this->post(route('store.cart.add'), [
+            'product_id' => $product->id,
+            'unit' => 'piece',
+            'quantity' => 2,
+        ])->assertRedirect();
+
+        $this->assertSame('piece', StoreCart::lines()[0]['unit']);
+        $this->assertSame(0, bccomp(StoreCart::subtotal(), '12', 4));
+    }
+
     public function test_gram_product_charges_its_gram_price_and_deducts_stock(): void
     {
         Notification::fake();
@@ -111,6 +135,12 @@ final class ProductSellingUnitTest extends TestCase
         ]);
 
         $this->assertSame(['piece'], $product->fresh()->availableUnits());
+
+        $this->get(route('store.product', $product))
+            ->assertOk()
+            ->assertSee('data-qty-unit-label>piece', false)
+            ->assertSee('step="1"', false)
+            ->assertDontSee('>kg<', false);
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,

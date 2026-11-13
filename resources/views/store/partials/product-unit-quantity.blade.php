@@ -19,6 +19,15 @@
     $qtyValue = StoreCart::formatQuantity($defaultQty, $defaultUnit);
     $qtyStep = $defaultUnit === 'kg' ? '0.25' : '1';
     $qtyMin = StoreCart::formatQuantity($defaultMin, $defaultUnit);
+    $priceMap = [];
+    foreach ($units as $unitOption) {
+        $priceMap[$unitOption] = ['_label' => StoreCart::unitLabel($unitOption)];
+        foreach ($origins as $originOption) {
+            $priceMap[$unitOption][$originOption] = StoreCart::formatAmount(
+                StoreCart::unitPriceForProduct($product, $unitOption, $originOption) ?? '0'
+            );
+        }
+    }
 @endphp
 <div
     class="flex flex-wrap items-end gap-2"
@@ -26,6 +35,7 @@
     data-min-kg="{{ $minKg }}"
     data-min-gram="{{ $minGram }}"
     data-min-piece="{{ $minPiece }}"
+    data-prices='@json($priceMap)'
 >
     @if (count($origins) > 1)
         <div>
@@ -62,6 +72,7 @@
             value="{{ $qtyValue }}"
             class="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 aldawy-input !w-28 !py-2 !text-sm"
         >
+        <span class="mt-1 block text-xs font-semibold text-slate-500 dark:text-slate-400" data-qty-unit-label>{{ StoreCart::unitLabel($defaultUnit) }}</span>
     </div>
 </div>
 @if (count($units) > 1)
@@ -71,12 +82,30 @@
             if (!root) return;
             var unitSel = root.querySelector('[name="unit"]');
             var qty = root.querySelector('[name="quantity"]');
+            var unitLabel = root.querySelector('[data-qty-unit-label]');
             if (!unitSel || !qty) return;
             var minKg = parseFloat(root.dataset.minKg || '0.25');
             var minGram = parseFloat(root.dataset.minGram || '1');
             var minPiece = parseFloat(root.dataset.minPiece || '1');
+            var prices = {};
+            try { prices = JSON.parse(root.dataset.prices || '{}'); } catch (e) { prices = {}; }
+            var offer = root.closest('[data-product-offer]');
             function apply(reset) {
                 var unit = unitSel.value;
+                var info = prices[unit] || {};
+                if (unitLabel) unitLabel.textContent = info._label || unit;
+                if (offer) {
+                    offer.querySelectorAll('[data-origin-amount]').forEach(function (el) {
+                        var origin = el.getAttribute('data-origin-amount');
+                        if (info[origin]) el.textContent = info[origin];
+                    });
+                    offer.querySelectorAll('[data-origin-unit]').forEach(function (el) {
+                        if (info._label) el.textContent = info._label;
+                    });
+                    offer.querySelectorAll('[data-piece-badge]').forEach(function (el) {
+                        el.hidden = unit === 'piece';
+                    });
+                }
                 if (unit === 'piece') {
                     qty.step = '1';
                     qty.min = String(minPiece);

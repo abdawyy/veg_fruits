@@ -61,6 +61,7 @@
                     {{ $product->getTranslation('description', $locale) }}
                 </p>
 
+                <div data-product-offer>
                 <div class="aldawy-card mt-6 border-brand/20 bg-gradient-to-br from-brand/5 to-transparent p-5 dark:from-brand/10">
                     @php
                         $sellUnit = $product->defaultOrderUnit();
@@ -71,16 +72,16 @@
                             @foreach ($origins as $origin)
                                 @php $originPrice = \App\Support\StoreCart::unitPriceForProduct($product, $sellUnit, $origin); @endphp
                                 <div>
-                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ \App\Support\StoreCart::unitLabel($sellUnit) }} · {{ \App\Support\StoreCart::originLabel($origin) }}</p>
+                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500"><span data-origin-unit>{{ \App\Support\StoreCart::unitLabel($sellUnit) }}</span> · {{ \App\Support\StoreCart::originLabel($origin) }}</p>
                                     <p class="text-3xl font-extrabold text-brand dark:text-brand-light">
-                                        {{ \App\Support\StoreCart::formatAmount($originPrice ?? '0') }}
+                                        <span data-origin-amount="{{ $origin }}">{{ \App\Support\StoreCart::formatAmount($originPrice ?? '0') }}</span>
                                         <span class="text-base font-semibold text-slate-500 dark:text-slate-400">{{ config('aldawy.currency', 'EGP') }}</span>
                                     </p>
                                 </div>
                             @endforeach
                         </div>
                         @if ($sellUnit === 'kg' && $product->sell_by_piece && $product->price_per_piece)
-                            <span class="rounded-xl bg-accent/10 px-3 py-2 text-sm font-bold text-accent">
+                            <span class="rounded-xl bg-accent/10 px-3 py-2 text-sm font-bold text-accent" data-piece-badge>
                                 {{ __('aldawy.piece_price', ['price' => number_format((float) $product->price_per_piece, 2)]) }}
                             </span>
                         @endif
@@ -88,6 +89,7 @@
                 </div>
 
                 @include('store.partials.product-add-form', ['product' => $product])
+                </div>
 
                 <div class="mt-10 grid gap-6 sm:grid-cols-2">
                     <div class="aldawy-card p-5">
