@@ -15,29 +15,35 @@ final class ProductSellingUnitTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_customer_can_switch_a_kg_product_to_grams(): void
+    public function test_kg_product_is_sold_only_by_kilogram(): void
     {
         $product = $this->product(['price_per_kg' => 40]);
 
+        $this->assertSame(['kg'], $product->availableUnits());
+
+        $this->get(route('store.shop'))
+            ->assertOk()
+            ->assertSee('value="kg"', false)
+            ->assertDontSee('value="gram"', false);
+
         $this->get(route('store.product', $product))
             ->assertOk()
-            ->assertSee('value="gram"', false)
-            ->assertSee('value="kg"', false);
-
-        $this->post(route('store.cart.add'), [
-            'product_id' => $product->id,
-            'unit' => 'gram',
-            'quantity' => 100,
-        ])->assertSessionHasErrors('quantity');
+            ->assertSee('value="kg"', false)
+            ->assertDontSee('value="gram"', false);
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
             'unit' => 'gram',
             'quantity' => 250,
+        ])->assertSessionHasErrors('unit');
+
+        $this->post(route('store.cart.add'), [
+            'product_id' => $product->id,
+            'unit' => 'kg',
+            'quantity' => 1,
         ])->assertRedirect();
 
-        $this->assertSame(0, bccomp(StoreCart::subtotal(), '10', 4));
-        $this->assertSame('gram', StoreCart::lines()[0]['unit']);
+        $this->assertSame('kg', StoreCart::lines()[0]['unit']);
     }
 
     public function test_gram_product_charges_its_gram_price_and_deducts_stock(): void
@@ -52,13 +58,13 @@ final class ProductSellingUnitTest extends TestCase
             'stock_quantity' => 500,
         ]);
 
-        $this->assertSame(['kg', 'gram'], $product->availableUnits());
-        $this->assertSame('kg', $product->defaultOrderUnit());
-        $this->assertSame(0, bccomp(StoreCart::unitPriceForProduct($product, 'kg'), '2000', 4));
+        $this->assertSame(['gram'], $product->availableUnits());
+        $this->assertSame('gram', $product->defaultOrderUnit());
+        $this->assertNull(StoreCart::unitPriceForProduct($product, 'kg'));
 
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
-            'unit' => 'piece',
+            'unit' => 'kg',
             'quantity' => 1,
         ])->assertSessionHasErrors('unit');
 
@@ -121,7 +127,7 @@ final class ProductSellingUnitTest extends TestCase
         $this->assertSame(0, bccomp(StoreCart::subtotal(), '10', 4));
     }
 
-    public function test_gram_order_converts_stock_held_in_kilograms(): void
+    public function test_kg_product_rejects_a_gram_order(): void
     {
         $product = $this->product([
             'price_per_kg' => 20,
@@ -129,19 +135,13 @@ final class ProductSellingUnitTest extends TestCase
             'stock_quantity' => 10,
         ]);
 
-        $this->assertSame(0, bccomp($product->quantityInStockUnit('gram', '500'), '0.5', 4));
-
-        $this->post(route('store.cart.add'), [
-            'product_id' => $product->id,
-            'unit' => 'gram',
-            'quantity' => 15000,
-        ])->assertSessionHasErrors('product_id');
-
         $this->post(route('store.cart.add'), [
             'product_id' => $product->id,
             'unit' => 'gram',
             'quantity' => 500,
-        ])->assertRedirect();
+        ])->assertSessionHasErrors('unit');
+
+        $this->assertSame([], StoreCart::lines());
     }
 
     /**

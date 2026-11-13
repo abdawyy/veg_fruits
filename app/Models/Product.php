@@ -156,20 +156,14 @@ class Product extends Model
     }
 
     /**
-     * Units a customer can pick. Weight products can switch between kg and gram.
-     * Piece is included when that is the selling unit, or when a kg product also sells by piece.
+     * The unit chosen in admin. A kilogram product can also offer pieces.
      *
      * @return list<string>
      */
     public function availableUnits(): array
     {
         $unit = $this->sellingUnit();
-
-        if ($unit === self::UNIT_PIECE) {
-            return [self::UNIT_PIECE];
-        }
-
-        $units = [self::UNIT_KG, self::UNIT_GRAM];
+        $units = [$unit];
 
         if ($unit === self::UNIT_KG && $this->sell_by_piece && $this->price_per_piece !== null) {
             $units[] = self::UNIT_PIECE;
@@ -183,12 +177,9 @@ class Product extends Model
         return in_array($unit, $this->availableUnits(), true);
     }
 
-    /** Shop default. Kilogram wins whenever the product can be sold by weight. */
     public function defaultOrderUnit(): string
     {
-        return $this->allowsUnit(self::UNIT_KG)
-            ? self::UNIT_KG
-            : $this->sellingUnit();
+        return $this->sellingUnit();
     }
 
     public function offersLocal(): bool

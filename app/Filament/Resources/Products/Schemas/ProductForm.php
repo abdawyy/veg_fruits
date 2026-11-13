@@ -122,8 +122,7 @@ class ProductForm
                             ->numeric()
                             ->minValue(0)
                             ->required(fn ($get): bool => (bool) $get('is_local') && $get('unit') === 'gram')
-                            ->visible(fn ($get): bool => (bool) $get('is_local') && $get('unit') === 'gram')
-                            ->helperText(__('Customers can also order by kilogram. 1 kg = 1,000 grams.')),
+                            ->visible(fn ($get): bool => (bool) $get('is_local') && $get('unit') === 'gram'),
                         TextInput::make('imported_price_per_gram')
                             ->label(__('Imported price per gram'))
                             ->numeric()
