@@ -7,6 +7,7 @@ use App\Events\OrderCreated;
 use App\Http\Controllers\LivewireUploadController;
 use App\Listeners\OnOrderCreatedGenerateInvoiceAndNotify;
 use App\Models\Order;
+use App\Models\ProduceBox;
 use App\Models\Product;
 use App\Models\SeoSetting;
 use App\Observers\OrderObserver;
@@ -73,7 +74,9 @@ class AppServiceProvider extends ServiceProvider
                     'store.vegetables' => __('aldawy.vegetables_title'),
                     'store.services' => __('aldawy.services_title'),
                     'store.boxes' => __('aldawy.boxes_title'),
-                    'store.boxes.show' => request()->route('produceBox')?->getTranslation('name', app()->getLocale()) ?? __('aldawy.boxes_title'),
+                    'store.boxes.show' => ($box = request()->route('produceBox')) instanceof ProduceBox
+                        ? $box->seoTitle()
+                        : __('aldawy.boxes_title'),
                     'store.cart' => __('aldawy.cart_title'),
                     'store.checkout.thanks' => __('aldawy.checkout_thanks_title'),
                     'store.product' => request()->route('product')?->getTranslation('name', app()->getLocale()) ?? config('app.name'),
@@ -88,12 +91,17 @@ class AppServiceProvider extends ServiceProvider
                     'store.vegetables' => __('aldawy.vegetables_subtitle'),
                     'store.services' => __('aldawy.services_intro'),
                     'store.boxes' => __('aldawy.boxes_sub'),
-                    'store.boxes.show' => __('aldawy.box_subscribe_sub'),
+                    'store.boxes.show' => ($box = request()->route('produceBox')) instanceof ProduceBox
+                        ? $box->seoDescription()
+                        : __('aldawy.box_subscribe_sub'),
                     'store.cart' => __('aldawy.cart_sub'),
                     'store.checkout.thanks' => __('aldawy.checkout_thanks_meta'),
                     default => '',
                 };
             $og = SeoSetting::current()->og_image_url;
+            if ($route === 'store.boxes.show' && ($box = request()->route('produceBox')) instanceof ProduceBox && $box->cover_image_url) {
+                $og = $box->cover_image_url;
+            }
 
             $view->with('htmlTitle', trim($pageTitle).' — AL-DAWY');
             $view->with('pageMetaDescription', $pageDesc);

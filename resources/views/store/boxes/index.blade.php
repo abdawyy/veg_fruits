@@ -55,10 +55,18 @@
                             <h2 class="text-xl font-bold text-slate-800 dark:text-white">
                                 {{ $box->getTranslation('name', app()->getLocale()) }}
                             </h2>
-                            <p class="mt-2 text-2xl font-extrabold text-brand">
-                                {{ number_format((float) $box->price, 2) }}
-                                <span class="text-sm font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
-                            </p>
+                            @if ($summary = $box->contentsLabel())
+                                <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{{ $summary }}</p>
+                            @endif
+                            <div class="mt-3 flex flex-wrap items-baseline gap-2">
+                                @if ($box->hasSalePrice())
+                                    <span class="text-sm font-semibold text-slate-400 line-through">{{ number_format((float) $box->compare_at_price, 2) }}</span>
+                                @endif
+                                <p class="text-2xl font-extrabold text-brand">
+                                    {{ number_format((float) $box->price, 2) }}
+                                    <span class="text-sm font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
+                                </p>
+                            </div>
                             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                 {{ __('aldawy.box_items_count', ['count' => $box->items_count]) }}
                             </p>

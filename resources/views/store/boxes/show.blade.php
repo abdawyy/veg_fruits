@@ -18,11 +18,21 @@
                 <div>
                     <p class="aldawy-kicker mb-3">{{ __('aldawy.nav_boxes') }}</p>
                     <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl">{{ $box->getTranslation('name', $locale) }}</h1>
+                    @if ($box->getTranslation('description', $locale))
+                        <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">{{ $box->getTranslation('description', $locale) }}</p>
+                    @endif
                 </div>
-                <p class="text-3xl font-extrabold text-brand">
-                    {{ number_format((float) $box->price, 2) }}
-                    <span class="text-base font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
-                </p>
+                <div class="text-end">
+                    @if ($box->hasSalePrice())
+                        <p class="text-sm font-semibold text-slate-400 line-through">
+                            {{ number_format((float) $box->compare_at_price, 2) }} {{ config('aldawy.currency', 'EGP') }}
+                        </p>
+                    @endif
+                    <p class="text-3xl font-extrabold text-brand">
+                        {{ number_format((float) $box->price, 2) }}
+                        <span class="text-base font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -45,6 +55,9 @@
             <div class="lg:col-span-3">
                 <div class="aldawy-card p-6">
                     <h2 class="text-lg font-bold text-slate-800 dark:text-white">{{ __('aldawy.box_contents') }}</h2>
+                    @if ($box->contentsLabel($locale) !== '')
+                        <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $box->contentsLabel($locale) }}</p>
+                    @endif
                     <ul class="mt-4 space-y-2">
                         @forelse ($box->items as $item)
                             @if ($item->product)
