@@ -7,6 +7,7 @@ use App\Filament\Widgets\OrdersByCityChart;
 use App\Filament\Widgets\OrderStatusChart;
 use App\Filament\Widgets\SalesKpiStats;
 use App\Filament\Widgets\SalesTrendChart;
+use App\Filament\Widgets\TopBoxesByViewsChart;
 use App\Filament\Widgets\TopProductsByViewsChart;
 use App\Filament\Widgets\TopSellingProductsChart;
 use App\Support\Analytics\DashboardPeriod;
@@ -71,6 +72,7 @@ class Dashboard extends BaseDashboard
             OrdersByCityChart::class,
             TopSellingProductsChart::class,
             TopProductsByViewsChart::class,
+            TopBoxesByViewsChart::class,
             LatestOrdersTable::class,
         ];
     }

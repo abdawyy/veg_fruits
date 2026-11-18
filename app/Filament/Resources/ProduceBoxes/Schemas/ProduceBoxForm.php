@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\ProduceBoxes\Schemas;
 
+use App\Models\ProduceBox;
 use App\Models\Product;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -102,6 +104,46 @@ class ProduceBoxForm
                             ->defaultItems(0)
                             ->addActionLabel(__('Add product'))
                             ->columnSpanFull(),
+                    ]),
+                Section::make(__('Analytics'))
+                    ->description(__('Counts update when customers open this box on the shop.'))
+                    ->columns(2)
+                    ->visible(fn (string $operation): bool => $operation === 'edit')
+                    ->schema([
+                        Placeholder::make('analytics_total_views')
+                            ->label(__('Total page views'))
+                            ->content(fn (?ProduceBox $record): string => $record ? number_format((int) $record->view_count) : '—'),
+                        Placeholder::make('analytics_unique_visitors')
+                            ->label(__('Unique visitors'))
+                            ->content(function (?ProduceBox $record): string {
+                                if (! $record) {
+                                    return '—';
+                                }
+
+                                return number_format($record->unique_visitors_count ?? $record->views()->distinct('session_id')->count('session_id'));
+                            }),
+                        Placeholder::make('analytics_views_7d')
+                            ->label(__('Views (last 7 days)'))
+                            ->content(function (?ProduceBox $record): string {
+                                if (! $record) {
+                                    return '—';
+                                }
+
+                                $count = $record->box_views_7d ?? $record->views()->where('visited_at', '>=', now()->subDays(7))->count();
+
+                                return number_format((int) $count);
+                            }),
+                        Placeholder::make('analytics_views_30d')
+                            ->label(__('Views (last 30 days)'))
+                            ->content(function (?ProduceBox $record): string {
+                                if (! $record) {
+                                    return '—';
+                                }
+
+                                $count = $record->box_views_30d ?? $record->views()->where('visited_at', '>=', now()->subDays(30))->count();
+
+                                return number_format((int) $count);
+                            }),
                     ]),
             ]);
     }

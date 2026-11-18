@@ -38,6 +38,26 @@ class ProduceBoxesTable
                     ->placeholder('—'),
                 TextColumn::make('price')->label(__('Sale price'))->numeric(decimalPlaces: 2)->suffix(' EGP'),
                 TextColumn::make('items_count')->counts('items')->label(__('Items')),
+                TextColumn::make('view_count')
+                    ->label(__('Total views'))
+                    ->sortable()
+                    ->numeric()
+                    ->description(__('Box page loads')),
+                TextColumn::make('unique_visitors_count')
+                    ->label(__('Unique visitors'))
+                    ->numeric()
+                    ->sortable()
+                    ->default(0),
+                TextColumn::make('box_views_7d')
+                    ->label(__('Views (7d)'))
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('box_views_30d')
+                    ->label(__('Views (30d)'))
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')->boolean(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])

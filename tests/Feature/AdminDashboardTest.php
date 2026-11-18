@@ -9,6 +9,7 @@ use App\Filament\Widgets\OrdersByCityChart;
 use App\Filament\Widgets\OrderStatusChart;
 use App\Filament\Widgets\SalesKpiStats;
 use App\Filament\Widgets\SalesTrendChart;
+use App\Filament\Widgets\TopBoxesByViewsChart;
 use App\Filament\Widgets\TopProductsByViewsChart;
 use App\Filament\Widgets\TopSellingProductsChart;
 use App\Filament\Widgets\TopStorePathsChart;
@@ -107,7 +108,7 @@ final class AdminDashboardTest extends TestCase
 
         $widgets = [
             SalesKpiStats::class, SalesTrendChart::class, OrderStatusChart::class, OrdersByCityChart::class,
-            TopSellingProductsChart::class, TopProductsByViewsChart::class, LatestOrdersTable::class,
+            TopSellingProductsChart::class, TopProductsByViewsChart::class, TopBoxesByViewsChart::class, LatestOrdersTable::class,
             TrafficKpiStats::class, ActivityByHourChart::class, ActivityByWeekdayChart::class,
             VisitorLocationsChart::class, TrafficReferrersChart::class, TopStorePathsChart::class,
         ];

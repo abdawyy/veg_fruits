@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\OrderStatus;
 use App\Filament\Widgets\Concerns\HasDashboardPeriod;
 use App\Models\Order;
+use App\Models\ProduceBoxView;
 use App\Models\ProductView;
 use App\Models\SitePageView;
 use Filament\Widgets\ChartWidget;
@@ -48,6 +49,10 @@ abstract class ActivityPatternChart extends ChartWidget
             ? $this->bucket(ProductView::query()->whereBetween('visited_at', [$start, $end]), 'visited_at')
             : [];
 
+        $boxViews = Schema::hasTable('produce_box_views')
+            ? $this->bucket(ProduceBoxView::query()->whereBetween('visited_at', [$start, $end]), 'visited_at')
+            : [];
+
         $orders = $this->bucket(
             Order::query()
                 ->whereBetween('created_at', [$start, $end])
@@ -73,6 +78,16 @@ abstract class ActivityPatternChart extends ChartWidget
                     'data' => array_values($productViews),
                     'backgroundColor' => 'rgba(245, 158, 11, 0.5)',
                     'borderColor' => '#d97706',
+                    'borderWidth' => 1,
+                    'borderRadius' => 3,
+                    'yAxisID' => 'y',
+                    'order' => 2,
+                ],
+                [
+                    'label' => __('Box views'),
+                    'data' => array_values($boxViews),
+                    'backgroundColor' => 'rgba(22, 163, 74, 0.45)',
+                    'borderColor' => '#15803d',
                     'borderWidth' => 1,
                     'borderRadius' => 3,
                     'yAxisID' => 'y',

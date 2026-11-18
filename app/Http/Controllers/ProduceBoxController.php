@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Boxes\RecordProduceBoxViewAction;
 use App\Enums\SubscriptionInterval;
 use App\Models\City;
 use App\Models\ProduceBox;
@@ -28,6 +29,8 @@ final class ProduceBoxController extends Controller
     public function show(ProduceBox $produceBox): View
     {
         abort_unless($produceBox->is_active, 404);
+
+        app(RecordProduceBoxViewAction::class)->execute($produceBox);
 
         $produceBox->load(['items.product.category']);
 

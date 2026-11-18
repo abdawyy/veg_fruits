@@ -113,6 +113,11 @@ class ProduceBox extends Model
         return $this->hasMany(ProduceBoxItem::class);
     }
 
+    public function views(): HasMany
+    {
+        return $this->hasMany(ProduceBoxView::class);
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
