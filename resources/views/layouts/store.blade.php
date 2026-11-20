@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() === 'ar' ? 'ar-EG' : 'en-EG' }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,8 @@
     <meta name="geo.region" content="EG">
     <meta name="geo.placename" content="Egypt">
     <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_EG' }}">
+    <meta property="og:locale:alternate" content="{{ app()->getLocale() === 'ar' ? 'en_EG' : 'ar_EG' }}">
+    <link rel="canonical" href="{{ request()->fullUrlWithQuery(['locale' => app()->getLocale()]) }}">
     <link rel="alternate" hreflang="ar-EG" href="{{ request()->fullUrlWithQuery(['locale' => 'ar']) }}">
     <link rel="alternate" hreflang="en-EG" href="{{ request()->fullUrlWithQuery(['locale' => 'en']) }}">
     <link rel="alternate" hreflang="x-default" href="{{ request()->fullUrlWithQuery(['locale' => 'ar']) }}">
@@ -26,6 +28,19 @@
     @include('partials.aldawy-theme')
     <style>.font-brand { font-family: "Instrument Sans", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif; }</style>
     @include('partials.storefront-analytics')
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'GroceryStore',
+            'name' => 'AL-DAWY',
+            'url' => route('store.home'),
+            'areaServed' => ['@type' => 'Country', 'name' => 'Egypt'],
+            'availableLanguage' => ['Arabic', 'English'],
+            'currenciesAccepted' => 'EGP',
+            'paymentAccepted' => 'Cash',
+            'address' => ['@type' => 'PostalAddress', 'addressCountry' => 'EG'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+    </script>
 </head>
 <body
     class="aldawy-site-bg flex min-h-screen flex-col bg-transparent font-brand text-slate-800 antialiased selection:bg-brand/25 selection:text-brand-dark dark:text-slate-100"

@@ -38,14 +38,27 @@ final class SitemapController extends Controller
         });
 
         $body = '<?xml version="1.0" encoding="UTF-8"?>'
-            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">';
 
         foreach (array_unique($urls) as $url) {
-            $body .= '<url><loc>'.e($url).'</loc></url>';
+            $arabic = $this->withLocale($url, 'ar');
+            $english = $this->withLocale($url, 'en');
+            $body .= '<url><loc>'.e($arabic).'</loc>'
+                .'<xhtml:link rel="alternate" hreflang="ar-EG" href="'.e($arabic).'"/>'
+                .'<xhtml:link rel="alternate" hreflang="en-EG" href="'.e($english).'"/>'
+                .'<xhtml:link rel="alternate" hreflang="x-default" href="'.e($arabic).'"/>'
+                .'</url>';
         }
 
         $body .= '</urlset>';
 
         return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    private function withLocale(string $url, string $locale): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.'locale='.$locale;
     }
 }

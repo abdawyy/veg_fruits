@@ -53,7 +53,10 @@ final class EgyptVisibilityTest extends TestCase
             ->assertOk()
             ->assertSee('geo.region" content="EG"', false)
             ->assertSee('hreflang="ar-EG"', false)
-            ->assertSee('hreflang="en-EG"', false);
+            ->assertSee('hreflang="en-EG"', false)
+            ->assertSee('lang="en-EG"', false)
+            ->assertSee('GroceryStore', false)
+            ->assertSee('Egypt', false);
 
         $this->withHeader('Accept-Language', 'ar-EG,ar;q=0.9')
             ->get('/')
@@ -63,7 +66,7 @@ final class EgyptVisibilityTest extends TestCase
         $this->get(route('store.sitemap'))
             ->assertOk()
             ->assertSee(route('store.shop'), false)
-            ->assertSee(route('store.fruits'), false);
+            ->assertSee('hreflang="ar-EG"', false);
     }
 
     public function test_client_ip_prefers_the_cloudflare_visitor_address(): void

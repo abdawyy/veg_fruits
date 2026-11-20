@@ -16,7 +16,7 @@ final class StoreSeo
 
         return match ($routeName) {
             'store.home' => [
-                'title' => self::pick($seo, 'home_meta_title'.$suffix, config('app.name')),
+                'title' => self::pick($seo, 'home_meta_title'.$suffix, ''),
                 'description' => self::pick($seo, 'home_meta_description'.$suffix, ''),
             ],
             'store.shop' => [
