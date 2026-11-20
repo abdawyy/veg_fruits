@@ -7,6 +7,12 @@
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#16a34a">
     <title>{{ $htmlTitle ?? config('app.name').' — AL-DAWY' }}</title>
+    <meta name="geo.region" content="EG">
+    <meta name="geo.placename" content="Egypt">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_EG' }}">
+    <link rel="alternate" hreflang="ar-EG" href="{{ request()->fullUrlWithQuery(['locale' => 'ar']) }}">
+    <link rel="alternate" hreflang="en-EG" href="{{ request()->fullUrlWithQuery(['locale' => 'en']) }}">
+    <link rel="alternate" hreflang="x-default" href="{{ request()->fullUrlWithQuery(['locale' => 'ar']) }}">
     @if (! empty($pageMetaDescription))
         <meta name="description" content="{{ $pageMetaDescription }}">
     @endif

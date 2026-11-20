@@ -14,10 +14,12 @@ use App\Http\Controllers\InvoiceDownloadController;
 use App\Http\Controllers\ProduceBoxController;
 use App\Http\Controllers\ProductEstimateController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StorefrontController::class, 'home'])->name('store.home');
+Route::get('/sitemap.xml', SitemapController::class)->name('store.sitemap');
 Route::get('/shop', [StorefrontController::class, 'shop'])->name('store.shop');
 Route::get('/fruits', [StorefrontController::class, 'fruits'])->name('store.fruits');
 Route::get('/vegetables', [StorefrontController::class, 'vegetables'])->name('store.vegetables');

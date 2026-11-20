@@ -34,6 +34,32 @@ final class VisitorGeoLocator
     }
 
     /**
+     * Visitor IP, not the hosting proxy. Behind Cloudflare the edge IP is often in the US,
+     * which made Egyptian shoppers show up as United States.
+     */
+    public function clientIp(Request $request): string
+    {
+        if ($request->headers->has('CF-Ray')) {
+            $cloudflare = trim((string) $request->headers->get('CF-Connecting-IP', ''));
+            if (self::isPublicIp($cloudflare)) {
+                return $cloudflare;
+            }
+        }
+
+        $direct = (string) $request->ip();
+        if (! self::isPublicIp($direct)) {
+            foreach (explode(',', (string) $request->headers->get('X-Forwarded-For', '')) as $hop) {
+                $hop = trim($hop);
+                if (self::isPublicIp($hop)) {
+                    return $hop;
+                }
+            }
+        }
+
+        return $direct;
+    }
+
+    /**
      * Location for an IP via the configured HTTP service. Null when unavailable (retry later).
      *
      * @return array{country_code: ?string, country: ?string, region: ?string, city: ?string}|null

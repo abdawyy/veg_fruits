@@ -85,7 +85,7 @@ final class TrackSiteVisitor
         }
 
         $visitorId = $visitor->getKey();
-        $ip = (string) $request->ip();
+        $ip = $this->geo->clientIp($request);
 
         // Runs after the response is sent so the HTTP lookup never slows the page.
         app()->terminating(function () use ($visitorId, $ip): void {
@@ -143,8 +143,27 @@ final class TrackSiteVisitor
             return true;
         }
 
-        if ($path === 'up') {
+        if ($path === 'up' || $path === 'sitemap.xml' || $path === 'robots.txt') {
             return true;
+        }
+
+        return self::isBot((string) $request->userAgent());
+    }
+
+    private static function isBot(string $userAgent): bool
+    {
+        $ua = strtolower($userAgent);
+        if ($ua === '') {
+            return false;
+        }
+
+        foreach ([
+            'bot', 'crawl', 'spider', 'slurp', 'facebookexternalhit', 'preview',
+            'monitor', 'pingdom', 'uptime', 'headless', 'lighthouse',
+        ] as $needle) {
+            if (str_contains($ua, $needle)) {
+                return true;
+            }
         }
 
         return false;

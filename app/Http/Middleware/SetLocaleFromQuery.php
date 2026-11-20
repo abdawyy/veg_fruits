@@ -12,8 +12,17 @@ final class SetLocaleFromQuery
     {
         $locale = $request->query('locale');
         if (is_string($locale) && in_array($locale, ['en', 'ar'], true)) {
-            app()->setLocale($locale);
+            $request->session()->put('locale', $locale);
+        } else {
+            $locale = $request->session()->get('locale');
         }
+
+        if (! is_string($locale) || ! in_array($locale, ['en', 'ar'], true)) {
+            $preferred = strtolower((string) ($request->getLanguages()[0] ?? ''));
+            $locale = str_starts_with($preferred, 'ar') ? 'ar' : 'en';
+        }
+
+        app()->setLocale($locale);
 
         return $next($request);
     }
