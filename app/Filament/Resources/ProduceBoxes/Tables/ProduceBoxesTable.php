@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\ProduceBoxes\Tables;
 
+use App\Exports\ProduceBoxesExport;
 use App\Filament\Support\TableSearch;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -11,6 +13,8 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProduceBoxesTable
 {
@@ -66,6 +70,18 @@ class ProduceBoxesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('export_excel')
+                        ->label(__('Export Excel'))
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->action(function (Collection $records) {
+                            $ids = $records->pluck('id')->all();
+
+                            return Excel::download(
+                                new ProduceBoxesExport($ids),
+                                'produce-boxes-selected-'.now()->format('Y-m-d').'.xlsx',
+                            );
+                        }),
                     DeleteBulkAction::make(),
                 ]),
             ]);
