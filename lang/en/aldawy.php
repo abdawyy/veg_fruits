@@ -45,6 +45,9 @@ return [
     'search_no_results' => 'No products match “:q”. Try another word in English or Arabic.',
     'search_clear' => 'Clear search & show full catalog',
     'promo_banners' => 'Seasonal offers',
+    'banner_outer_boxes' => 'Produce boxes',
+    'banner_outer_boxes_sub' => 'One box, with the fruit and vegetables already chosen.',
+    'banner_outer_boxes_link' => 'All boxes',
     'hot_picks' => 'Hot right now',
     'photo_credit' => 'Product photos are illustrative stock images (e.g. Unsplash).',
 

@@ -46,6 +46,9 @@ return [
     'search_no_results' => 'لا توجد نتائج لـ «:q». جرّب كلمة أخرى بالعربي أو الإنجليزي.',
     'search_clear' => 'مسح البحث وعرض الكتالوج كاملاً',
     'promo_banners' => 'عروض الموسم',
+    'banner_outer_boxes' => 'صناديق الخضار',
+    'banner_outer_boxes_sub' => 'صندوق واحد، والفاكهة والخضار متختارين.',
+    'banner_outer_boxes_link' => 'كل الصناديق',
     'hot_picks' => 'الأكثر طلباً الآن',
     'photo_credit' => 'صور المنتجات توضيحية من مصادر عامة (مثل Unsplash).',
 

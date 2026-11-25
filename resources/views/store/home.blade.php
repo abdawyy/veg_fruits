@@ -5,7 +5,7 @@
 @endphp
 
 @section('content')
-    @include('store.partials.banners', ['banners' => $banners ?? collect()])
+    @include('store.partials.banners', ['banners' => $banners ?? collect(), 'boxes' => $boxes ?? collect()])
 
     @include('store.partials.trust-bar', ['productCount' => $featuredCount])
 

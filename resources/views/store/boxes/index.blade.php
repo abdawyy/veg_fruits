@@ -55,7 +55,9 @@
                             <h2 class="text-xl font-bold text-slate-800 dark:text-white">
                                 {{ $box->getTranslation('name', app()->getLocale()) }}
                             </h2>
-                            @if ($summary = $box->contentsLabel())
+                            @if ($boxText = $box->getTranslation('description', app()->getLocale()))
+                                <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{{ $boxText }}</p>
+                            @elseif ($summary = $box->contentsLabel())
                                 <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{{ $summary }}</p>
                             @endif
                             <div class="mt-3 flex flex-wrap items-baseline gap-2">

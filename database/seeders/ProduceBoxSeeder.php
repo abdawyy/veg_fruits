@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\ProduceBox;
 use App\Models\ProduceBoxItem;
 use App\Models\Product;
+use App\Support\ProduceBoxSeoCopy;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class ProduceBoxSeeder extends Seeder
 {
@@ -21,11 +23,19 @@ class ProduceBoxSeeder extends Seeder
             return;
         }
 
+        $copy = ProduceBoxSeoCopy::forSlug('weekly-essentials');
+        if ($copy === null) {
+            throw new RuntimeException('Missing SEO description for weekly-essentials');
+        }
+
         $box = ProduceBox::query()->updateOrCreate(
             ['slug->en' => 'weekly-essentials'],
             [
                 'name' => ['en' => 'Weekly essentials box', 'ar' => 'صندوق الأسبوع الأساسي'],
                 'slug' => ['en' => 'weekly-essentials', 'ar' => 'weekly-essentials'],
+                'description' => $copy['description'],
+                'meta_title' => $copy['meta_title'],
+                'meta_description' => $copy['meta_description'],
                 'price' => '199.0000',
                 'is_active' => true,
             ],

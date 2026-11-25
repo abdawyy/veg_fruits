@@ -67,22 +67,26 @@
         });
     </script>
 @endonce
-@if ($banners->isNotEmpty())
-    @php
-        $slideCount = $banners->count();
-    @endphp
+@php
+    $slideCount = $banners->count();
+    $outerBoxes = $boxes ?? collect();
+@endphp
+@if ($slideCount > 0 || $outerBoxes->isNotEmpty())
     <section
         class="border-b border-slate-200 bg-surface dark:border-slate-800 dark:bg-slate-900/60"
         aria-label="{{ __('aldawy.promo_banners') }}"
-        aria-roledescription="carousel"
-        x-data="homeBannerCarousel({{ $slideCount }})"
-        x-init="init()"
-        @mouseenter="stop()"
-        @mouseleave="start()"
-        @keydown.left.window.prevent="prev()"
-        @keydown.right.window.prevent="next()"
+        @if ($slideCount > 0)
+            aria-roledescription="carousel"
+            x-data="homeBannerCarousel({{ $slideCount }})"
+            x-init="init()"
+            @mouseenter="stop()"
+            @mouseleave="start()"
+            @keydown.left.window.prevent="prev()"
+            @keydown.right.window.prevent="next()"
+        @endif
     >
         <div class="relative mx-auto max-w-6xl px-4 py-10">
+            @if ($slideCount > 0)
             <div
                 class="home-banner__viewport"
                 @pointerdown="pointerDown($event)"
@@ -206,6 +210,44 @@
                     >
                         <span aria-hidden="true">›</span>
                     </button>
+                </div>
+            @endif
+            @endif
+
+            @if ($outerBoxes->isNotEmpty())
+                <div class="{{ $slideCount > 0 ? 'mt-8 border-t border-slate-200 pt-8 dark:border-slate-700' : '' }}" data-banner-outer-boxes>
+                    <div class="flex items-end justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900 dark:text-white">{{ __('aldawy.banner_outer_boxes') }}</h2>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.banner_outer_boxes_sub') }}</p>
+                        </div>
+                        <a href="{{ route('store.boxes') }}" class="shrink-0 text-sm font-semibold text-brand hover:underline">
+                            {{ __('aldawy.banner_outer_boxes_link') }}
+                        </a>
+                    </div>
+                    <div class="mt-4 flex gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        @foreach ($outerBoxes as $box)
+                            @php $boxLocale = app()->getLocale(); @endphp
+                            <a
+                                href="{{ route('store.boxes.show', $box) }}"
+                                class="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-start shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+                            >
+                                <span class="relative aspect-[16/10] w-full bg-surface dark:bg-slate-800">
+                                    <img src="{{ $box->cover_image_url }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                                </span>
+                                <span class="flex flex-1 flex-col px-4 py-3">
+                                    <span class="font-bold text-slate-800 dark:text-white">{{ $box->getTranslation('name', $boxLocale) }}</span>
+                                    @if ($boxText = $box->getTranslation('description', $boxLocale))
+                                        <span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{{ $boxText }}</span>
+                                    @endif
+                                    <span class="mt-3 text-sm font-extrabold text-brand">
+                                        {{ number_format((float) $box->price, 2) }}
+                                        <span class="text-xs font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
+                                    </span>
+                                </span>
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         </div>

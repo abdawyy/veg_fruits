@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\HomeBanner;
 use App\Models\PackagingType;
 use App\Models\PreparationService;
+use App\Models\ProduceBox;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -17,6 +18,7 @@ final class StorefrontController extends Controller
     public function home(): View
     {
         $banners = HomeBanner::query()->active()->ordered()->get();
+        $boxes = ProduceBox::query()->active()->with(['items.product'])->orderBy('id')->get();
 
         $categories = Category::query()
             ->where('is_active', true)
@@ -26,7 +28,7 @@ final class StorefrontController extends Controller
 
         $featuredCount = Product::query()->active()->count();
 
-        return view('store.home', compact('categories', 'featuredCount', 'banners'));
+        return view('store.home', compact('categories', 'featuredCount', 'banners', 'boxes'));
     }
 
     public function shop(Request $request): View
