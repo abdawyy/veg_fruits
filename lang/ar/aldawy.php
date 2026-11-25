@@ -398,6 +398,7 @@ return [
     'footer_cod_note' => 'الدفع الأساسي: نقداً عند استلام الطلب.',
     'product_fresh_badge' => 'طازج',
     'product_bilingual_hint' => 'ابحث بالاسم العربي أو الإنجليزي',
+    'product_guide_heading' => 'عن :name',
     'shop_browse_categories' => 'انتقل للقسم',
     'hero_stat' => 'أكثر من :count صنف في قائمتنا',
     'shop_products_available' => ':count منتج متاح',

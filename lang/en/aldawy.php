@@ -396,6 +396,7 @@ return [
     'footer_cod_note' => 'Primary payment: cash on delivery when your order arrives.',
     'product_fresh_badge' => 'Fresh',
     'product_bilingual_hint' => 'Search by English or Arabic name',
+    'product_guide_heading' => 'About :name',
     'shop_browse_categories' => 'Jump to category',
     'hero_stat' => ':count+ products in our catalog',
     'shop_products_available' => ':count products available',

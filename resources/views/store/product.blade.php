@@ -57,7 +57,10 @@
                 </h1>
                 <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.product_bilingual_hint') }}</p>
 
-                <p class="mt-6 text-base leading-relaxed text-slate-600 dark:text-slate-300">
+                <h2 class="mt-6 text-lg font-bold text-slate-900 dark:text-white">
+                    {{ __('aldawy.product_guide_heading', ['name' => $product->getTranslation('name', $locale)]) }}
+                </h2>
+                <p class="mt-2 text-base leading-relaxed text-slate-600 dark:text-slate-300">
                     {{ $product->getTranslation('description', $locale) }}
                 </p>
 
@@ -164,4 +167,32 @@
             </nav>
         @endif
     </div>
+
+    @php
+        $schemaUnit = $product->defaultOrderUnit();
+        $schemaPrice = \App\Support\StoreCart::unitPriceForProduct($product, $schemaUnit, $product->defaultOrigin());
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $product->getTranslation('name', $locale),
+            'description' => trim(strip_tags((string) $product->getTranslation('description', $locale))),
+            'sku' => (string) $product->sku,
+            'brand' => ['@type' => 'Brand', 'name' => 'AL-DAWY'],
+            'offers' => [
+                '@type' => 'Offer',
+                'url' => route('store.product', $product),
+                'priceCurrency' => config('aldawy.currency', 'EGP'),
+                'availability' => $product->isOutOfStock()
+                    ? 'https://schema.org/OutOfStock'
+                    : 'https://schema.org/InStock',
+            ],
+        ];
+        if ($product->display_image_url) {
+            $schema['image'] = $product->display_image_url;
+        }
+        if ($schemaPrice !== null) {
+            $schema['offers']['price'] = $schemaPrice;
+        }
+    @endphp
+    <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 @endsection

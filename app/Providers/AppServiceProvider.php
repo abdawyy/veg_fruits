@@ -102,8 +102,13 @@ class AppServiceProvider extends ServiceProvider
             if ($route === 'store.boxes.show' && ($box = request()->route('produceBox')) instanceof ProduceBox && $box->cover_image_url) {
                 $og = $box->cover_image_url;
             }
+            if ($route === 'store.product' && ($product = request()->route('product')) instanceof Product && $product->display_image_url) {
+                $og = $product->display_image_url;
+            }
 
-            $view->with('htmlTitle', trim($pageTitle).' — AL-DAWY');
+            $pageTitle = trim((string) $pageTitle);
+            $htmlTitle = str_ends_with($pageTitle, 'AL-DAWY') ? $pageTitle : $pageTitle.' — AL-DAWY';
+            $view->with('htmlTitle', $htmlTitle);
             $view->with('pageMetaDescription', $pageDesc);
             $view->with('ogImageUrl', $og);
             $view->with('cms', fn (string $key, string $fallback = ''): string => Cms::text($key, $fallback));

@@ -4,9 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\ProduceSeoCopy;
 use App\Support\ProduceStockPhoto;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class ProduceCatalogSeeder extends Seeder
 {
@@ -50,6 +52,10 @@ class ProduceCatalogSeeder extends Seeder
             [$en, $ar, $suffix, $priceKg, $pricePiece, $byPiece] = $row;
             $sku = $skuPrefix.'-'.$suffix;
             $slugBase = Str::slug($en);
+            $description = ProduceSeoCopy::forName($en);
+            if ($description === null) {
+                throw new RuntimeException('Missing SEO description for '.$en);
+            }
 
             Product::query()->updateOrCreate(
                 ['sku' => $sku],
@@ -57,10 +63,7 @@ class ProduceCatalogSeeder extends Seeder
                     'category_id' => $categoryId,
                     'name' => ['en' => $en, 'ar' => $ar],
                     'slug' => ['en' => $slugBase, 'ar' => $slugBase],
-                    'description' => [
-                        'en' => 'Premium fresh '.$en.' — hand-selected for quality.',
-                        'ar' => 'طازج ومختار بعناية — '.$ar,
-                    ],
+                    'description' => $description,
                     'image_url' => ProduceStockPhoto::urlFor($en, $sku),
                     'image_path' => null,
                     'price_per_kg' => $priceKg,

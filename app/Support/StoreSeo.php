@@ -62,11 +62,35 @@ final class StoreSeo
         $name = $product->getTranslation('name', $loc);
         $suffixText = self::pick($seo, 'product_meta_title_suffix'.$suffix, 'AL-DAWY');
         $title = trim($name.' — '.$suffixText);
-        $desc = strip_tags((string) $product->getTranslation('description', $loc));
+        $desc = self::metaSnippet((string) $product->getTranslation('description', $loc));
 
         return [
             'title' => $title,
-            'description' => mb_substr($desc, 0, 300),
+            'description' => $desc,
         ];
+    }
+
+    /** Search snippets stay on a sentence boundary, inside the length Google shows. */
+    private static function metaSnippet(string $text): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags($text)) ?? '');
+        $limit = 160;
+
+        if ($text === '' || mb_strlen($text) <= $limit) {
+            return $text;
+        }
+
+        $window = mb_substr($text, 0, $limit);
+        $period = mb_strrpos($window, '.');
+        if ($period !== false && $period >= 40) {
+            return mb_substr($window, 0, $period + 1);
+        }
+
+        $space = mb_strrpos($window, ' ');
+        if ($space !== false && $space >= 40) {
+            return rtrim(mb_substr($window, 0, $space), '.,;:،');
+        }
+
+        return $window;
     }
 }
