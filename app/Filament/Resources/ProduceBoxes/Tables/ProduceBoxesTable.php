@@ -63,6 +63,7 @@ class ProduceBoxesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')->boolean(),
+                IconColumn::make('show_card_input')->label(__('Card input'))->boolean(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
             ->recordActions([

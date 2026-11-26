@@ -9,8 +9,10 @@ use App\Models\ProduceBox;
 use App\Payments\PaymentGatewayResolver;
 use App\Support\StoreCart;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final class ProduceBoxController extends Controller
 {
@@ -52,21 +54,37 @@ final class ProduceBoxController extends Controller
         ]);
     }
 
-    public function addToCart(Request $request, ProduceBox $produceBox): RedirectResponse
+    public function addToCart(Request $request, ProduceBox $produceBox): RedirectResponse|JsonResponse
     {
         abort_unless($produceBox->is_active, 404);
 
         if ($produceBox->items()->count() === 0) {
-            return back()->withErrors(['box' => __('aldawy.box_has_no_items')]);
+            throw ValidationException::withMessages([
+                'box' => __('aldawy.box_has_no_items'),
+            ]);
         }
+
+        $data = $request->validate([
+            'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
+        ]);
+        $quantity = $produceBox->show_card_input ? (int) ($data['quantity'] ?? 1) : 1;
 
         StoreCart::addBox(
             $produceBox->id,
             (string) $produceBox->price,
+            (string) $quantity,
         );
+
+        $message = __('aldawy.box_added_to_cart');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'cart_line_count' => StoreCart::lineCount(),
+            ]);
+        }
 
         return redirect()
             ->route('store.cart')
-            ->with('status', __('aldawy.box_added_to_cart'));
+            ->with('status', $message);
     }
 }

@@ -14,6 +14,9 @@
         @media (min-width: 768px) { .home-banner__copy { padding: 2.5rem; } }
         .home-banner__progress { position: relative; height: 3px; margin-top: 1rem; overflow: hidden; border-radius: 999px; background: rgb(203 213 225); }
         .dark .home-banner__progress { background: rgb(71 85 105); }
+        .box-carousel__viewport { overflow: hidden; }
+        .box-carousel__track { display: flex; transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1); }
+        .box-carousel__card { flex: 0 0 calc(100% / var(--box-per-view, 1)); min-width: 0; padding-inline: 0.5rem; }
         .home-banner__progress-bar { display: block; height: 100%; width: 100%; transform-origin: left; background: #16a34a; animation: home-banner-progress var(--banner-ms, 6800ms) linear forwards; }
         [dir='rtl'] .home-banner__progress-bar { transform-origin: right; }
         @keyframes home-banner-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -24,6 +27,25 @@
                 return;
             }
             Alpine.__homeBannerCarousel = true;
+            Alpine.data('boxCardCarousel', (total) => ({
+                active: 0,
+                total: Number(total) || 0,
+                perView: 1,
+                init() { this.measure(); },
+                measure() {
+                    const width = this.$el.clientWidth || window.innerWidth;
+                    const next = width >= 1024 ? 3 : (width >= 640 ? 2 : 1);
+                    this.perView = next;
+                    if (this.active > this.maxIndex()) this.active = this.maxIndex();
+                },
+                maxIndex() { return Math.max(0, this.total - this.perView); },
+                next() { this.active = this.active >= this.maxIndex() ? 0 : this.active + 1; },
+                prev() { this.active = this.active <= 0 ? this.maxIndex() : this.active - 1; },
+                trackStyle() {
+                    const shift = (this.active * 100) / this.perView;
+                    return `transform: translate3d(${shift * -1}%, 0, 0)`;
+                },
+            }));
             Alpine.data('homeBannerCarousel', (total) => ({
                 active: 0,
                 total: Number(total) || 1,
@@ -215,38 +237,69 @@
             @endif
 
             @if ($outerBoxes->isNotEmpty())
-                <div class="{{ $slideCount > 0 ? 'mt-8 border-t border-slate-200 pt-8 dark:border-slate-700' : '' }}" data-banner-outer-boxes>
+                @php $boxCount = $outerBoxes->count(); @endphp
+                <div
+                    class="{{ $slideCount > 0 ? 'mt-8 border-t border-slate-200 pt-8 dark:border-slate-700' : '' }}"
+                    data-banner-outer-boxes
+                    data-box-carousel
+                    x-data="boxCardCarousel({{ $boxCount }})"
+                    x-init="init()"
+                    @resize.window="measure()"
+                >
                     <div class="flex items-end justify-between gap-4">
                         <div>
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white">{{ __('aldawy.banner_outer_boxes') }}</h2>
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('aldawy.banner_outer_boxes_sub') }}</p>
                         </div>
-                        <a href="{{ route('store.boxes') }}" class="shrink-0 text-sm font-semibold text-brand hover:underline">
-                            {{ __('aldawy.banner_outer_boxes_link') }}
-                        </a>
-                    </div>
-                    <div class="mt-4 flex gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        @foreach ($outerBoxes as $box)
-                            @php $boxLocale = app()->getLocale(); @endphp
-                            <a
-                                href="{{ route('store.boxes.show', $box) }}"
-                                class="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-start shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-                            >
-                                <span class="relative aspect-[16/10] w-full bg-surface dark:bg-slate-800">
-                                    <img src="{{ $box->cover_image_url }}" alt="" class="h-full w-full object-cover" loading="lazy">
-                                </span>
-                                <span class="flex flex-1 flex-col px-4 py-3">
-                                    <span class="font-bold text-slate-800 dark:text-white">{{ $box->getTranslation('name', $boxLocale) }}</span>
-                                    @if ($boxText = $box->getTranslation('description', $boxLocale))
-                                        <span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{{ $boxText }}</span>
-                                    @endif
-                                    <span class="mt-3 text-sm font-extrabold text-brand">
-                                        {{ number_format((float) $box->price, 2) }}
-                                        <span class="text-xs font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
-                                    </span>
-                                </span>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <a href="{{ route('store.boxes') }}" class="text-sm font-semibold text-brand hover:underline">
+                                {{ __('aldawy.banner_outer_boxes_link') }}
                             </a>
-                        @endforeach
+                            <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 shadow-sm transition hover:bg-surface dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" @click="prev()" x-show="maxIndex() > 0" aria-label="{{ __('aldawy.banner_boxes_prev') }}">
+                                <span aria-hidden="true">‹</span>
+                            </button>
+                            <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 shadow-sm transition hover:bg-surface dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" @click="next()" x-show="maxIndex() > 0" aria-label="{{ __('aldawy.banner_boxes_next') }}">
+                                <span aria-hidden="true">›</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="box-carousel__viewport mt-4" :style="`--box-per-view: ${perView}`">
+                        <div class="box-carousel__track" dir="ltr" :style="trackStyle()">
+                            @foreach ($outerBoxes as $box)
+                                @php $boxLocale = app()->getLocale(); @endphp
+                                <article class="box-carousel__card" data-box-card dir="{{ $boxLocale === 'ar' ? 'rtl' : 'ltr' }}">
+                                    <div class="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-start shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                                        <a href="{{ route('store.boxes.show', $box) }}" class="block">
+                                            <span class="relative block aspect-[16/10] w-full bg-surface dark:bg-slate-800">
+                                                <img src="{{ $box->cover_image_url }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                                            </span>
+                                            <span class="flex flex-col px-4 pt-3">
+                                                <span class="font-bold text-slate-800 dark:text-white">{{ $box->getTranslation('name', $boxLocale) }}</span>
+                                                @if ($boxText = $box->getTranslation('description', $boxLocale))
+                                                    <span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{{ $boxText }}</span>
+                                                @endif
+                                                <span class="mt-3 text-sm font-extrabold text-brand">
+                                                    {{ number_format((float) $box->price, 2) }}
+                                                    <span class="text-xs font-semibold text-slate-500">{{ config('aldawy.currency', 'EGP') }}</span>
+                                                </span>
+                                            </span>
+                                        </a>
+                                        <form method="post" action="{{ route('store.boxes.cart', $box) }}" data-ajax-cart class="mt-auto flex items-end gap-2 px-4 py-3">
+                                            @csrf
+                                            @if ($box->show_card_input)
+                                                <div class="min-w-0 flex-1">
+                                                    <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300" for="box-qty-{{ $box->id }}">{{ __('aldawy.banner_boxes_qty') }}</label>
+                                                    <input id="box-qty-{{ $box->id }}" name="quantity" type="number" min="1" max="99" step="1" value="1" class="aldawy-input !w-full !py-2 !text-sm">
+                                                </div>
+                                            @else
+                                                <input type="hidden" name="quantity" value="1">
+                                            @endif
+                                            <button type="submit" class="aldawy-btn-primary !px-3 !py-2.5 !text-xs">{{ __('aldawy.box_add_to_cart') }}</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             @endif

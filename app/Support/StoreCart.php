@@ -236,12 +236,13 @@ final class StoreCart
         session([self::SESSION_KEY => $lines]);
     }
 
-    public static function addBox(int $produceBoxId, ?string $unitPriceSnapshot = null): void
+    public static function addBox(int $produceBoxId, ?string $unitPriceSnapshot = null, string $quantity = '1'): void
     {
+        $quantity = self::boxQuantity($quantity);
         $newLine = [
             'type' => self::KIND_BOX,
             'produce_box_id' => $produceBoxId,
-            'quantity' => '1',
+            'quantity' => $quantity,
             'unit_price_snapshot' => $unitPriceSnapshot !== null
                 ? DecimalMath::normalizeNumericString($unitPriceSnapshot)
                 : null,
@@ -251,6 +252,12 @@ final class StoreCart
         $key = self::lineKey($newLine);
         foreach ($lines as $i => $line) {
             if (self::lineKey($line) === $key) {
+                $lines[$i]['quantity'] = self::boxQuantity(bcadd((string) ($lines[$i]['quantity'] ?? '0'), $quantity, 4));
+                if (($lines[$i]['unit_price_snapshot'] ?? null) === null && $newLine['unit_price_snapshot'] !== null) {
+                    $lines[$i]['unit_price_snapshot'] = $newLine['unit_price_snapshot'];
+                }
+                session([self::SESSION_KEY => $lines]);
+
                 return;
             }
         }
@@ -478,7 +485,7 @@ final class StoreCart
                 }
 
                 $unitPrice = DecimalMath::normalizeNumericString((string) $box->price);
-                $quantity = '1';
+                $quantity = self::boxQuantity((string) ($row['quantity'] ?? '1'));
                 $lineSubtotal = DecimalMath::mul($unitPrice, $quantity);
                 $snapshot = isset($row['unit_price_snapshot']) && $row['unit_price_snapshot'] !== ''
                     ? DecimalMath::normalizeNumericString((string) $row['unit_price_snapshot'])
@@ -585,7 +592,7 @@ final class StoreCart
             return [
                 'type' => self::KIND_BOX,
                 'produce_box_id' => (int) $row['produce_box_id'],
-                'quantity' => '1',
+                'quantity' => self::boxQuantity((string) ($row['quantity'] ?? '1')),
                 'unit_price_snapshot' => $snapshot,
             ];
         }
@@ -672,6 +679,13 @@ final class StoreCart
             self::UNIT_GRAM => self::UNIT_GRAM,
             default => self::UNIT_KG,
         };
+    }
+
+    private static function boxQuantity(string $qty): string
+    {
+        $quantity = self::normalizeQuantity($qty, self::UNIT_PIECE);
+
+        return (string) min(99, max(1, (int) $quantity));
     }
 
     private static function normalizeQuantity(string $qty, string $unit): string

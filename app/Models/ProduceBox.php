@@ -27,6 +27,7 @@ class ProduceBox extends Model
         'price',
         'compare_at_price',
         'is_active',
+        'show_card_input',
     ];
 
     protected static function booted(): void
@@ -53,6 +54,7 @@ class ProduceBox extends Model
     {
         return [
             'is_active' => 'boolean',
+            'show_card_input' => 'boolean',
             'price' => 'decimal:4',
             'compare_at_price' => 'decimal:4',
         ];

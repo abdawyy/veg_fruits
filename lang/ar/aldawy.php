@@ -49,6 +49,10 @@ return [
     'banner_outer_boxes' => 'صناديق الخضار',
     'banner_outer_boxes_sub' => 'صندوق واحد، والفاكهة والخضار متختارين.',
     'banner_outer_boxes_link' => 'كل الصناديق',
+    'banner_boxes_qty' => 'الكمية',
+    'banner_boxes_prev' => 'الصناديق السابقة',
+    'banner_boxes_next' => 'الصناديق التالية',
+    'banner_boxes_group' => 'صناديق :n',
     'hot_picks' => 'الأكثر طلباً الآن',
     'photo_credit' => 'صور المنتجات توضيحية من مصادر عامة (مثل Unsplash).',
 

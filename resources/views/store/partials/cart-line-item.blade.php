@@ -28,7 +28,7 @@
                     <p class="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-200">{{ __('aldawy.cart_line_price_changed') }}</p>
                 @endif
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-                    <span class="text-sm text-slate-500">1 {{ __('aldawy.per_box') }}</span>
+                    <span class="text-sm text-slate-500">{{ (int) $row['quantity'] }} {{ __('aldawy.per_box') }}</span>
                     <form method="post" action="{{ route('store.cart.remove') }}" onsubmit="return confirm('{{ __('aldawy.cart_remove_confirm') }}');">
                         @csrf
                         <input type="hidden" name="line" value="{{ $line }}">

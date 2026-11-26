@@ -48,6 +48,10 @@ return [
     'banner_outer_boxes' => 'Produce boxes',
     'banner_outer_boxes_sub' => 'One box, with the fruit and vegetables already chosen.',
     'banner_outer_boxes_link' => 'All boxes',
+    'banner_boxes_qty' => 'Quantity',
+    'banner_boxes_prev' => 'Previous boxes',
+    'banner_boxes_next' => 'Next boxes',
+    'banner_boxes_group' => 'Boxes :n',
     'hot_picks' => 'Hot right now',
     'photo_credit' => 'Product photos are illustrative stock images (e.g. Unsplash).',
 

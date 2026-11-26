@@ -28,6 +28,10 @@ class ProduceBoxForm
                         TextInput::make('slug.en')->label(__('Slug (English)'))->maxLength(255),
                         TextInput::make('slug.ar')->label(__('Slug (Arabic)'))->maxLength(255),
                         Toggle::make('is_active')->default(true),
+                        Toggle::make('show_card_input')
+                            ->label(__('Quantity input on the home card'))
+                            ->helperText(__('Show a quantity field on this box in the home carousel. Turn it off to hide the field.'))
+                            ->default(true),
                         FileUpload::make('image_path')
                             ->label(__('Box image'))
                             ->image()
